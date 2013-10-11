@@ -6,56 +6,16 @@
 %-------------------------------------------------------------------------------
 % Uso de pacotes
 %-------------------------------------------------------------------------------
-\usepackage[utf8]{inputenc}        % codificaçao do arquivo de entrada
-\usepackage{lmodern}               % uso da fonte Latin Modern
-\usepackage[T1]{fontenc}           % codificaçao da fonte no arquivo de saida
-\usepackage{geometry}              % customizaçao do formato de pagina
-\usepackage[hidelinks]{hyperref}   % uso de hyperlinks
-\usepackage{listings}              % uso de blocos de codigo-fonte
-\usepackage{color}                 % uso de cores customizadas
-\usepackage{graphicx}              % inserçao de figuras externas
-
-%-------------------------------------------------------------------------------
-% Configuraçao de pagina e paragrafo
-%-------------------------------------------------------------------------------
-\geometry{hmargin={3cm,3cm}}      % horizontal margin: left = 3cm, right = 3cm
-\geometry{vmargin={3cm,3cm}}      % vertical margin: top = 3cm, bottom = 3cm
-\setlength{\headheight}{15pt}     % altura do cabeçalho = 15pt (evita o warning)
-\setlength{\parindent}{0cm}       % paragrafos sem nenhuma indentaçao
-\setlength{\parskip}{10pt}        % espaçamento entre paragrafos = 10pt
-\setlength{\fboxsep}{6pt}         % margem dos blocos de texto = 6pt
-
-%-------------------------------------------------------------------------------
-% Customizaçao de cabeçalhos e rodapes
-%-------------------------------------------------------------------------------
-\pagestyle{empty}                 % cabeçalho vazio e rodape com numero de pagina
-
-%-------------------------------------------------------------------------------
-% Definiçoes de macros
-%-------------------------------------------------------------------------------
-\definecolor{lime_green}{rgb}{0, 0.6, 0}
-\newcommand{\ufrgs}{Universidade Federal do Rio Grande do Sul}
-
-%-------------------------------------------------------------------------------
-% Configuração das listagens
-%-------------------------------------------------------------------------------
-\lstloadlanguages{Matlab}
-\lstset{
-  language         = Matlab,
-  extendedchars    = true,
-  breaklines       = true,
-  framesep         = 5pt,
-  captionpos       = b,
-  frame            = lines,
-  basicstyle       = \ttfamily\small,
-  commentstyle     = \color{lime_green},
-  showstringspaces = false
-}
+\usepackage{sbc-template}               % uso da formataçao de artigos da SBC
+\usepackage[brazil]{babel}              % codificaçao do arquivo de entrada
+\usepackage[utf8]{inputenc}             % codificaçao do arquivo de entrada
+\usepackage[T1]{fontenc}                % codificaçao da fonte na saida
+\usepackage{graphicx}                   % inserçao de figuras externas
 
 %-------------------------------------------------------------------------------
 % Hifenização de palavras especiais
 %-------------------------------------------------------------------------------
-\hyphenation{UFRGS}
+\hyphenation{UFRGS MATLAB}
 
 %-------------------------------------------------------------------------------
 % Estilo da bibliografia
