@@ -15,9 +15,9 @@ Este método é baseado em dois pontos-chave: (i) medida do desvio de segmento S
 \subsection{Pré-processamento}
 Nesta etapa, um sinal de entrada discreto contendo as amplitudes normalizadas\footnote{aqui, normalizado significa $(Amplitude - Deslocamento) / Ganho$} do ECG é processado para redução de ruído, segmentação em ondas características, eliminação de extra-sístoles ventriculares e, por último, remoção da linha de base.
 
-A redução de ruído é alcançada com a aplicação um filtro passa-baixas de Butterworth de 4\textordfeminine\ ordem e frequência de corte igual a 40Hz. O sinal filtrado é então submetido a um procedimento de segmentação, em que as ondas características de cada batida são identificadas. Seguindo a especificação, utilizou-se um algoritmo descrito em \cite{Sun05}. Na saída obtêm-se as localizações de início, pico e fim de cada onda característica no eixo temporal.
+A redução de ruído é alcançada com a aplicação um filtro passa-baixas de Butterworth de 4\textordfeminine\ ordem e frequência de corte igual a 40Hz. O sinal filtrado é então submetido a um procedimento de segmentação, em que as ondas características de cada batida são identificadas. Seguindo a especificação, utilizou-se um algoritmo descrito em \cite{Sun05}. Na saída obtêm-se as localizações de início, pico e fim de cada onda característica.
 
-Após a segmentação, cada batida é classificada como normal ou extra-sístole ventricular (também chamada PVC, do inglês \emph{premature ventricular contractions}). Utiliza-se para este processo o algoritmo proposto em \cite{Couceiro08}. As PVCs são então removidas da lista de batidas do ECG, e somente aquelas classificadas como normais serão analisadas nas etapas posteriores.
+Após a segmentação, cada batida é classificada como normal ou extra-sístole ventricular (abreviada por PVC, do inglês \emph{premature ventricular contractions}) usando o algoritmo proposto em \cite{Couceiro08}. As PVCs são então removidas da lista de batidas do ECG, e somente aquelas classificadas como normais serão analisadas nas etapas posteriores.
 
 O último procedimento nesta etapa consiste em extrair do sinal de ECG a linha de base, e subtraí-la do próprio sinal afim de torná-lo mais ``bem-comportado''. Isso é necessário para as próximas etapas, pois alguns procedimentos exigem que as batidas estejam bem alinhadas com o nível de amplitude zero.
 
@@ -27,15 +27,18 @@ Nesta etapa, dois grupos de características são extraídos do ECG, quais sejam
 \subsubsection{Medida do desvio de segmento ST}
 Para compor o primeiro grupo de características, duas medidas são obtidas através de dois métodos distintos. Um deles é baseado na localização dos picos de onda R, de acordo com o algoritmo proposto em \cite{Pang05}. O outro é derivado de uma análise tempo-frequencial do ECG usando a transformada de Wigner-Ville, conforme descrito abaixo.
 
-Explicação do método de medida do desvio de segmento ST baseado na transformada de Wigner-Ville\ldots
-
+A distribuição de Wigner-Ville de um sinal contínuo permite representar em detalhes a distribuição dos componentes espectrais do sinal no eixo temporal. Ela pode ser definida pela equação abaixo.
 \begin{equation} \label{equ:wigner_ville}
     W_x(t,f) = \int_{-\infty}^{\infty} x\left( t+\frac{\tau}{2} \right) x^*\left( t-\frac{\tau}{2} \right) e^{-j2\pi f \tau} d\tau
 \end{equation}
-
+onde o termo dependente de $x$ é a função de autocorrelação instantânea, e o operador $^*$ indica o conjugado complexo. A correspondente em tempo discreto, chamada pseudo-transformada de Wigner-Ville, é dada pela equação abaixo.
 \begin{equation} \label{equ:pseudo_wigner_ville}
     W_x(nT,f) = 2T\sum_{-L}^{L}x(n+p)x^*(n-p)w(p)w^*(-p)e^{-j4\pi f\tau}
 \end{equation}
+
+Nesta equação, $T$ é o período de amostragem e $w$ é uma janela simétrica de largura $2L+1$. No algoritmo proposto não foi estabelecido um valor para $L$, mas levamos em consideração o fato de que o cálculo é realizado em menos tempo se a largura da janela for uma potência de 2. Portanto, adaptamos o algoritmo para tomar uma janela de largura $2^{\lceil\log_2(0.1Fs)\rceil}$, ou seja, a primeira potência de 2 maior ou igual ao número de amostras em $100ms$ do sinal (amostrado a uma taxa $Fs$). Isso garante que a janela englobe um complexo QRS por inteiro.
+
+Após a transformação, soma-se os valores absolutos das componentes de baixa frequência do sinal em dois intervalos de tempo distintos: um à esquerda do pico de onda R, e outro à direita do mesmo ponto. O resultado nos dá informações sobre a concentração de energia nos dois intervalos, e o que buscamos é o ponto mínimo em cada um deles. O ponto mínimo à esquerda é o chamado ponto isoelétrico, enquanto o ponto mínimo à direita é chamado ponto J. Estes conceitos são discutidos em detalhe em \cite{Rocha10}, mas nos limitamos aqui em mencionar que a medida do desvio ST é a diferença entre as amplitudes nos pontos J e isoelétricos: $Signal(J_k) - Signal(I_k)$, onde $k$ é o índice da batida.
 
 \subsubsection{Caracterização do complexo QRS e da onda T}
 Para o segundo grupo de características, os autores propuseram uma técnica baseada em funções de Hermite. Uma função de Hermite de ordem $n$ pode ser expressa como o produto de uma Gaussiana com um polinômio de Hermite, conforme a equação abaixo.
@@ -48,7 +51,7 @@ Usando esta definição, e sabendo que as funções de Hermite formam uma base p
 \begin{equation} \label{equ:hermite_expansion}
    \hat{y}(k) = \sum_{j=0}^{m-1} c_jH^j(k,l)
 \end{equation}
-onde $c_j$ é o coeficiente da $j$-ésima função de Hermite e $m$ é o número de funções utilizadas na aproximação (com $m \leq n$). Os coeficientes são solução da equação abaixo.
+onde $c_j$ é o coeficiente da $j$-ésima função de Hermite e $m$ é o número de funções utilizadas na aproximação ($m$ deve ser menor ou igual ao número de amostras do sinal de entrada, $n$). Os coeficientes são solução da equação abaixo.
 \begin{equation} \label{equ:solve}
     C = (H^TH)^{-1}H^TY
 \end{equation}
@@ -62,6 +65,6 @@ C é um vetor coluna contendo os $m$ coeficientes de Hermite
 \end{equation}
 e Y é um vetor coluna de tamanho $n$ contendo as amplitudes do sinal de entrada.
 
-No algoritmo proposto, o sinal de entrada é separado em dois componentes: um contendo as amostras do complexo QRS e outro contendo as do segmento ST juntamente com as da onda T. Essa separação permite aproximar melhor o formato de uma batida cardíaca, já que o complexo QRS e a onda T diferem morfologicamente, além de estarem bastante separados temporalmente. Entretanto, apenas as primeiras seis funções de Hermite ($m = 6$) são consideradas, com objetivo de minimizar custos computacionais. Assim, para cada batida, dois conjuntos de amostras ($Y_{QRS}$ e $Y_{ST-T}$) são submetidos ao procedimento de expansão de Hermite, e a saída nos fornece uma lista de 6 coeficientes para o primeiro conjunto ($C_{QRS}$) e uma lista de 6 coeficientes para o segundo ($C_{ST-T}$).
+No algoritmo proposto, o sinal é separado em dois componentes: um contendo as amostras do complexo QRS e o outro, as da onda T. Essa separação permite aproximar melhor o formato de uma batida cardíaca, já que o complexo QRS e a onda T diferem morfologicamente, além de estarem bastante separados temporalmente. Entretanto, apenas as primeiras seis funções de Hermite são consideradas ($m = 6$), com o objetivo de minimizar custos computacionais. Assim, para cada batida, dois conjuntos de amostras ($Y_{QRS}$ e $Y_{ST-T}$) são submetidos ao procedimento de expansão de Hermite, e a saída nos fornece uma lista de 6 coeficientes para o primeiro conjunto ($C_{QRS}$) e uma lista de 6 coeficientes para o segundo ($C_{ST-T}$).
 
-É importante salientar que as funções de Hermite -- e as matrizes por elas formadas -- variam de acordo com o número de amostras do sinal de entrada. Na implementação, um tamanho fixo foi definido, grande o suficiente para suportar todas as possíveis larguras das ondas de um sinal de ECG. A matriz correspondente pode então ser construída antes do processamento e, dessa forma, apenas as linhas necessárias dessa matriz são acessadas e utilizadas no cálculo dos coeficientes.
+É importante salientar que o domínio das funções de Hermite varia de acordo com o número de amostras do sinal de entrada. Na implementação, um tamanho fixo foi definido, grande o suficiente para suportar todas as possíveis larguras das ondas presentes em um sinal de ECG. A matriz correspondente pode então ser construída antes do processamento e, dessa forma, apenas as linhas necessárias da matriz são acessadas e utilizadas no cálculo dos coeficientes.
