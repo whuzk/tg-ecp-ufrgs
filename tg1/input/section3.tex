@@ -1,12 +1,25 @@
 % !TEX root = ../document.tex
 % !TeX spellcheck = pt_BR
 
-\section{Método de Mohebbi et al.}
+\section{Método de Mohebbi e Moghadam}
 \label{sec:section3}
-Texto\ldots
+Este método tem como principal recurso a obtenção de um modelo de batida cardíaca considerada normal, e extraída do próprio registro sobre o qual se deseja fazer a detecção de isquemia. As etapas do algoritmo podem ser visualizadas no diagrama da figura \ref{fig:mohebbi_01}, e sua implementação é descrita a seguir.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/mohebbi_01.png}
+    \caption{Diagrama de blocos da estratégia utilizada no método de Mohebbi e Moghadam. Extraído de \cite{Mohebbi07}}
+    \label{fig:mohebbi_01}
+\end{figure}
 
 \subsection{Pré-processamento}
-Texto\ldots
+Esta etapa consiste de identificação dos complexos QRS, obtenção de um modelo, remoção de ruído, rejeição de artefatos e extração de segmento ST. A identificação dos complexos QRS, e respectivos picos, é feita através de um algoritmo descrito em \cite{Tompkins85}. Na saída obtêm-se uma lista com as localizações dos picos de onda R
+
+Em seguida, os primeiros 30 segundos do registro de ECG são inspecionados afim de detectar artefatos (batidas anômalas). Este procedimento tenta detectar o nível isoelétrico e o ponto J de cada batida, através de uma análise do gradiente do sinal. Caso nenhum dos dois pontos seja detectado, a batida em questão é considerada como artefato, e removida da lista. As batidas remanescentes são usadas para construção do modelo, fazendo uma média das suas amplitudes.
+
+Após este procedimento inicial, o resto do sinal é processado e a linha de base é removida através de interpolação \emph{spline} cúbica, segundo o método proposto em \cite{Badilini91}. Uma vez removida a linha de base, detecta-se o ponto J de cada batida usando o mesmo procedimento mencionado no parágrafo anterior, usando o gradiente do sinal. Neste caso, uma janela de 100ms à direita do pico de onda R é suavizada por um filtro de média móvel e, em seguida, busca-se o primeiro intervalo de 20ms nesta janela cuja reta que melhor aproxima os pontos no intervalo possua um declive menor que 2,5$\mu$v/ms em valor absoluto. Toma-se o ponto que estabelece o início de tal intervalo como o ponto J.
+
+Obtidos os pontos J, assume-se que os segmentos ST iniciam neste ponto e possuem tamanho pré-definido de 160ms. O mesmo vale para a batida modelo, e o segmento ST extraído desta é usado como referência para todos os segmentos ST do mesmo registro de ECG. Chamaremo-lo de $T_{ST}$.
 
 \subsection{Preparação dos dados}
-Texto\ldots
+Esta etapa é responsável por preparar os dados que servirão de entrada da rede neural. Dada uma taxa de amostragem $F_s$, o segmento ST possui $n_s = \lfloor0.16\cdot Fs\rfloor$ amostras. O conjunto de dados de entrada da rede neural é então obtido subtraindo-se as amplitudes de $T_{ST}$ das amplitudes do segmento de cada batida, todos reamostrados.

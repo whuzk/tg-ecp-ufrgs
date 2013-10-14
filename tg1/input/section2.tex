@@ -5,7 +5,7 @@
 \label{sec:section2}
 Este método é baseado em dois pontos-chave: (i) medida do desvio de segmento ST e (ii) expansão do complexo QRS e da onda T em funções de Hermite. A figura \ref{fig:rocha_01} mostra o diagrama em blocos da estratégia adotada. A implementação das etapas de pré-processamento e extração de características é detalhada a seguir.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.8\textwidth]{figures/rocha_01.png}
     \caption{Diagrama de blocos da estratégia utilizada no método de Rocha et al. Extraído de \cite{Rocha10}}
@@ -36,7 +36,7 @@ onde o termo dependente de $x$ é a função de autocorrelação instantânea, e
     W_x(nT,f) = 2T\sum_{-L}^{L}x(n+p)x^*(n-p)w(p)w^*(-p)e^{-j4\pi f\tau}
 \end{equation}
 
-Nesta equação, $T$ é o período de amostragem e $w$ é uma janela simétrica de largura $2L+1$. No algoritmo proposto não foi estabelecido um valor para $L$, mas levamos em consideração o fato de que o cálculo é realizado em menos tempo se a largura da janela for uma potência de 2. Portanto, adaptamos o algoritmo para tomar uma janela de largura $2^{\lceil\log_2(0.1Fs)\rceil}$, ou seja, a primeira potência de 2 maior ou igual ao número de amostras em $100ms$ do sinal (amostrado a uma taxa $Fs$). Isso garante que a janela englobe um complexo QRS por inteiro.
+Nesta equação, $T$ é o período de amostragem e $w$ é uma janela simétrica de largura $2L+1$. No algoritmo proposto não foi estabelecido um valor para $L$, mas levamos em consideração o fato de que o cálculo é realizado em menos tempo se a largura da janela for uma potência de 2. Portanto, adaptamos o algoritmo para tomar uma janela de largura $2^{\lceil\log_2(0.1\cdot Fs)\rceil}$, ou seja, a primeira potência de 2 maior ou igual ao número de amostras em $100ms$ do sinal (amostrado a uma taxa $F_S$). Isso garante que a janela englobe um complexo QRS por inteiro.
 
 Após a transformação, soma-se os valores absolutos das componentes de baixa frequência do sinal em dois intervalos de tempo distintos: um à esquerda do pico de onda R, e outro à direita do mesmo ponto. O resultado nos dá informações sobre a concentração de energia nos dois intervalos, e o que buscamos é o ponto mínimo em cada um deles. O ponto mínimo à esquerda é o chamado ponto isoelétrico, enquanto o ponto mínimo à direita é chamado ponto J. Estes conceitos são discutidos em detalhe em \cite{Rocha10}, mas nos limitamos aqui em mencionar que a medida do desvio ST é a diferença entre as amplitudes nos pontos J e isoelétricos: $Signal(J_k) - Signal(I_k)$, onde $k$ é o índice da batida.
 
