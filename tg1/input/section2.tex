@@ -36,7 +36,7 @@ onde o termo dependente de $x$ é a função de autocorrelação instantânea, e
     W_x(nT,f) = 2T\sum_{-L}^{L}x(n+p)x^*(n-p)w(p)w^*(-p)e^{-j4\pi f\tau}
 \end{equation}
 
-Nesta equação, $T$ é o período de amostragem e $w$ é uma janela simétrica de largura $2L+1$. No algoritmo proposto não foi estabelecido um valor para $L$, mas levamos em consideração o fato de que o cálculo é realizado em menos tempo se a largura da janela for uma potência de 2. Portanto, adaptamos o algoritmo para tomar uma janela de largura $2^{\lceil\log_2(0.1\cdot Fs)\rceil}$, ou seja, a primeira potência de 2 maior ou igual ao número de amostras em $100ms$ do sinal (amostrado a uma taxa $F_S$). Isso garante que a janela englobe um complexo QRS por inteiro.
+Nesta equação, $T$ é o período de amostragem e $w$ é uma janela simétrica de largura $2L+1$. No algoritmo proposto não foi estabelecido um valor para $L$, mas levamos em consideração o fato de que o cálculo é realizado em menos tempo se a largura da janela for uma potência de 2. Portanto, adaptamos o algoritmo para tomar uma janela de largura $2^{\lceil\log_2(0,1\cdot Fs)\rceil}$, ou seja, a primeira potência de 2 maior ou igual ao número de amostras em $100ms$ do sinal (amostrado a uma taxa $F_S$). Isso garante que a janela englobe um complexo QRS por inteiro.
 
 Após a transformação, soma-se os valores absolutos das componentes de baixa frequência do sinal em dois intervalos de tempo distintos: um à esquerda do pico de onda R, e outro à direita do mesmo ponto. O resultado nos dá informações sobre a concentração de energia nos dois intervalos, e o que buscamos é o ponto mínimo em cada um deles. O ponto mínimo à esquerda é o chamado ponto isoelétrico, enquanto o ponto mínimo à direita é chamado ponto J. Estes conceitos são discutidos em detalhe em \cite{Rocha10}, mas nos limitamos aqui em mencionar que a medida do desvio ST é a diferença entre as amplitudes nos pontos J e isoelétricos: $Signal(J_k) - Signal(I_k)$, onde $k$ é o índice da batida.
 
@@ -51,7 +51,7 @@ Usando esta definição, e sabendo que as funções de Hermite formam uma base p
 \begin{equation} \label{equ:hermite_expansion}
    \hat{y}(k) = \sum_{j=0}^{m-1} c_jH^j(k,l)
 \end{equation}
-onde $c_j$ é o coeficiente da $j$-ésima função de Hermite e $m$ é o número de funções utilizadas na aproximação ($m$ deve ser menor ou igual ao número de amostras do sinal de entrada, $n$). Os coeficientes são solução da equação abaixo.
+onde $c_j$ é o coeficiente da $j$-ésima função de Hermite e $m$ é o número de funções utilizadas na aproximação ($m$ deve ser menor ou igual ao número de amostras do sinal de entrada, $N$). Os coeficientes são solução da equação abaixo.
 \begin{equation} \label{equ:solve}
     C = (H^TH)^{-1}H^TY
 \end{equation}
@@ -63,7 +63,7 @@ C é um vetor coluna contendo os $m$ coeficientes de Hermite
 \begin{equation}
     C = [c_0\ c_1\ \cdots\ c_{m-1}]^T
 \end{equation}
-e Y é um vetor coluna de tamanho $n$ contendo as amplitudes do sinal de entrada.
+e Y é um vetor coluna de tamanho $N$ contendo as amplitudes do sinal de entrada.
 
 No algoritmo proposto, o sinal é separado em dois componentes: um contendo as amostras do complexo QRS e o outro, as da onda T. Essa separação permite aproximar melhor o formato de uma batida cardíaca, já que o complexo QRS e a onda T diferem morfologicamente, além de estarem bastante separados temporalmente. Entretanto, apenas as primeiras seis funções de Hermite são consideradas ($m = 6$), com o objetivo de minimizar custos computacionais. Assim, para cada batida, dois conjuntos de amostras ($Y_{QRS}$ e $Y_{ST-T}$) são submetidos ao procedimento de expansão de Hermite, e a saída nos fornece uma lista de 6 coeficientes para o primeiro conjunto ($C_{QRS}$) e uma lista de 6 coeficientes para o segundo ($C_{ST-T}$).
 
