@@ -3,7 +3,14 @@
 
 \section{Método de Gopalakrishnan et al.}
 \label{sec:section4}
-O último método implementado faz uso de uma série de resultados da álgebra linear e também da relação entre as funções de Hermite e a matriz de Fourier\footnote{matriz de Fourier é aquela que, quando multiplicada por um vetor, resulta na DFT do vetor}. Baseando-se em trabalhos anteriores \cite{Mugler02}, os autores advogam que os autovetores de uma matriz tridiagonal $T_b$ que comuta\footnote{diz-se que duas matrizes A e B comutam sse satisfizerem a condição $AB = BA$} com a matriz centralizada de Fourier equivalem às funções discretas de Hermite. Similarmente ao caso do método de Rocha et al., estas funções são utilizadas para aproximar cada batida cardíaca do registro de ECG.
+O último método implementado faz uso de uma série de resultados da álgebra linear e também da relação entre as funções de Hermite e a matriz de Fourier\footnote{matriz de Fourier é aquela que, quando multiplicada por um vetor, resulta na DFT do vetor}. Baseando-se em trabalhos anteriores \cite{Mugler02}, os autores advogam que os autovetores de uma matriz tridiagonal $T_b$ que comuta\footnote{diz-se que duas matrizes A e B comutam sse satisfizerem a condição $AB = BA$} com a matriz centralizada de Fourier equivalem às funções discretas de Hermite. Similarmente ao caso do método de Rocha et al., estas funções são utilizadas para aproximar cada batida cardíaca do registro de ECG. A figura \ref{fig:gopalak_01} mostra em linhas gerais o método proposto.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=1.0\textwidth]{figures/gopalak_01.png}
+    \caption{Diagrama de blocos da estratégia utilizada no método de Gopalakrishnan et al. Extraído de \cite{Gopalak04}}
+    \label{fig:gopalak_01}
+\end{figure}
 
 \subsection{Geração das funções de Hermite}
 Conforme já mencionado, as funções discretas de Hermite são autovetores da matriz $T_b$. Como esta matriz é tridiagonal e simétrica, podemos descrevê-la por completo especificando sua diagonal principal e uma das diagonais secundárias. Os elementos da diagonal principal ($d^0$) e da diagonal secundária ($d^1$) são obtidos pelas expressões abaixo.
