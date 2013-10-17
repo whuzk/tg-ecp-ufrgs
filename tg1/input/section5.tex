@@ -17,9 +17,9 @@ Ainda no método de Rocha et al. há um último procedimento a ser implementado,
     \label{fig:rocha_03}
 \end{figure}
 
-No caso do método de Mohebbi e Moghadam \ldots
+No caso do método de Mohebbi e Moghadam, os dados obtidos na etapa de preparação são usados para treinar uma rede neural pelo método \emph{backpropagation}. A arquitetura da rede consiste de 20 entradas, uma camada oculta com 20 neurônios e duas saídas. As saídas são valores reais pertencentes ao intervalo [0,1], e indicam o grau de pertinência de uma batida em relação às classes desejadas (isquêmica ou não-isquêmica). Com o intuito de minimizar o tempo de treinamento, os autores sugerem o uso de taxa de aprendizado adaptativa no algoritmo de \emph{backpropagation}, combinada ao modelo de treinamento com momento (ou \emph{momentum training}, em inglês).
 
-No caso do método de Gopalakrishnan et al. \ldots
+No método de Gopalakrishnan et al., um comitê de cinco redes neurais será treinado com os coeficientes de Hermite obtidos na etapa de extração. As redes possuirão uma camada oculta com números variados de neurônios, e duas saídas: presença/ausência de desvio ST e presença/ausência de inversão da onda T. Os autores observam que o uso de cinco redes compensa a variabilidade de resultados individuais em casos limítrofes de isquemia. Assim, a decisão da maioria (das redes) será tomada como decisão final para o diagnóstico. O treinamento consistirá do uso do algoritmo de \emph{backpropagation} com gradiente conjugado. Além disso, as redes serão retreinadas 
 
 \subsection{Testes e Validação}
 Para avaliar a confiabilidade dos algoritmos, lançaremos mão de métricas definidas em termos no número de verdadeiros positivos (VP), verdadeiros negativos (VN), falsos positivos (FP) e falsos negativos (FN) obtidos no teste. Estes conceitos são melhor visualizados numa matriz de confusão, conforme ilustra a tabela \ref{tab:confusion_matrix}.
@@ -49,7 +49,7 @@ Em especial, estamos interessados na sensibilidade ($S_e$) e na preditividade po
     P_p = \frac{VP}{FP+VP}
 \end{equation}
 
-De modo geral, os conceitos apresentados medem o desempenho de um teste diagnóstico frente a um método de referência. Este método alternativo deve ser confiável e, preferencialmente, realizado por especialistas. Em nosso caso, teremos o diagnóstico dado por cardiologistas que, de maneira unânime, classificaram todas as batidas de todos os registros de ECG num determinado banco de dados. Os bancos utilizados são o European ST-T e o Long-Term ST. Ambos os bancos possuem, independentemente do formato de dados, um campo que indica o diagnóstico das batidas. Neste campo, a letra 'T' indica inversão da onda T, enquanto a letra 's' indica elevação/depressão do segmento ST.
+De modo geral, os conceitos apresentados medem o desempenho de um teste diagnóstico frente a um método de referência. Este método alternativo deve ser confiável e, preferencialmente, realizado por especialistas. Em nosso caso, teremos o diagnóstico dado por cardiologistas que, de maneira unânime, classificaram todas as batidas de todos os registros de ECG num determinado banco de dados. Os bancos utilizados são o European ST-T e o Long-Term ST. Ambos os bancos possuem, independentemente do formato de dados, um campo que indica o diagnóstico das batidas. Neste campo, a letra `T' indica inversão da onda T, enquanto a letra `s' indica elevação/depressão do segmento ST.
 
 Ao final dos testes, obteremos as medidas necessárias e as compararemos com o resultado publicado nos artigos originais de cada método. Mais importante ainda, compararemos os métodos entre si, e tomaremos uma decisão quanto ao melhor método para ser devidamente implementado e implantado num sistema móvel de monitoramento cardíaco.
 
