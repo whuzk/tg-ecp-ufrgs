@@ -3,10 +3,10 @@ Período,Atividade
 1ª quinzena de Novembro,Implementação das redes neurais do método 1
 2ª quinzena de Novembro,Implementação das redes neurais do método 2
 1ª quinzena de Dezembro,Implementação das redes neurais do método 3
-2ª quinzena de Janeiro (2014),Tentativa de adaptação dos métodos para simulação
-1ª quinzena de Fevereiro,Tentativa de adaptação dos métodos para simulação
-2ª quinzena de Fevereiro,Compilação dos resultados; comparação em termos de confiabilidade e eficiência; escolha do melhor método; início da escrita da monografia (TG2)
-Março,Escrita da monografia
-Abril,Escrita da monografia
-Maio,Escrita da monografia
+2ª quinzena de Janeiro (2014),Realização de testes e validação dos métodos
+1ª quinzena de Fevereiro,Tentativa de adaptação para simulação em tempo real
+2ª quinzena de Fevereiro,Compilação dos resultados; comparação em termos de confiabilidade e eficiência; escolha do melhor método; início da implementação em Java
+Março,Implementação em Java
+Abril,Implementação em Java
+Maio,Teste no dispositivo móvel; escrita da monografia
 Junho,Conclusão da monografia; revisão final e entrega
