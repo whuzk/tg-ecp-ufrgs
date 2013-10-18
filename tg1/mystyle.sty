@@ -13,6 +13,7 @@
 \usepackage{graphicx}                   % inserçao de figuras externas
 \usepackage{multirow}                   % combinação de linhas em tabelas
 \usepackage{booktabs}                   % formataçao profissional de tabelas
+\usepackage{datatool}                   % importaçao de bases de dados
 
 %-------------------------------------------------------------------------------
 % Hifenização de palavras especiais
@@ -23,3 +24,19 @@
 % Estilo da bibliografia
 %-------------------------------------------------------------------------------
 \bibliographystyle{abbrv}
+
+%-------------------------------------------------------------------------------
+% Definiçao de macros
+%-------------------------------------------------------------------------------
+\renewcommand{\dtldisplaystarttab}{\toprule}
+\renewcommand{\dtldisplayafterhead}{\midrule}
+\renewcommand{\dtldisplayendtab}{\\\bottomrule}
+\newcommand{\csvtable}[4][]{%
+    \DTLloaddb[headers={#1}]{#2}{#3}
+    \begin{table}[ht]
+    \caption{#4}
+    \centering
+    \DTLdisplaydb{#2}
+    \label{tab:#2}
+    \end{table}
+}

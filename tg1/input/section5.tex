@@ -40,7 +40,7 @@ Para avaliar a confiabilidade dos algoritmos, lançaremos mão de métricas defi
         \bottomrule
     \end{tabular} 
     \label{tab:confusion_matrix}
-\end{table} 
+\end{table}
 
 Em especial, estamos interessados na sensibilidade ($S_e$) e na preditividade positiva ($P_p$). A sensibilidade diz respeito à probabilidade do teste detectar batidas isquêmicas, enquanto a preditividade positiva pode ser entendida como a probabilidade de um resultado positivo do teste refletir efetivamente a condição testada. Seus valores podem ser obtidos pelas expressões abaixo:
 \begin{equation} \label{equ:metrics}
@@ -55,6 +55,24 @@ Ao final dos testes, obteremos as medidas necessárias e as compararemos com o r
 
 Num segundo plano, tentaremos avaliar a eficiência dos algoritmos em termos do tempo de execução. Para tanto, será necessário simular uma configuração de tempo-real, em que as amostras do sinal de ECG são repassadas à entrada do algoritmo uma a uma. Os algoritmos deverão então ser adaptados para armazenar amostras recentes do sinal e descartar a mais antiga quando uma nova é recebida. Dessa forma, trabalhar-se-á com uma janela temporal do sinal de entrada, e uma nova iteração do algoritmo se realizará a cada nova amostra. Entretanto, deve-se salientar que esta não é uma métrica precisa, na medida em que o método escolhido deverá atuar num dispositivo móvel de uso geral. Isto significa que, dependendo  do hardware do dispositivo, um método poderia executar mais rapidamente do que outro, mesmo que a simulação forneça resultado contraditório.
 
-
 \subsection{Cronograma}
-Texto\ldots
+A tabela \ref{tab:work_plan} mostra um cronograma de atividades para a sequência do trabalho. Pretende-se realizá-las até metade do ano de 2014. Na tabela, os métodos são denominados pelos números 1, 2 e 3, de acordo com a ordem em que foram apresentados neste artigo.
+
+\DTLloaddb{workplan}{data/workplan.csv}
+\begin{table}[ht]
+    \caption{Cronograma de atividades}
+    \centering
+    \begin{tabular}{lp{8.9cm}}
+        \toprule
+        \bfseries Período & \bfseries Atividade
+        \DTLforeach{workplan}{
+            \period=Período,%
+            \activity=Atividade%
+        }{
+            \DTLiffirstrow{\\\midrule}{\\}
+            \period & \activity
+        }
+        \\\bottomrule
+    \end{tabular}
+    \label{tab:work_plan}
+\end{table}
