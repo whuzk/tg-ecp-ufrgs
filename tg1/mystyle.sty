@@ -6,14 +6,13 @@
 %-------------------------------------------------------------------------------
 % Uso de pacotes
 %-------------------------------------------------------------------------------
-\usepackage{sbc-template}               % uso da formataçao de artigos da SBC
-\usepackage[brazil]{babel}              % codificaçao do arquivo de entrada
-\usepackage[utf8]{inputenc}             % codificaçao do arquivo de entrada
-\usepackage[T1]{fontenc}                % codificaçao da fonte na saida
-\usepackage{graphicx}                   % inserçao de figuras externas
-\usepackage{multirow}                   % combinação de linhas em tabelas
-\usepackage{booktabs}                   % formataçao profissional de tabelas
-\usepackage{datatool}                   % importaçao de bases de dados
+\usepackage{sbc-template}       % uso da formataçao de artigos da SBC
+\usepackage[brazil]{babel}      % codificaçao do arquivo de entrada
+\usepackage[utf8]{inputenc}     % codificaçao do arquivo de entrada
+\usepackage[T1]{fontenc}        % codificaçao da fonte na saida
+\usepackage{graphicx}           % inserçao de figuras externas
+\usepackage{mytables}           % estilo das tabelas
+\usepackage{mylistings}         % estilo das listagens
 
 %-------------------------------------------------------------------------------
 % Hifenização de palavras especiais
@@ -24,19 +23,3 @@
 % Estilo da bibliografia
 %-------------------------------------------------------------------------------
 \bibliographystyle{abbrv}
-
-%-------------------------------------------------------------------------------
-% Definiçao de macros
-%-------------------------------------------------------------------------------
-\renewcommand{\dtldisplaystarttab}{\toprule}
-\renewcommand{\dtldisplayafterhead}{\midrule}
-\renewcommand{\dtldisplayendtab}{\\\bottomrule}
-\newcommand{\csvtable}[4][]{%
-    \DTLloaddb[headers={#1}]{#2}{#3}
-    \begin{table}[ht]
-    \caption{#4}
-    \centering
-    \DTLdisplaydb{#2}
-    \label{tab:#2}
-    \end{table}
-}

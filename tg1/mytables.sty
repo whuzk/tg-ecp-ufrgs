@@ -1,0 +1,31 @@
+%-------------------------------------------------------------------------------
+% Configuração de estilo das tabelas
+%-------------------------------------------------------------------------------
+\ProvidesPackage{mytables}
+
+%-------------------------------------------------------------------------------
+% Uso de pacotes
+%-------------------------------------------------------------------------------
+\usepackage{multirow}           % combinação de linhas em tabelas
+\usepackage{booktabs}           % formataçao profissional de tabelas
+\usepackage{datatool}           % importaçao de bases de dados
+
+%-------------------------------------------------------------------------------
+% Definiçoes
+%-------------------------------------------------------------------------------
+\renewcommand{\dtldisplaystarttab}{\toprule}
+\renewcommand{\dtldisplayafterhead}{\midrule}
+\renewcommand{\dtldisplayendtab}{\\\bottomrule}
+
+%-------------------------------------------------------------------------------
+% Tabela de arquivo CSV
+%-------------------------------------------------------------------------------
+\newcommand{\csvtable}[4][]{%
+    \DTLloaddb[headers={#1}]{#2}{#3}
+    \begin{table}[ht]
+    \caption{#4}
+    \centering
+    \DTLdisplaydb{#2}
+    \label{tab:#2}
+    \end{table}
+}

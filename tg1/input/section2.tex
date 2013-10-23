@@ -68,3 +68,11 @@ e Y é um vetor coluna de tamanho $N$ contendo as amplitudes do sinal de entrada
 No algoritmo proposto, o sinal é separado em dois componentes: um contendo as amostras do complexo QRS e o outro, as da onda T. Essa separação permite aproximar melhor o formato de uma batida cardíaca, já que o complexo QRS e a onda T diferem morfologicamente, além de estarem bastante separados temporalmente. Entretanto, apenas as primeiras seis funções de Hermite são consideradas ($m = 6$), com o objetivo de minimizar custos computacionais. Assim, para cada batida, dois conjuntos de amostras ($Y_{QRS}$ e $Y_{ST-T}$) são submetidos ao procedimento de expansão de Hermite, e a saída nos fornece uma lista de 6 coeficientes para o primeiro conjunto ($C_{QRS}$) e uma lista de 6 coeficientes para o segundo ($C_{ST-T}$).
 
 É importante salientar que o domínio das funções de Hermite varia de acordo com o número de amostras do sinal de entrada. Na implementação, um tamanho fixo foi definido, grande o suficiente para suportar todas as possíveis larguras das ondas presentes em um sinal de ECG. A matriz correspondente pode então ser construída antes do processamento e, dessa forma, apenas as linhas necessárias da matriz são acessadas e utilizadas no cálculo dos coeficientes.
+
+\subsection{Código MATLAB}
+Abaixo pode ser visualizado um trecho de código que compõe a rotina principal do método implementado. O sinal de entrada e sua taxa de amostragem provêm de uma base de dados, sendo que as amplitudes são normalizadas antes do início da rotina. Com exeção das funções \texttt{ecg\_find\_close\_beats} e \texttt{compute\_statistics}, todas fazem parte de um conjunto de rotinas criadas especialmente para o método de Rocha et al.
+
+\lstinputlisting[
+    label=lst:rocha,
+    caption={Trecho extraído do arquivo rocha.m}
+]{listings/rocha.m}

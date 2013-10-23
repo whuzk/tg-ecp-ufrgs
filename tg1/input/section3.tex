@@ -23,3 +23,11 @@ Obtidos os pontos J, assume-se que os segmentos ST iniciem neste ponto e possuam
 
 \subsection{Preparação dos dados}
 Esta etapa é responsável por preparar os dados que servirão de entrada da rede neural. Dada uma taxa de amostragem $F_S$, o segmento ST possui $\lfloor0,16\cdot F_S\rfloor$ amostras. O conjunto de dados de entrada da rede neural é então obtido subtraindo-se as amplitudes de $Y_{ST}$ das do segmento ST de cada batida. Contudo, afim de reduzir o tamanho da entrada, os sinais que caracterizam os segmentos ST (inclusive o do modelo) são reamostrados fazendo a média entre duas amostras consecutivas, reduzindo assim pela metade o número de amostras. Em especial, no caso de uma taxa de amostragem $F_S = 250\mathrm{Hz}$, o segmento original conteria 40 amostras, enquanto o reamostrado contém apenas 20.
+
+\subsection{Código MATLAB}
+Um trecho de código da rotina principal do método é mostrado abaixo. Observe que a etapa de pré-processamento divide-se em duas partes: uma para processar os primeiros 30 segundos do ECG, contidos na variável \texttt{Signal1}; e outra para processar o resto do ECG, contido na variável \texttt{Signal2}.
+
+\lstinputlisting[
+    label=lst:mohebbi,
+    caption={Trecho extraído do arquivo mohebbi.m}
+]{listings/mohebbi.m}
