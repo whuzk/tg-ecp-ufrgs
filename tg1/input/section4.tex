@@ -3,6 +3,7 @@
 
 \section{Método de Gopalakrishnan et al.}
 \label{sec:section4}
+
 O último método implementado faz uso de uma série de resultados da álgebra linear e também da relação entre as funções de Hermite e a matriz de Fourier\footnote{matriz de Fourier é aquela que, quando multiplicada por um vetor, resulta na DFT do vetor}. Baseando-se em trabalhos anteriores \cite{Mugler02}, os autores advogam que os autovetores de uma matriz tridiagonal $T_b$ que comuta\footnote{diz-se que duas matrizes A e B comutam sse satisfizerem a condição $AB = BA$} com a matriz centralizada de Fourier equivalem às funções discretas de Hermite. Similarmente ao caso do método de Rocha et al., estas funções são utilizadas para aproximar cada batida cardíaca do registro de ECG. A figura \ref{fig:gopalak_01} mostra em linhas gerais o método proposto.
 
 \begin{figure}[ht]
@@ -43,14 +44,14 @@ com coeficientes dados pelo produto interno de $x$ com as funções de Hermite:
 \end{equation}
 
 \subsection{Preparação dos dados}
-Seguindo a especificação, foi implementado o detector de complexos QRS descrito em \cite{Tompkins85}. Após obtenção dos picos de onda R, assume-se que cada batida esteja centralizada neste ponto, e que sua largura seja equivalente ao intervalo entre o seu pico e o da batida seguinte (também chamado intervalo R-R). Para cada batida, os primeiros 50 coeficientes de Hermite são obtidos através da equação (\ref{equ:hermite_coeff2}). São estes coeficientes que compõem a entrada da rede neural que classificará a batida.
+Seguindo a especificação de Gopalakrishnan, foi implementado o detector de complexos QRS descrito em \cite{Tompkins85}, um algoritmo bastante similar àquele usado no método anterior (ver seção \ref{sec:section3_1}). Após obtenção dos picos de onda R, assume-se que cada batida esteja centralizada neste ponto, e que sua largura seja equivalente ao intervalo entre o seu pico e o da batida seguinte (também chamado intervalo R-R). Para cada batida, os primeiros 50 coeficientes de Hermite são obtidos através da equação (\ref{equ:hermite_coeff2}). São estes coeficientes que compõem a entrada da rede neural que classificará a batida.
 
 Os autores explicam, baseando-se em trabalhos passados e também pela observação do Erro RMS Percentual, que o uso dos primeiros 50 coeficientes, bem como de um parâmetro de dilatação $b=1$, garantem uma aproximação muito boa. Na implementação, contudo, verificou-se que o valor 1,5 para o parâmetro $b$ gera resultados melhores, e foi portanto utilizado. Mas  manteve-se o número de coeficientes de Hermite ($m=50$).
 
 \subsection{Código MATLAB}
-No trecho de código abaixo, pode-se notar uma maior simplicidade em relação aos demais métodos. Não há qualquer tratamento de anomalias ou de PVCs. Até mesmo as rotinas de filtragem e remoção da linha de base tiveram que ser implementadas à parte, porquanto não foram mencionadas pelos autores. Utilizou-se um filtro passa-banda de Butterworth de 4\textordfeminine{} ordem com frequências de corte 0,5Hz e 40Hz. Após a filtragem, estima-se o nível de base como a média dos mínimos do sinal, e subtrai-se este valor do próprio sinal.
+No código-fonte \ref{lst:gopalak}, pode-se notar uma maior simplicidade em relação aos demais métodos. Não há qualquer tratamento de anomalias ou de PVCs. Até mesmo as rotinas de filtragem e remoção da linha de base tiveram de ser implementadas à parte, pois não receberam menção por parte dos autores. Utilizou-se um filtro passa-banda de Butterworth de 4\textordfeminine{} ordem com frequências de corte 0,5Hz e 40Hz. Após a filtragem, estima-se o nível de base como a média dos mínimos do sinal, e subtrai-se este valor do próprio sinal.
 
 \lstinputlisting[
-    label=lst:gopalak,
+    label={lst:gopalak},
     caption={Trecho extraído do arquivo gopalak.m}
 ]{listings/gopalak.m}

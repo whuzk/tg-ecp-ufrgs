@@ -3,11 +3,12 @@
 
 \section{Método de Rocha et al.}
 \label{sec:section2}
+
 Este método é baseado em dois pontos-chave: (i) medida do desvio de segmento ST e (ii) expansão do complexo QRS e da onda T em funções de Hermite. A figura \ref{fig:rocha_01} mostra o diagrama em blocos da estratégia adotada. A implementação das etapas de pré-processamento e extração de características é detalhada a seguir.
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.8\textwidth]{figures/rocha_01.png}
+    \includegraphics[width=0.9\textwidth]{figures/rocha_01.png}
     \caption{Diagrama de blocos da estratégia utilizada no método de Rocha et al. Extraído de \cite{Rocha10}}
     \label{fig:rocha_01}
 \end{figure}
@@ -15,9 +16,9 @@ Este método é baseado em dois pontos-chave: (i) medida do desvio de segmento S
 \subsection{Pré-processamento}
 Nesta etapa, um sinal de entrada discreto contendo as amplitudes normalizadas\footnote{aqui, normalizado significa $(Amplitude - Deslocamento) / Ganho$} do ECG é processado para redução de ruído, segmentação em ondas características, eliminação de extra-sístoles ventriculares e, por último, remoção da linha de base.
 
-A redução de ruído é alcançada com a aplicação um filtro passa-baixas de Butterworth de 4\textordfeminine\ ordem e frequência de corte igual a 40Hz. O sinal filtrado é então submetido a um procedimento de segmentação, em que as ondas características de cada batida são identificadas. Seguindo a especificação, utilizou-se um algoritmo descrito em \cite{Sun05}. Na saída obtêm-se as localizações de início, pico e fim de cada onda característica.
+A redução de ruído é alcançada com a aplicação de um filtro passa-baixas de Butterworth de 4\textordfeminine\ ordem e frequência de corte igual a 40Hz. O sinal filtrado é então submetido a um procedimento de segmentação, em que as ondas características de cada batida são identificadas. Seguindo a especificação de Rocha, utilizou-se para tal procedimento o algoritmo descrito em \cite{Sun05}, baseado em derivação morfológica multi-escala. Na saída obtêm-se as localizações de início, pico e fim de cada onda característica.
 
-Após a segmentação, cada batida é classificada como normal ou extra-sístole ventricular (abreviada por PVC, do inglês \emph{premature ventricular contractions}) usando o algoritmo proposto em \cite{Couceiro08}. As PVCs são então removidas da lista de batidas do ECG, e somente aquelas classificadas como normais serão analisadas nas etapas posteriores.
+Após a segmentação, cada batida é classificada como normal ou extra-sístole ventricular (abreviada por PVC, do inglês \emph{premature ventricular contractions}). Para tal procedimento emprega-se o algoritmo proposto em \cite{Couceiro08}, que extrai 13 medidas das batidas e as usa como entrada numa rede neural. As PVCs são removidas da lista de batidas do ECG, e somente aquelas classificadas como normais serão analisadas nas etapas posteriores.
 
 O último procedimento nesta etapa consiste em extrair do sinal de ECG a linha de base, e subtraí-la do próprio sinal afim de torná-lo mais próximo da linha isoelétrica. Isso é necessário para as próximas etapas, pois alguns procedimentos exigem que as batidas estejam bem alinhadas com o nível de amplitude zero.
 
@@ -36,7 +37,7 @@ onde o termo dependente de $x$ é a função de autocorrelação instantânea, e
     W_x(nT,f) = 2T\sum_{-L}^{L}x(n+p)x^*(n-p)w(p)w^*(-p)e^{-j4\pi f\tau}
 \end{equation}
 
-Nesta equação, $T$ é o período de amostragem e $w$ é uma janela simétrica de largura $2L+1$. No algoritmo proposto não foi estabelecido um valor para $L$, mas levou-se em consideração o fato de que o cálculo é realizado em menos tempo se a largura da janela for uma potência de 2. Portanto, adaptou-se o algoritmo para tomar uma janela de largura $2^{\lceil\log_2(0,1\cdot Fs)\rceil}$, ou seja, a primeira potência de 2 maior ou igual ao número de amostras em $100ms$ do sinal (amostrado a uma taxa $F_S$). Isso garante que a janela englobe um complexo QRS por inteiro.
+Nesta equação, $T$ é o período de amostragem e $w$ é uma janela simétrica de largura $2L+1$. Os autores não estabelecem um valor para $L$, mas dizem que deve ser maior que o número de amostras contidas em um complexo QRS, para garantir que as características do formato de onda não sejam perdidas na transformação. Portanto, adaptou-se o algoritmo para tomar uma janela de largura 32, que é maior do que o número de amostras em $100ms$ do sinal quando amostrado a uma taxa $F_S = 250 Hz$ (todos os registros de ECG usados para testar este algoritmo possuem taxa de amostragem igual a 250 Hz).
 
 Após a transformação, soma-se os valores absolutos das componentes de baixa frequência do sinal em dois intervalos de tempo distintos: um à esquerda do pico de onda R, e outro à direita do mesmo ponto. O resultado provê informações sobre a concentração de energia nos dois intervalos, e o que se busca é o ponto mínimo em cada um deles. O ponto mínimo à esquerda é o chamado ponto isoelétrico, enquanto o ponto mínimo à direita é chamado ponto J. Estes conceitos são discutidos em detalhe em \cite{Rocha10}, mas é suficiente aqui mencionar que a medida do desvio ST é a diferença entre as amplitudes nos pontos J e isoelétricos: $Signal(J_k) - Signal(I_k)$, onde $k$ é o índice da batida.
 
@@ -70,9 +71,9 @@ No algoritmo proposto, o sinal é separado em dois componentes: um contendo as a
 É importante salientar que o domínio das funções de Hermite varia de acordo com o número de amostras do sinal de entrada. Na implementação, um tamanho fixo foi definido, grande o suficiente para suportar todas as possíveis larguras das ondas presentes em um sinal de ECG. A matriz correspondente pode então ser construída antes do processamento e, dessa forma, apenas as linhas necessárias da matriz são acessadas e utilizadas no cálculo dos coeficientes.
 
 \subsection{Código MATLAB}
-Abaixo pode ser visualizado um trecho de código que compõe a rotina principal do método implementado. O sinal de entrada e sua taxa de amostragem provêm de uma base de dados, sendo que as amplitudes são normalizadas antes do início da rotina. Com exeção das funções \texttt{ecg\_find\_close\_beats} e \texttt{compute\_statistics}, todas fazem parte de um conjunto de rotinas criadas especialmente para o método de Rocha et al.
+No código-fonte \ref{lst:rocha} pode ser visualizado um trecho que compõe a rotina principal do método implementado. O sinal de entrada e sua taxa de amostragem provêm de uma base de dados, sendo que as amplitudes são normalizadas antes do início da rotina. Com exeção das funções \texttt{ecg\_find\_close\_beats} e \texttt{compute\_statistics}, todas fazem parte de um conjunto de rotinas criadas especialmente para o método de Rocha et al.
 
 \lstinputlisting[
-    label=lst:rocha,
+    label={lst:rocha},
     caption={Trecho extraído do arquivo rocha.m}
 ]{listings/rocha.m}
