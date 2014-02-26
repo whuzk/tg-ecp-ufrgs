@@ -52,7 +52,7 @@ Bb = T.num{1};
 % apply filters
 Signal = filter(Ba, Aa, Signal);
 Signal = filter(Bb, Ab, Signal.^2);
-%utilities.ecg_plot(Signal, 'integ');
+%ecgutilities.ecg_plot(Signal, 'integ');
 
 %% detection
 Stresh = 0;
@@ -61,11 +61,13 @@ Tresh1 = 0;
 skip = false;
 delay = 23+19;
 M = fix(N/Fs*5);
-Result = zeros(M,1);
+R = zeros(M,1);
+TTT = zeros(N,1);
 
 k = 1;
 i = 2;
 while k <= M && i < N
+    TTT(i) = Tresh1;
     if skip
         if Signal(i) < Tresh1
             skip = false;
@@ -74,11 +76,11 @@ while k <= M && i < N
         a = Signal(i-1);
         b = Signal(i);
         c = Signal(i+1);
-        if (b-a) > 0 && (c-b) <= 0 && abs(c-2*b+a) > 1E-6
+        if (b-a) > 0 && (c-b) <= 0 && abs(c-2*b+a) > 1E-7
             PEAK = Signal(i);
             if PEAK > Tresh1
                 Stresh = 0.25*PEAK + 0.75*Stresh;
-                Result(k) = i - delay;
+                R(k) = i;
                 k = k + 1;
                 skip = true;
             else
@@ -89,8 +91,15 @@ while k <= M && i < N
     end
     i = i + 1;
 end
-Result = Result(1:k-1);
-
+R = R(1:k-1);
+Result = R - delay;
+%{
+figure;
+hold on, grid on;
+plot([Signal TTT]);
+plot(R, Signal(R), 'kx');
+pause;
+%}
 %% adjustment
 
 % ajuste dos picos (para obter a localizaçao exata)

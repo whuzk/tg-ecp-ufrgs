@@ -1,5 +1,7 @@
 function [Beats,Rpeaks,RR,Template] = ecg_preprocess(Signal, Fs)
 
+MaxBeatLength = 2*fix(Fs*0.6)+1;
+
 % remoçao de ruido
 Signal = suppress_noise(Signal,Fs);
 
@@ -7,14 +9,16 @@ Signal = suppress_noise(Signal,Fs);
 Rpeaks = ecgutilities.ecg_segment(Signal,Fs);
 RR = diff(Rpeaks(1:end-1));
 Rpeaks = Rpeaks(2:end-1);
-Beats = extract_beats(Signal,Rpeaks,RR);
+L = min(RR,MaxBeatLength);
+Beats = extract_beats(Signal,Rpeaks,L);
+%ecgutilities.ecg_plot_r(Signal, Rpeaks);
+%pause;
 
 % remoçao da linha de base e enquadramento
 m = length(Rpeaks);
-n = 2*fix(Fs*0.6)+1;
 for i = 1:m
     Beat = remove_baseline(Beats{i}, Fs);
-    Beats{i} = frame_beat(Beat,n);
+    Beats{i} = frame_beat(Beat,MaxBeatLength);
 end
 
 % construçao de template
@@ -28,16 +32,17 @@ Template = mean(FirstBeats,2);
 index = false(1,m);
 for i = Tc+1:m
     Difference = Beats{i} - Template;
-    %if norm(Difference) > 1.5
-    %    figure, plot(Beats{i});
+    %if norm(Difference) > 2.0
+    %    figure(10), plot(Beats{i});
     %    norm(Difference)
     %    pause;
     %end
-    index(i) = norm(Difference) <= 1.5;
+    index(i) = norm(Difference) <= 2.5;
 end
 Beats = cell2mat(Beats(index));
 Rpeaks = Rpeaks(index);
-
+%ecgutilities.ecg_plot_r(Signal, Rpeaks);
+%pause;
 
 function Result = suppress_noise(Signal, Fs)
 Wn = 40 * 2/Fs;

@@ -4,7 +4,7 @@ function Result = create_beatset(Database, LeadName)
 import ecgutilities.*;
 
 Records = fieldnames(Database);
-for i = 2:2%numel(Records)
+for i = 4:4%numel(Records)
     ECG = Database.(Records{i});
     
     [Fs,Bp,Sc,Leads,Data] = ecg_interpret(ECG);

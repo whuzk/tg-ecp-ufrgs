@@ -5,9 +5,10 @@ g = gradient(Beat);
 %GG = smooth(g,5);
 Gabs = abs(g);
 
+N = length(Beat);
 l = ceil(0.01*Fs);
-left = R-fix(0.08*Fs);
-right = R-fix(0.04*Fs);
+left = max(1,R-fix(0.08*Fs));
+right = min(N,R-fix(0.04*Fs));
 
 i1 = find(Gabs <= slope, 1, 'first')+l;
 if isempty(i1)
