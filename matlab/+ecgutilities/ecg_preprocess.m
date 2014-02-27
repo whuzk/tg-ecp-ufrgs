@@ -15,11 +15,13 @@ Beats = extract_beats(Signal,Rpeaks,L);
 %pause;
 
 % remoçao da linha de base e enquadramento
+tic;
 m = length(Rpeaks);
 for i = 1:m
     Beat = remove_baseline(Beats{i}, Fs);
     Beats{i} = frame_beat(Beat,MaxBeatLength);
 end
+toc;
 
 % construçao de template
 Tc = 30;
@@ -31,13 +33,13 @@ Template = mean(FirstBeats,2);
 % remoçao de batidas anomalas
 index = false(1,m);
 for i = Tc+1:m
-    Difference = Beats{i} - Template;
-    %if norm(Difference) > 2.0
+    Correlation = corr(Beats{i}, Template);
+    %if Correlation < 0.75
     %    figure(10), plot(Beats{i});
-    %    norm(Difference)
+    %    Correlation
     %    pause;
     %end
-    index(i) = norm(Difference) <= 2.5;
+    index(i) = Correlation >= 0.75;
 end
 Beats = cell2mat(Beats(index));
 Rpeaks = Rpeaks(index);
