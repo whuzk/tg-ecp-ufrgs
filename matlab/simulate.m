@@ -1,7 +1,7 @@
 function simulate
 
 % Simluaçao de tempo-real dos metodos de detecçao
-import utilities.*;
+import ecgutilities.*;
 global EDB;
 close all;
 
@@ -162,7 +162,7 @@ Result = Result(end:-1:1);
 
 function [begin,R,I,D,BL,new] = update_points(Signal, Fs, Rpeaks, Diagnosis, i, begin, R, I, D, M, BL, B)
 import ecggopalak.*;
-import utilities.*;
+import ecgutilities.*;
 
 N = length(Signal);
 
@@ -194,7 +194,7 @@ end
 
 % dedecta um novo pico de onda R
 if begin == N-2*Fs
-    newR = ecg_segment(Signal(begin:end), Fs, 1);
+    newR = ecg_detect_qrs(Signal(begin:end), Fs, 1);
     newR = newR + begin - 1;
 else
     begin = begin - 1;
@@ -247,7 +247,7 @@ count = count + 1;
 
 function [F,I] = update_mohebbi_caracteristics(Signal,Fs,R,F,I,B,Template,STmodel,Roff,STlen)
 import ecgmohebbi.*;
-import utilities.*;
+import ecgutilities.*;
 
 L = length(Template);
 h = fix(L/2);

@@ -3,9 +3,10 @@
 %   registro na base. Nota: execute o arquivo init.m primeiro.
 %
 import ecgutilities.*
+close all;
 
 %% Criaçao do arquivo de batidas
-%Beatset = create_beatset(Database, LeadName);
+Beatset = create_beatset(Database, LeadName);
 %fprintf('Saving data to file...\n');
 %save_filepath = '../resources/beatset.mat';
 %save(save_filepath, '-struct', 'Beatset');

@@ -8,7 +8,7 @@ Offset = sscanf(Lead.InitialValue, '%d');
 Signal = (Lead.Data - Offset) / Gain;
 
 Signal = suppress_noise(Signal,Fs);
-Rpeaks = ecg_segment(Signal,Fs);
+Rpeaks = ecg_detect_qrs(Signal,Fs);
 ecg_plot_r(Signal, Rpeaks);
 %length(Rpeaks)
 

@@ -1,5 +1,5 @@
-function Result = ecg_segment(Signal, Fs)
-%   Detecçao dos picos de onda R num sinal de ECG. Adaptado do metodo de
+function Result = ecg_detect_qrs(Signal, Fs)
+%   Detecçao dos complexos QRS num sinal de ECG. Adaptado do metodo de
 %   Tompkins.
 %
 % Entradas:
@@ -92,7 +92,7 @@ while k <= M && i < N
     i = i + 1;
 end
 R = R(1:k-1);
-Result = R - delay;
+Result = ecgmath.neighbour_max(OriginalSignal,R-delay,20);
 %{
 figure;
 hold on, grid on;
@@ -100,14 +100,3 @@ plot([Signal TTT]);
 plot(R, Signal(R), 'kx');
 pause;
 %}
-%% adjustment
-
-% ajuste dos picos (para obter a localizaçao exata)
-A = zeros(size(Result));
-for i = 1:length(Result)
-    left = max(1,Result(i)-20);
-    right = min(N,Result(i)+20);
-    window = OriginalSignal(left:right);
-    [~,x1] = max(window);
-    Result(i) = left+x1-1;
-end
