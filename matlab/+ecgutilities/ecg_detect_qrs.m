@@ -63,11 +63,14 @@ delay = 23+19;
 M = fix(N/Fs*5);
 R = zeros(M,1);
 TTT = zeros(N,1);
+AAA = zeros(N,1);
+FOsize = 20;
 
 k = 1;
 i = 2;
-while k <= M && i < N
-    TTT(i) = Tresh1;
+while k <= M && i <= N-FOsize
+    TTT(i) = TTT(i-1);
+    AAA(i) = AAA(i-1);
     if skip
         if Signal(i) < Tresh1
             skip = false;
@@ -76,17 +79,21 @@ while k <= M && i < N
         a = Signal(i-1);
         b = Signal(i);
         c = Signal(i+1);
-        if (b-a) > 0 && (c-b) <= 0 && abs(c-2*b+a) > 1E-7
+        if (b-a) > 0 && (c-b) <= 0 && ...
+           abs(c-2*b+a) > 1E-7
             PEAK = Signal(i);
-            if PEAK > Tresh1
+            FPEAK = Signal(i+FOsize);
+            if PEAK > Tresh1 && PEAK > FPEAK
                 Stresh = 0.25*PEAK + 0.75*Stresh;
                 R(k) = i;
                 k = k + 1;
                 skip = true;
+                AAA(i) = PEAK - FPEAK;
             else
                 Ntresh = 0.25*PEAK + 0.75*Ntresh;
             end
             Tresh1 = Ntresh + 0.25*(Stresh-Ntresh);
+            TTT(i) = Tresh1;
         end
     end
     i = i + 1;
@@ -96,7 +103,11 @@ Result = ecgmath.neighbour_max(OriginalSignal,R-delay,20);
 %{
 figure;
 hold on, grid on;
+plot([Signal AAA]);
+plot(R, Signal(R), 'kx');
+
+figure;
+hold on, grid on;
 plot([Signal TTT]);
 plot(R, Signal(R), 'kx');
-pause;
 %}

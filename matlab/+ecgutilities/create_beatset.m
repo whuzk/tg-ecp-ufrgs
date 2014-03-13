@@ -4,7 +4,7 @@ function Result = create_beatset(Database, LeadName)
 import ecgutilities.*;
 
 Records = fieldnames(Database);
-for i = 5:5%numel(Records)
+for i = 1:numel(Records)
     ECG = Database.(Records{i});
     
     [Fs,Bp,Sc,Leads,Data] = ecg_interpret(ECG);
@@ -18,10 +18,10 @@ for i = 5:5%numel(Records)
         end
         
         % processa o sinal da derivaçao
-        [Beats,Rpeaks,RR,Template] = ecg_preprocess(Data(:,j), Fs);
+        [Beats,R,RR,Template] = ecg_preprocess(Data(:,j), Fs);
         
         % seleciona as batidas corretamente identificadas
-        [index1,index2] = ecg_find_close_beats(Bp, Rpeaks-5-2);
+        [index1,index2] = ecg_find_close_beats(Bp, R-5);
         
         % agrega anotaçoes de diagnostico
         id = num2str(j-1);
@@ -30,6 +30,7 @@ for i = 5:5%numel(Records)
         
         % armazena o resultado na variavel
         Result.(Records{i}).Fs = Fs;
+        Result.(Records{i}).R = R(index2);
         Result.(Records{i}).RR = RR(index2);
         Result.(Records{i}).Beats = Beats(:,index2);
         Result.(Records{i}).Template = Template;
