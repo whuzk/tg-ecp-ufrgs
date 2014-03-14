@@ -98,7 +98,7 @@ Delay = fix(mean(grpdelay(B,A)));
 function [Result,Delay] = suppress_baseline(Signal, Rpeaks, Fs)
 N = length(Signal);
 X = Rpeaks - fix(Fs*0.06);
-%X(find(diff(X) == 0)+1)
+X = X(X > 0);
 Y = [0; Signal(X); 0];
 Result = Signal - spline(X,Y,(1:N)');
 %Result = Signal;

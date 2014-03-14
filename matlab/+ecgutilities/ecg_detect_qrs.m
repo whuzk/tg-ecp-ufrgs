@@ -55,57 +55,62 @@ Signal = filter(Bb, Ab, Signal.^2);
 %ecgutilities.ecg_plot(Signal, 'integ');
 
 %% detection
-Stresh = 0;
-Ntresh = 0;
-Tresh1 = 0;
-skip = false;
+Stresh = 1E-4;
+Ntresh = 1E-4;
+achtung = false;
+LASTPEAK = 0;
+LASTDIFF = 0;
 delay = 23+19;
 M = fix(N/Fs*5);
 R = zeros(M,1);
 TTT = zeros(N,1);
-AAA = zeros(N,1);
-FOsize = 20;
 
-k = 1;
+k = 0;
 i = 2;
-while k <= M && i <= N-FOsize
-    TTT(i) = TTT(i-1);
-    AAA(i) = AAA(i-1);
-    if skip
-        if Signal(i) < Tresh1
-            skip = false;
-        end
-    else
-        a = Signal(i-1);
-        b = Signal(i);
-        c = Signal(i+1);
-        if (b-a) > 0 && (c-b) <= 0 && ...
-           abs(c-2*b+a) > 1E-7
-            PEAK = Signal(i);
-            FPEAK = Signal(i+FOsize);
-            if PEAK > Tresh1 && PEAK > FPEAK
-                Stresh = 0.25*PEAK + 0.75*Stresh;
-                R(k) = i;
+while k <= M && i < N
+    Tresh1 = Ntresh + 0.25*(Stresh-Ntresh);
+    
+    if Signal(i) > Tresh1
+        if ~achtung
+            achtung = true;
+            if k == 0 || R(k) > 0
                 k = k + 1;
-                skip = true;
-                AAA(i) = PEAK - FPEAK;
-            else
-                Ntresh = 0.25*PEAK + 0.75*Ntresh;
             end
-            Tresh1 = Ntresh + 0.25*(Stresh-Ntresh);
-            TTT(i) = Tresh1;
+            %i, pause;
+        end
+    elseif achtung
+        achtung = false;
+        LASTPEAK = 0;
+        %i, pause;
+    end
+    
+    a = Signal(i-1);
+    b = Signal(i);
+    c = Signal(i+1);
+    if (b-a) > 0 && (c-b) <= 0 && abs(c-2*b+a) > 1E-9
+        PEAK = Signal(i);
+        if achtung
+            DIFF = PEAK - Tresh1;
+            if DIFF > 0.2*LASTDIFF
+                Stresh = 0.25*PEAK + 0.75*Stresh;
+                if PEAK > LASTPEAK
+                    LASTPEAK = PEAK;
+                    LASTDIFF = DIFF;
+                    R(k) = i;
+                    %i, pause
+                end
+            end
+        else
+            Ntresh = 0.25*PEAK + 0.75*Ntresh;
         end
     end
+    
+    TTT(i) = Tresh1;
     i = i + 1;
 end
-R = R(1:k-1);
-Result = ecgmath.neighbour_max(OriginalSignal,R-delay,20);
+R = R(1:k);
+Result = ecgmath.neighbour_max(OriginalSignal,R-delay,10);
 %{
-figure;
-hold on, grid on;
-plot([Signal AAA]);
-plot(R, Signal(R), 'kx');
-
 figure;
 hold on, grid on;
 plot([Signal TTT]);
