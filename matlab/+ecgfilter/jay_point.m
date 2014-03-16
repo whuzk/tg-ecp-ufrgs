@@ -1,9 +1,9 @@
-function Result = detect_jay_point(Signal, Fs)
+function Result = jay_point(Beat, Fs)
 
-R = fix(length(Signal)/2);
+R = fix(length(Beat)/2);
 left = R+fix(0.02*Fs);
 right = R+fix(0.12*Fs);
-X = Signal(left:right);
+X = Beat(left:right);
 
 lf = fix(0.02*Fs);
 B = ones(1,lf)/lf;

@@ -1,6 +1,7 @@
 function convert_database(desc_dir, data_dir, atr_dir, ...
     pu_dir, sta_dir, stb_dir, stc_dir, save_filepath)
 % carrega todos arquivos da base e converte para o formato MATLAB
+import ecgutilities.*
 
 tic;
 Database = struct();
@@ -22,7 +23,7 @@ for i = 1:length(desc_files)
         pu_filepath = '';
     end
     
-    ECG = utilities.convert_ecg(...
+    ECG = convert_ecg(...
         desc_filepath, data_filepath, atr_filepath, pu_filepath);
     
     if ~isempty(ECG)
@@ -30,7 +31,7 @@ for i = 1:length(desc_files)
             sta_filepath = [sta_dir var_name '.sta'];
             stb_filepath = [stb_dir var_name '.stb'];
             stc_filepath = [stc_dir var_name '.stc'];
-            ECG.ST = utilities.convert_st_annot(...
+            ECG.ST = convert_st_annot(...
                 sta_filepath, stb_filepath, stc_filepath);
         end
         Database.(var_name) = ECG;

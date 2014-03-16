@@ -4,7 +4,7 @@ function Result = convert_physiobank_ecg(db_dir, record_name)
 
 % extrai informaçoes basicas do registro
 ecg_desc = importdata([db_dir record_name '.hea'], '\n');
-[Result,N,M] = utilities.ecg_extract_description(ecg_desc);
+[Result,N,M] = ecgutilities.extract_description(ecg_desc);
 
 % vai ate a pasta do registro
 old_path = pwd;

@@ -1,5 +1,5 @@
 function test_segmentation(ECG)
-import ecgutilities.*;
+import ecgfilter.*;
 
 Fs = sscanf(ECG.SamplingFrequency, '%d');
 Lead = ECG.Signals{1};
@@ -8,12 +8,6 @@ Offset = sscanf(Lead.InitialValue, '%d');
 Signal = (Lead.Data - Offset) / Gain;
 
 Signal = suppress_noise(Signal,Fs);
-Rpeaks = ecg_detect_qrs(Signal,Fs);
-ecg_plot_r(Signal, Rpeaks);
+Rpeaks = detect_qrs(Signal,Fs);
+plot_signal_r(Signal, Rpeaks);
 %length(Rpeaks)
-
-
-function Result = suppress_noise(Signal, Fs)
-Wn = 40 * 2/Fs;
-[B,A] = butter(4, Wn);
-Result = filter(B, A, Signal);

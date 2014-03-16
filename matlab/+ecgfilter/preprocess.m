@@ -1,20 +1,20 @@
-function [Beats,Rpeaks,RR,Template] = ecg_preprocess(Signal, Fs)
+function [Beats,Rpeaks,RR,Template] = preprocess(Signal, Fs)
 
 % detecção dos complexos QRS
 tic;
-Rpeaks = ecgutilities.ecg_detect_qrs(Signal,Fs);
+Rpeaks = ecgfilter.detect_qrs(Signal,Fs);
 toc;
-ecgutilities.ecg_plot_r(Signal, Rpeaks);
+ecgutilities.plot_signal_r(Signal, Rpeaks);
 %pause;
 
 % remoçao de ruido e da linha de base
 tic;
-[FiltSignal,Delay] = ecg_filter(Signal, Rpeaks, Fs);
+[FiltSignal,Delay] = filter_signal(Signal, Rpeaks, Fs);
 toc;
 
 % ajuste da localizaçao das batidas
 [Radj,Rpeaks,RR] = adjust_peaks(FiltSignal,Rpeaks,Delay);
-%ecgutilities.ecg_plot_r(FiltSignal, Radj);
+%ecgutilities.plot_signal_r(FiltSignal, Radj);
 %pause;
 
 % extraçao das batidas
@@ -25,7 +25,7 @@ Tc = 30;
 Template = mean(Beats(:,1:Tc),2);
 Beats = Beats(:,Tc+1:end);
 Rpeaks = Rpeaks(Tc+1:end);
-%ecgutilities.ecg_plot(Template, 'Template');
+%ecgutilities.plot_signal(Template, 'Template');
 %pause;
 
 % remoçao de batidas anomalas
@@ -33,13 +33,13 @@ Rpeaks = Rpeaks(Tc+1:end);
 index = detect_artifact_beats(Beats,Template);
 Beats = Beats(:,index);
 Rpeaks = Rpeaks(index);
-%ecgutilities.ecg_plot_r(Signal, Rpeaks);
+%ecgutilities.plot_signal_r(Signal, Rpeaks);
 %pause;
 %
 
-function [Filtered,Delay] = ecg_filter(Signal, Rpeaks, Fs)
-[Filtered,T1] = ecgutilities.ecg_suppress_noise(Signal, Fs);
-%[Filtered,T2] = ecgutilities.ecg_suppress_baseline(Filtered, Fs);
+function [Filtered,Delay] = filter_signal(Signal, Rpeaks, Fs)
+[Filtered,T1] = ecgfilter.suppress_noise(Signal, Fs);
+%[Filtered,T2] = ecgfilter.suppress_baseline(Filtered, Fs);
 [Filtered,T2] = suppress_baseline(Filtered, Rpeaks+T1, Fs);
 Delay = T1 + T2;
 
@@ -98,7 +98,7 @@ Delay = fix(mean(grpdelay(B,A)));
 function [Result,Delay] = suppress_baseline(Signal, Rpeaks, Fs)
 N = length(Signal);
 X = Rpeaks - fix(Fs*0.06);
-X = X(X > 0);
+X = unique(X(X > 0));
 Y = [0; Signal(X); 0];
 Result = Signal - spline(X,Y,(1:N)');
 %Result = Signal;

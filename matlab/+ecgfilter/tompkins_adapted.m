@@ -1,69 +1,5 @@
-function Result = ecg_detect_qrs(Signal, Fs)
-%   Detecçao dos complexos QRS num sinal de ECG. Adaptado do metodo de
-%   Tompkins.
-%
-% Entradas:
-%   Signal - amplitudes normalizadas do sinal
-%   Fs     - taxa de amostragem do sinal
-%
-% Saída:
-%   localizaçao dos picos de onda R
-%
+function [R,Th] = tompkins_adapted(Signal, Fs)
 
-% filtering
-[FiltSignal,Delay] = tompkins_filter(Signal, Fs);
-%ecgutilities.ecg_plot(FiltSignal, 'integ');
-
-% detection
-R = sogari_qrs_detection(FiltSignal, Fs);
-Result = ecgmath.neighbour_max(Signal,R-Delay,10);
-
-
-function [Result,Delay] = tompkins_filter(Signal, Fs)
-% low-pass (5T delay)
-A1 = [1 -2 1];
-B1([1 7 13]) = 1/36*[1 -2 1];
-T1 = tf(B1,A1);
-
-% high-pass (16T delay)
-A2 = [1 -1];
-B2([1 17 18 33]) = [-1/32 1 -1 1/32];
-T2 = tf(B2,A2);
-
-% derivative (2T delay)
-A3 = 1;
-B3 = 0.1*[2 1 0 -1 -2];
-T3 = tf(B3,A3);
-
-% cascade (23T delay)
-T = T1*T2*T3;
-Aa = fliplr(T.den{1});
-Ba = T.num{1};
-
-% integration (18T delay)
-Ws = fix(0.15*Fs);
-B4 = ones(1,Ws)/Ws;
-T4 = tf(B4,1);
-
-% smoothing (4T delay)
-B5 = ones(1,9)/9;
-T5 = tf(B5,1);
-
-% smoothing (1T delay)
-%B5 = ones(1,3)/3;
-%T5 = tf(B5,1);
-
-% cascade (22T delay)
-T = T4*T5;
-Ab = fliplr(T.den{1});
-Bb = T.num{1};
-
-% apply filters
-Signal = filter(Ba, Aa, Signal);
-Result = filter(Bb, Ab, Signal.^2);
-Delay = 23 + 22;
-
-function Result = sogari_qrs_detection(Signal, Fs)
 %initializations
 Sthresh = 0;
 Nthresh = 0;
@@ -73,7 +9,7 @@ LASTPEAK = 0;
 N = length(Signal);
 M = fix(N/Fs*5);
 R = zeros(M,1);
-TTT = zeros(N,1);
+Th = zeros(N,1);
 FOsize = 20;
 
 % algorithm
@@ -135,14 +71,7 @@ while k <= M && i <= N-FOsize
             end
         end
     end
-    
-    TTT(i) = Gthresh;
+    Th(i) = Gthresh;
     i = i + 1;
 end
-Result = R(1:k);
-%
-figure;
-hold on, grid on;
-plot([Signal TTT]);
-plot(Result, Signal(Result), 'kx');
-%
+R(k+1:end) = [];

@@ -13,18 +13,15 @@ end
 
 
 function Result = rocha_features(Beats, Fs, RR)
-import ecgutilities.*;
 I = [];
 J = [];
-[B1,B2] = extract_st_deviation(Beats, Fs, RR);
-[C1,C2] = hermite_coefficients(Beats, I, J, min(RR,Fs));
+[B1,B2] = ecgfilter.st_deviation(Beats, Fs, RR);
+[C1,C2] = ecgfilter.hermite_coeff(Beats, I, J, min(RR,Fs));
 Result = [B1 B2 C1 C2];
 
 function Result = mohebbi_features(Beats, Fs, Template)
-import ecgutilities.*;
-
 STlen = fix(0.16*Fs);
-Jtemp = detect_jay_point(Template, Fs);
+Jtemp = ecgfilter.jay_point(Template, Fs);
 STtemp = Template(Jtemp:Jtemp+STlen-1);
 modelF = (STtemp(1:2:end) + STtemp(2:2:end))/2;
 
@@ -32,7 +29,7 @@ n = length(modelF);
 m = size(Beats,2);
 Result = zeros(m,n);
 for i = 1:m
-   J = detect_jay_point(Beats(:,i), Fs);
+   J = ecgfilter.jay_point(Beats(:,i), Fs);
    ST = Beats(J:J+STlen-1,i);
    F = (ST(1:2:end) + ST(2:2:end))/2;
    Result(i,:) = modelF - F;

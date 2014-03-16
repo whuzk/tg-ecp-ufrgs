@@ -1,13 +1,12 @@
 function Result = create_beatset(Database, LeadName)
 % Criaçao do conjunto de batidas
-%
-import ecgutilities.*;
+import ecgutilities.*
 
 Records = fieldnames(Database);
 for i = 1%1:numel(Records)
     ECG = Database.(Records{i});
     
-    [Fs,Bp,Sc,Leads,Data] = ecg_interpret(ECG);
+    [Fs,Bp,Sc,Leads,Data] = ecgutilities.interpret(ECG);
     for j = 1:Sc
         % seleciona a derivaçao correta
         if ~strcmp(Leads{j}, LeadName)
@@ -18,15 +17,15 @@ for i = 1%1:numel(Records)
         end
         
         % processa o sinal da derivaçao
-        [Beats,R,RR,Template] = ecg_preprocess(Data(:,j), Fs);
+        [Beats,R,RR,Template] = ecgfilter.preprocess(Data(:,j), Fs);
         
         % seleciona as batidas corretamente identificadas
-        [index1,index2] = ecg_find_close_beats(Bp, R-5);
+        [index1,index2] = ecgutilities.find_close_beats(Bp, R-5);
         
         % agrega anotaçoes de diagnostico
         id = num2str(j-1);
-        STseg = ecg_get_diagnosis(ECG.Annotations, Bp(index1), 's', 'ST', id);
-        Twave = ecg_get_diagnosis(ECG.Annotations, Bp(index1), 'T', 'T', id);
+        STseg = extract_diagnosis(ECG.Annotations, Bp(index1), 's', 'ST', id);
+        Twave = extract_diagnosis(ECG.Annotations, Bp(index1), 'T', 'T', id);
         
         % armazena o resultado na variavel
         Result.(Records{i}).Fs = Fs;

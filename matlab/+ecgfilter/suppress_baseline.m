@@ -1,4 +1,4 @@
-function [Filtered,Delay] = ecg_suppress_baseline(Signal, Fs)
+function [Filtered,Delay] = suppress_baseline(Signal, Fs)
 %   Remove a linha de base flutuante de um sinal de ECG usando um filtro
 %   wavelet adaptativo, de acordo com o metodo de Park.
 %

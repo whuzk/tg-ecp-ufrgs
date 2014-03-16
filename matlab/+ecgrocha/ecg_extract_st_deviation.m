@@ -44,7 +44,7 @@ for i = 1:m
     WVD = pseudo_wigner_ville(Signal(x), Fres);
     Sum = sum(WVD(1:Fmax,:),1) / Fmax;
     %Sum = sum(abs(WVD(1:Fmax,:)),1) / Fmax;
-    %utilities.ecg_plot(Sum, 'Sum of Wigner-Ville transforms');
+    %utilities.plot_signal(Sum, 'Sum of Wigner-Ville transforms');
     
     % faixas de tempo
     t1 = (B1(i):R(i))-B1(i)+1;

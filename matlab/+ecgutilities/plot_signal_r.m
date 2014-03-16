@@ -1,5 +1,5 @@
-function ecg_plot_r(Signal, R)
-% Funçao para plotar o grafico de um ECG com os picos de onda R
+function plot_signal_r(Signal, R)
+% Funçao para plotar o grafico de um sinal de ECG com os picos de onda R
 
 figure;
 hold on;

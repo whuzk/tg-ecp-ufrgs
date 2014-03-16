@@ -70,7 +70,7 @@ plot(1:length(Template), Template);
 plot(Rtemplate, Template(Rtemplate), 'kx');
 plot(Jtemplate, Template(Jtemplate), 'kx');
 title('Template');
-ecg_plot(TemplateST, 'Template ST segment');
+plot_signal(TemplateST, 'Template ST segment');
 
 figure;
 hold on; grid on;

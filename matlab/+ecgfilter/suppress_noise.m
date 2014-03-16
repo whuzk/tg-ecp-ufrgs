@@ -1,4 +1,4 @@
-function [Filtered,Delay] = ecg_suppress_noise(Signal, Fs)
+function [Filtered,Delay] = suppress_noise(Signal, Fs)
 %   Remove o ruído de alta frequência de um sinal de ECG usando um filtro
 %   de Butterworth.
 %

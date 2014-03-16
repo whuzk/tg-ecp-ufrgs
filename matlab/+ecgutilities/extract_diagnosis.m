@@ -1,4 +1,4 @@
-function Result = ecg_get_diagnosis(Annot, Rpeaks, Type, keyWord, signalID)
+function Result = extract_diagnosis(Annot, Rpeaks, Type, keyWord, signalID)
 
 m = length(Rpeaks);
 l = length(keyWord);

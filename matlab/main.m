@@ -3,6 +3,7 @@
 %   registro na base. Nota: execute o arquivo init.m primeiro.
 %
 import ecgutilities.*
+import ecgtest.*
 close all;
 
 %% Criaçao do arquivo de batidas

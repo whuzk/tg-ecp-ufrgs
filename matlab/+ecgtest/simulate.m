@@ -110,7 +110,7 @@ for i = 1:length(Data)
         plot(Rtemplate, Template(Rtemplate), 'kx');
         plot(Jtemplate, Template(Jtemplate), 'kx');
         title('Template');
-        ecg_plot(TemplateST, 'Template ST segment');
+        plot_signal(TemplateST, 'Template ST segment');
         pause;
         %}
     end
@@ -281,7 +281,7 @@ plot(X);
 plot(h+1, X(h+1), 'kx');
 plot(J, X(J), 'kx');
 title('R and J point');
-ecg_plot(ST, 'ST Segment');
+plot_signal(ST, 'ST Segment');
 pause;
 %}
 newF = (STmodel - ST)';

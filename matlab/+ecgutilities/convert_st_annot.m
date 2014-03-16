@@ -14,6 +14,6 @@ if isempty(sta_text) || isempty(stb_text) || isempty(stc_text)
 end
 
 % converte as anotaçoes
-Result.sta = utilities.ecg_get_annotations(sta_text);
-Result.stb = utilities.ecg_get_annotations(stb_text);
-Result.stc = utilities.ecg_get_annotations(stc_text);
+Result.sta = utilities.extract_annotations(sta_text);
+Result.stb = utilities.extract_annotations(stb_text);
+Result.stc = utilities.extract_annotations(stc_text);

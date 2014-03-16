@@ -1,4 +1,4 @@
-function [Fs,Bp,Sc,Leads,Data] = ecg_interpret(ECG)
+function [Fs,Bp,Sc,Leads,Data] = interpret(ECG)
 
 Fs = sscanf(ECG.SamplingFrequency,'%d');
 Bp = str2double(ECG.Annotations.Sample);

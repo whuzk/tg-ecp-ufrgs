@@ -1,4 +1,4 @@
-function Result = ecg_get_annotations(text)
+function Result = extract_annotations(text)
 
 if strfind(text, '[')
     annot = textscan(text, '%s%s%s%s%s%s%s%s');

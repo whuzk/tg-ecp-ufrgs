@@ -1,4 +1,4 @@
-function [Result,N,M] = ecg_extract_description(lines)
+function [Result,N,M] = extract_description(lines)
 %   Extrai informaçoes de um registro de ECG a partir das linhas do seu
 %   arquivo de descriçao.
 

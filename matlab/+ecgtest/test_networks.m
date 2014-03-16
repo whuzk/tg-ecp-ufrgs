@@ -15,7 +15,7 @@ switch MethodName
         error('invalid method name');
 end
 
-Result = ecgutilities.compute_statistics(T, O);
+Result = ecgmath.compute_statistics(T, O);
 
 
 function [T,O] = test_rocha(F, D, Network)
