@@ -4,7 +4,7 @@ function [Beats,Rpeaks,RR,Template] = ecg_preprocess(Signal, Fs)
 tic;
 Rpeaks = ecgutilities.ecg_detect_qrs(Signal,Fs);
 toc;
-%ecgutilities.ecg_plot_r(Signal, Rpeaks);
+ecgutilities.ecg_plot_r(Signal, Rpeaks);
 %pause;
 
 % remoçao de ruido e da linha de base
