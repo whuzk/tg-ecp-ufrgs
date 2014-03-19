@@ -1,45 +1,56 @@
-function [Result,Delay] = tompkins_preprocess(Signal, Fs)
+function [SignalH,SignalI,NewFs,delay] = tompkins_preprocess(Signal, Fs)
 
-% low-pass (5T delay)
-A1 = [1 -2 1];
-B1([1 7 13]) = 1/36*[1 -2 1];
-T1 = tf(B1,A1);
+% initializations
+N = length(Signal);
+NewFs = Fs;%200;
+resamp = false;%(Fs ~= NewFs);
 
-% high-pass (16T delay)
-A2 = [1 -1];
-B2([1 17 18 33]) = [-1/32 1 -1 1/32];
-T2 = tf(B2,A2);
+% design of resampling filter
+if resamp
+    [p,q] = rat(NewFs/Fs, 1E-12);
+    pqmax = max(p,q);
+    fc = 1/2/pqmax;
+    L = 2*10*pqmax+1;
+    f_r = [0 2*fc 2*fc 1];
+    a_r = [1 1 0 0];
+    h_r = firls(L-1, f_r, a_r);
+    h_r = p*h_r.*kaiser(L,5)';
+    d_r = floor(L/2/q);
+else
+    d_r = 0;
+end
 
-% derivative (2T delay)
-A3 = 1;
-B3 = 0.1*[1 2 0 -2 -1];
-T3 = tf(B3,A3);
+% design of low-pass filter
+b_l = 1/36*[1 0 0 0 0 0 -2 0 0 0 0 0 1];
+a_l = [1 -2 1];
+h_l = filter(b_l, a_l, [1 zeros(1,12)]);
+d_l = 6;
 
-% cascade (23T delay)
-T = T1*T2*T3;
-Aa = fliplr(T.den{1});
-Ba = T.num{1};
+% design of high-pass filter
+b_h = 1/32*[-1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 32 -32 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1];
+a_h = [1 -1];
+h_h = filter(b_h, a_h, [1 zeros(1,32)]);
+d_h = 16;
 
-% integration (18T delay)
-Ws = fix(0.15*Fs);
-B4 = ones(1,Ws)/Ws;
-T4 = tf(B4,1);
+% design of derivative filter
+h_d = 1/8*[-1 -2 0 2 1];
+d_d = 2;
 
-% smoothing (4T delay)
-B5 = ones(1,9)/9;
-T5 = tf(B5,1);
+% design of integration filter
+Ws = round(0.15*NewFs);
+h_i = ones(1,Ws)/Ws;
+d_i = floor(Ws/2);
 
-% smoothing (1T delay)
-%B5 = ones(1,3)/3;
-%T5 = tf(B5,1);
+% filtering
+if resamp
+    SignalUp(1:p:N*p) = Signal; % upsample
+    Signal = conv2(SignalUp(:), h_r(:), 'full');
+    Signal = Signal(1:q:end);   % downsample
+end
+SignalL = conv2(Signal, h_l(:), 'full');
+SignalH = conv2(SignalL, h_h(:), 'full');
+SignalD = conv2(SignalH, h_d(:), 'full');
+SignalI = conv2(SignalD.^2, h_i(:), 'full');
 
-% cascade (22T delay)
-T = T4*T5;
-Ab = fliplr(T.den{1});
-Bb = T.num{1};
-
-% apply filters
-Signal = Signal - mean(Signal);
-Signal = filter(Ba, Aa, Signal);
-Result = filter(Bb, Ab, Signal.^2);
-Delay = 23 + 22;
+% delay calculation
+delay = round(d_r + d_l + d_h + d_d + d_i);
