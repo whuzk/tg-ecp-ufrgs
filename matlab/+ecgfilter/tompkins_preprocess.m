@@ -1,4 +1,4 @@
-function [SignalH,SignalI,DelayH,DelayI,NewFs] = tompkins_preprocess(Signal, Fs)
+function [SignalH,SignalI,DelayH,DelayI,Fs] = tompkins_preprocess(Signal, Fs)
 
 % validate input
 if ~isvector(Signal) || isempty(Signal)
@@ -8,14 +8,13 @@ end
 % initialization
 DelayH = 0;
 DelayI = 0;
-NewFs = 200;
-resamp = (Fs ~= NewFs);
+resamp = false;%(Fs ~= 200);
 
 %% filter design
 
 % resampling filter
 if resamp
-    [p,q] = rat(NewFs/Fs, 1E-12);
+    [p,q] = rat(200/Fs, 1E-12);
     pqmax = max(p,q);
     fc = 1/2/pqmax;
     L = 2*10*pqmax+1;
@@ -24,6 +23,7 @@ if resamp
     h_r = firls(L-1, f_r, a_r);
     h_r = p*h_r.*kaiser(L,5)';
     d_r = floor(L/2/q);
+    Fs = 200;
 end
 
 % low-pass filter
@@ -43,7 +43,7 @@ h_d = 1/8*[-1 -2 0 2 1];
 d_d = 2;
 
 % integration filter
-Ws = round(0.15*NewFs);
+Ws = round(0.15*Fs);
 h_i = ones(1,Ws)/Ws;
 d_i = floor(Ws/2);
 
