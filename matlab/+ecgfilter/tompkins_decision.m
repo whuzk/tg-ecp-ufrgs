@@ -1,13 +1,16 @@
-function [QRSi,THRs,THRn] = tompkins_decision(SignalB,SignalI,DelayI,Fs)
+function [QRSi,THRs,THRn,THRs2,THRn2] = tompkins_decision(SignalB,SignalI,DelayI,Fs)
 
 %% initializations
 N = length(SignalI);    % length of MWI signal
+N2 = length(SignalB);   % length of bandpassed signal
 Tref = round(0.2*Fs);   % length of refractory period
 Ttrain = round(2*Fs);   % length of training period
 
 QRSi = zeros(N,1);      % buffer for the R wave indices
 THRs = zeros(N,1);      % buffer for the Signal Threshold history
 THRn = zeros(N,1);      % buffer for the Noise Threshold history
+THRs2 = zeros(N2,1);    % buffer for the Signal Threshold history
+THRn2 = zeros(N2,1);    % buffer for the Noise Threshold history
 RR_int = NaN(1,8);      % buffer for the last RR intervals
 sel_RR_int = NaN(1,8);  % buffer for the selected RR intervals
 
@@ -21,7 +24,7 @@ qrs_count = 0;          % count of QRS complex in output QRS buffer
 last_peak_i = 0;        % index of last identified peak
 cur_i = 0;              % index of current candidate peak
 cur_a = 0;              % amplitude of current candidate peak in MWI
-%cur_y = 0;              % amplitude of current candidate peak in BP
+cur_y = 0;              % amplitude of current candidate peak in BP
 last_qrs_i = 0;         % index of last QRS complex
 new_rr = 0;             % new RR interval after QRS detection
 ref_count = 0;          % counter for the refractory period
@@ -51,43 +54,41 @@ for i = 2:length(SignalI)-1
         
     elseif acthung && a < 0.5*cur_a
     
-        % reset T wave indication flag
-        is_twave = false;
-        
-        % if a QRS candidate occurs within 360ms of the previous QRS
-        % the algorithm determines if its T wave or QRS
-        if detection && (cur_i-last_qrs_i) <= round(0.36*Fs)
-            %mean slope of the waveform at that position
-            range1 = cur_i-round(0.05*Fs):cur_i;
-            Slope1 = mean(diff(SignalI(range1)));
-            %mean slope of previous R wave
-            range2 = last_qrs_i-round(0.05*Fs):last_qrs_i;
-            Slope2 = mean(diff(SignalI(range2)));
-            % slope less then 0.5 of previous R
-            is_twave = abs(Slope1) <= abs(0.5*Slope2) || ...
-                (cur_i-last_qrs_i) <= round(0.4*rr_mean);
-        end
-        
-        % skip when a T wave is detected
-        if ~is_twave
-            % update last QRS peak and RR interval
-            if last_qrs_i > 0
-                new_rr = cur_i - last_qrs_i;
-            end
-            last_qrs_i = cur_i;
-            qrs_updated = true;
+        if detection
+            % reset T wave indication flag
+            is_twave = false;
             
-            % bandpass filter check threshold
-            if detection && cur_y >= THR_SIG2
+            % if a QRS candidate occurs within 360ms of the previous QRS
+            % the algorithm determines if it is T wave or QRS
+            if cur_i-last_qrs_i <= round(0.36*Fs)
+                %mean slope of the waveform at that position
+                range1 = cur_i-round(0.05*Fs):cur_i;
+                Slope1 = mean(diff(SignalI(range1)));
+                %mean slope of previous R wave
+                range2 = last_qrs_i-round(0.05*Fs):last_qrs_i;
+                Slope2 = mean(diff(SignalI(range2)));
+                % slope less then 0.5 of previous R
+                is_twave = abs(Slope1) <= abs(0.5*Slope2) || ...
+                    (cur_i-last_qrs_i) <= round(0.4*rr_mean);
+            end
+            
+            % skip when a T wave is detected
+            if ~is_twave && cur_y >= THR_SIG2
                 % increment qrs count
                 qrs_count = qrs_count + 1;
                 % save index of MWI
                 QRSi(qrs_count) = cur_i;
                 % activate refractory period
-                ref_count = Tref - (i-cur_i);
+                ref_count = max(0,Tref-(i-cur_i));
             end
         end
         
+        % update last QRS peak and RR interval
+        if last_qrs_i > 0
+            new_rr = cur_i - last_qrs_i;
+        end
+        last_qrs_i = cur_i;
+        qrs_updated = true;
         acthung = false;
         cur_a = 0;
         
@@ -96,12 +97,14 @@ for i = 2:length(SignalI)-1
         % update threshold history
         THRs(last_peak_i+1:i) = THR_SIG1;
         THRn(last_peak_i+1:i) = THR_NOISE1;
+        THRs2(last_peak_i+1:i) = THR_SIG2;
+        THRn2(last_peak_i+1:i) = THR_NOISE2;
         last_peak_i = i;
 
-        % find peak location in the bandpassed signal
+        % find peak in the bandpassed signal
         begin_i = max(0,i-2*DelayI);
         end_i = min(i,length(SignalB));
-        y_i = max(SignalB(begin_i:end_i));
+        y = max(SignalB(begin_i:end_i));
 
         %% check whether a new QRS was detected and update heart rates
         if qrs_updated && i > Ttrain && new_rr > 0
@@ -142,63 +145,69 @@ for i = 2:length(SignalI)-1
 
         %% find noise and QRS peaks
         if a >= THR_SIG1
-
+            
             % initiate active search
             if ~acthung
                 acthung = true;
             end
-
+            
             % check if peak is higher
             if a > cur_a
                 cur_a = a;
                 cur_i = i;
-                %cur_y = y_i;
+                cur_y = y;
             end
-
+            
             % bandpass filter check threshold
-            if y_i >= THR_SIG2
+            if y >= THR_SIG2
                 % adjust threshold for bandpass signal
-                SIG_LEV2 = 0.125*y_i + 0.875*SIG_LEV2;
+                SIG_LEV2 = 0.125*y + 0.875*SIG_LEV2;
             end
             % adjust Signal level
             SIG_LEV1 = 0.125*a + 0.875*SIG_LEV1;
 
         elseif THR_NOISE1 <= a && a < THR_SIG1
 
-            % calculate the mean of the last 8 R waves to make sure that QRS is
-            % not missing (if no R detected, trigger a search back) 1.66*mean
+            % if no R detected within 1.66*mean(RR), trigger a search back
             if detection && (i-last_qrs_i) >= round(1.66*rr_mean)
                 % search back and locate the max in this interval
-                a = max(SignalI(last_qrs_i+Tref:i));
-                if a >= THR_NOISE1
+                [new_a, x] = max(SignalI(last_qrs_i+Tref:i));
+                new_i = last_qrs_i + x - 1;
+                
+                if new_a >= THR_NOISE1
                     % update last QRS peak and RR interval
                     if last_qrs_i > 0
-                        new_rr = i - last_qrs_i;
+                        new_rr = new_i - last_qrs_i;
                     end
-                    last_qrs_i = i;
+                    last_qrs_i = new_i;
                     qrs_updated = true;
+                    
+                    % find peak in the bandpassed signal
+                    begin_i = max(0,new_i-2*DelayI);
+                    end_i = min(new_i,length(SignalB));
+                    new_y = max(SignalB(begin_i:end_i));
 
                     % take care of bandpass signal threshold
-                    if y_i >= THR_NOISE2
+                    if new_y >= THR_NOISE2
                         % increment qrs count
                         qrs_count = qrs_count + 1;
                         % save index of MWI 
-                        QRSi(qrs_count) = i;
+                        QRSi(qrs_count) = new_i;
                         % activate refractory period
-                        ref_count = Tref - (i-cur_i);
+                        ref_count = max(0,Tref-(i-new_i));
                         % when found with the second threshold
-                        SIG_LEV2 = 0.25*y_i + 0.75*SIG_LEV2;
+                        SIG_LEV2 = 0.25*new_y + 0.75*SIG_LEV2;
                     end
-
+                    
                     %when found with the second threshold
-                    SIG_LEV1 = 0.25*a + 0.75*SIG_LEV1;
+                    SIG_LEV1 = 0.25*new_a + 0.75*SIG_LEV1;
                 end
             else
                 %adjust noise level 1
                 NOISE_LEV1 = 0.125*a + 0.875*NOISE_LEV1;
                 %adjust noise level 2
-                if THR_NOISE2 <= y_i %&&  y_i < THR_SIG1
-                    NOISE_LEV2 = 0.125*y_i + 0.875*NOISE_LEV2;
+                if THR_NOISE2 <= y && y < THR_SIG1
+                    NOISE_LEV2 = 0.125*y + 0.875*NOISE_LEV2;
                 end
             end
         end
@@ -217,6 +226,8 @@ end
 % complete the threshold history
 THRs(last_peak_i+1:end) = THR_SIG1;
 THRn(last_peak_i+1:end) = THR_NOISE1;
+THRs2(last_peak_i+1:end) = THR_SIG2;
+THRn2(last_peak_i+1:end) = THR_NOISE2;
 
 % trim the output vectors
 QRSi(qrs_count+1:end) = [];
