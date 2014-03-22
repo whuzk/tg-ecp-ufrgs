@@ -30,13 +30,13 @@ end
 b_l = 1/36*[1 0 0 0 0 0 -2 0 0 0 0 0 1];
 a_l = [1 -2 1];
 h_l = filter(b_l, a_l, [1 zeros(1,12)]);
-d_l = 6;
+d_l = 5;
 
 % high-pass filter
 b_h = 1/32*[-1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 32 -32 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1];
 a_h = [1 -1];
 h_h = filter(b_h, a_h, [1 zeros(1,32)]);
-d_h = 16;
+d_h = 15;
 
 % derivative filter
 h_d = 1/8*[-1 -2 0 2 1];

@@ -165,7 +165,7 @@ for i = 2:length(SignalI)-1
             end
             % adjust Signal level
             SIG_LEV1 = 0.125*a + 0.875*SIG_LEV1;
-
+            
         elseif THR_NOISE1 <= a && a < THR_SIG1
 
             % if no R detected within 1.66*mean(RR), trigger a search back
@@ -220,6 +220,9 @@ for i = 2:length(SignalI)-1
         % adjust the threshold with SNR for bandpassed signal
         THR_SIG2 = NOISE_LEV2 + 0.25*abs(SIG_LEV2 - NOISE_LEV2);
         THR_NOISE2 = 0.5*THR_SIG2;
+    else
+        % reduce signal level
+        SIG_LEV1 = SIG_LEV1 - 0.005*(SIG_LEV1-NOISE_LEV1);
     end
 end
 

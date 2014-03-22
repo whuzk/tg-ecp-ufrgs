@@ -1,4 +1,4 @@
-function [A, B] = ecg_find_close_beats(Rpeaks, Predicted)
+function [A, B] = find_close_beats(Rpeaks, Predicted)
 %   Obtem os incides das batidas que foram corretamente idfentificadas.
 %
 % Entradas:
@@ -16,7 +16,7 @@ B = false(m,1);
 i = 1;
 j = 2;
 while (i <= m)
-    while (j <= n) && (Rpeaks(j) < Predicted(i)) && (Predicted(i) - Rpeaks(j) > 15)
+    while (j <= n) && (Predicted(i) - Rpeaks(j) > 15)
         j = j + 1;
     end
     if (j > n)
