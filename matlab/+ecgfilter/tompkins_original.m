@@ -1,345 +1,235 @@
-function [QRS,QRSreal,RR] = tompkins_original(Signal, Fs)
+function [QRSi,QRS2,THRs,THRn,THRs2,THRn2] = tompkins_original(SignalB,SignalI,DelayI,Fs)
 
-%lahead = round(1:2*Fs);
-%noiseUpdate = .125;
-%signalUpdate = .125;
-%signalSBupdate = .25;
-%rrHighPerc = 1.16;
-%rrLowPerc = .92;
-%rrMissLim = 1.66;
-peakDur = ceil(75/1000*Fs);
-QRSupdate = .475;
-Resolution = 12;
-lenRRavg = 8;
+%% initializations
+N = length(SignalI);    % length of MWI signal
+N2 = length(SignalB);   % length of bandpassed signal
+Tref = round(0.2*Fs);   % length of refractory period
+Ttrain = round(2*Fs);   % length of training period
+Tqrs = round(0.05*Fs);  % half the length of a QRS wave
+TTtol = round(0.36*Fs); % tolerance for T wave identification
 
-%RRmiss = 0;
-%searchback = 0;
-%waiting = 0;
-%lastQRS = 1;
-%waitForNextPeak = 0;
-%npk = min(Signal(lahead));
-%spk = max(Signal(lahead));
-%blankPer = round(.2*Fs);
-%maxder = 0;
-%range = (-peakDur+1):0;
+QRSi = zeros(N,1);      % buffer for the R wave indices
+QRS2 = zeros(N,1);      % buffer for the R wave indices
+THRs = zeros(N,1);      % buffer for the Signal Threshold history
+THRn = zeros(N,1);      % buffer for the Noise Threshold history
+THRs2 = zeros(N2,1);    % buffer for the Signal Threshold history
+THRn2 = zeros(N2,1);    % buffer for the Noise Threshold history
+RR_int = NaN(1,8);      % buffer for the last RR intervals
+sel_RR_int = NaN(1,8);  % buffer for the selected RR intervals
 
-thresh1 = 2/2^12;
-thresh2 = thresh1/2;
-qpkcnt = 0;
-cnt = 0;
-sbpeak = 0;
-initBlank = 0;
-initMax = 0;
-preBlankCnt = 0;
-sbCount = round(1.5*Fs);
-tempPeak = 0;
-WINDOW_WIDTH = peakDur;
-PRE_BLANK = round(2*peakDur);
-pos = 1;
-v2 = 0;
-rsetBufPos = 1;
-noisePos = 1;
-timeSinceMax = 0;
+acthung = false;        % flag to indicate the active search
+detection = false;      % flag to indicate the detection phase
+qrs_updated = false;    % flag to indicate when a new qrs is detected
+rr_mean = 0;            % running average of latest RR intervals
+rr_count = 0;           % count of selected RR intervals in RR buffer
+sel_rr_count = 0;       % count of selected RR intervals in RR buffer
+qrs_count = 0;          % count of QRS complex in output QRS buffer
+qrs_count2 = 0;         % count of QRS complex in output QRS buffer
+last_peak_i = 0;        % index of last identified peak
+cur_i = 0;              % index of current candidate peak
+cur_a = 0;              % amplitude of current candidate peak in MWI
+cur_y = 0;              % amplitude of current candidate peak in BP
+last_qrs_i = 0;         % index of last QRS complex
+new_rr = 0;             % new RR interval after QRS detection
+ref_count = 0;          % counter for the refractory period
 
-RR = zeros(size(Signal));
-RR(1:lenRRavg) = Fs;
-rsetBuf = zeros(1,lenRRavg);
-noisePeakBuf = zeros(1,lenRRavg);
-QRS = zeros(size(Signal));
-QRSreal= zeros(size(Signal));
-QRSpeakBuf = zeros(size(Signal));
-thresh1ar = zeros(size(Signal));
-thresh1ar(1:pos) = thresh1;
-thresh2ar = zeros(size(Signal));
-thresh2ar(1:pos) = thresh2;
+SIG_LEV1 = 0;           % Signal level in MWI
+NOISE_LEV1 = 0;         % Noise level in MWI
+SIG_LEV2 = 0;           % Signal level in Bandpass
+NOISE_LEV2 = 0;         % Noise level in Bandpass
 
-dMax = 0;
-pkTmp = 1;
-pkTmp2 = 1;
-pkPos = 1;
-pkCnt = 1;
-qmedian = 0;
-nmedian = 0;
+THR_SIG1 = 0;           % Signal threshold in MWI
+THR_NOISE1 = 0;         % Noise threshold in MWI
+THR_SIG2 = 0;           % Signal threshold in Bandpass
+THR_NOISE2 = 0;         % Noise threshold in Bandpass
 
-while pos <= length(Signal)
-
-    v = Signal(pos);
-
-    if (timeSinceMax > 0) 
-        timeSinceMax  =timeSinceMax+1;
-    end
+%% algorithm
+for i = 2:length(SignalI)-1
     
-    pk = 0;
+    % get current and neighbour samples
+    a = SignalI(i);
+    b = SignalI(i-1);
+    c = SignalI(i+1);
     
-    if v > v2 && v > dMax
-        dMax = v;
-        pkTmp2 = pos;
-        if dMax > 2/2^Resolution 
-            timeSinceMax = 1; 
-        end
-    elseif v < (dMax/2)
-        pk = dMax;                
-        dMax = 0;
-        timeSinceMax = 0;
-    elseif timeSinceMax > round(.095*Fs)
-        pk = dMax;
-        dMax = 0;
-        timeSinceMax = 0;
-    end
-
-    newPeak = 0;
-
-    if (pk ~= 0 && preBlankCnt==0)
-        tempPeak = pk;
-        pkTmp = pkTmp2;
-        preBlankCnt = PRE_BLANK;
-    elseif pk==0 && preBlankCnt ~= 0
-        preBlankCnt = preBlankCnt-1;
-        if preBlankCnt == 0 
-            newPeak = tempPeak; 
-            pkPos = pkTmp;
-        end
-    elseif pk ~= 0
-        if pk > tempPeak
-            tempPeak = pk;
-            pkTmp = pkTmp2;
-            preBlankCnt = PRE_BLANK;
-        else
-            preBlankCnt = preBlankCnt-1;
-            if preBlankCnt == 0
-                newPeak = tempPeak;
-                pkTmp = pkTmp2;
-            end
-        end
-    end
+    % check if we are in the refractory period
+    if ref_count > 0
+        
+        ref_count = ref_count - 1;
+        
+    elseif acthung && a < 0.5*cur_a
     
-    if qpkcnt < 9
-        cnt = cnt+1;
-        if newPeak > 0 
-            cnt = WINDOW_WIDTH;
-        end
-        initBlank = initBlank+1;
-        if initBlank == Fs || newPeak > 0
-            if newPeak > thresh1
-                initBlank = 0;
-                QRSpeakBuf(pkCnt) = newPeak;
-                QRS(pkCnt) = pos;
-                QRSreal(pkCnt) = pkPos;
-                pkCnt = pkCnt+1;
-                initMax = 0;
-                qpkcnt = qpkcnt+1;
-                %if qpkcnt==lenRRavg
-                qmedian = median(QRSpeakBuf(1:qpkcnt));
-                nmedian = 0;
-                %rrmedian = Fs;
-                %sbcount = round(Fs*(1.500+.150));
-                %dmed = qmedian-nmedian;
-                thresh1 = calcThresh(qmedian, nmedian, QRSupdate);
-                thresh2 = thresh1/2;
-            else
-                noisePeakBuf(noisePos) = newPeak;
-                noisePos = noisePos+1;
-                if noisePos > 8
-                    noisePos=1;
-                end                        
-                nmedian = median(noisePeakBuf);
-                thresh1 = calcThresh(qmedian, nmedian, QRSupdate);
-                if qmedian == 0
-                    thresh1 = mean(noisePeakBuf)*(1+QRSupdate);
-                end
-                thresh2 = thresh1/2;
-            end
-            %end
-        end
-        if newPeak > initMax
-            initMax = newPeak;
-            pkPos = pkTmp;
-        end
-    else
-        cnt = cnt+1;
-        if newPeak > 0
-            if newPeak > thresh1
-                %qrsDelay = signal.totalDelay;
-                QRSpeakBuf(pkCnt) = newPeak;
-                QRS(pkCnt) = pos;%-qrsDelay;
-                QRSreal(pkCnt) = pkTmp;
-                qmedian = median(QRSpeakBuf(pkCnt-7:pkCnt));
-                thresh1 = calcThresh(qmedian, nmedian, QRSupdate);
-                RR(pkCnt) = cnt;
-                pkCnt = pkCnt+1;
-                %rrmedian = median(RR(pkCnt-7:pkCnt));
-                %sbcount = rrmedian + rrmedian/2 + peakDur;
-                cnt = peakDur;
-                sbpeak = 0;
-                %lastmax = maxder;
-                %maxder = 0;
-                initBlank = 0;
-                initMax = 0;
-                rsetBufPos = 1;
-            else
-                noisePeakBuf(noisePos) = newPeak;
-                noisePos = noisePos+1;
-                if noisePos > lenRRavg
-                    noisePos = 1;
-                end                        
-                nmedian = median(noisePeakBuf);
-                thresh1 = calcThresh(qmedian, nmedian, QRSupdate);
-                thresh2 = thresh1/2;
-
-                if (newPeak > sbpeak) && (cnt - peakDur >= round(Fs*.36))
-                    sbpeak = newPeak;
-                    sbloc = cnt - peakDur;
-                end
-            end
-        end
-        if cnt > sbCount && sbpeak > thresh2
-            qrsDelay = cnt - sbloc;
-            cnt = cnt-sbloc;
-            %qrsDelay = qrsDelay + signal.totalDelay;
-
-            QRSpeakBuf(pkCnt) = sbpeak;
-            QRS(pkCnt) = pos-qrsDelay;
-            QRSreal(pkCnt) = pkTmp;
-
-            qmedian = median(QRSpeakBuf(pkCnt-lenRRavg:pkCnt-1));
-            thresh1 = calcThresh(qmedian, nmedian, QRSupdate);
-            thresh2 = thresh1/2;
-            RR(pkCnt) = sbloc;
-            pkCnt = pkCnt+1;
-            %rrmedian = median(RR(pkCnt-lenRRavg:pkCnt-1));
-            %sbcount = rrmedian + rrmedian/2 +peakDur;                   
+        if detection
+            % reset T wave indication flag
+            is_twave = false;
             
-            sbpeak = 0;
-            %lastmax = maxder;
-            %maxder = 0;
-            initBlank = 0;
-            initMax = 0;
-            rsetBufPos = 1;
-        end
-    end
-    if qpkcnt == lenRRavg
-        initBlank = initBlank+1;
-        if initBlank == Fs
-            initBlank = 0;
-            rsetBuf(rsetBufPos) = initMax;
-            rsetBufPos = rsetBufPos+1;
-            if rsetBufPos > lenRRavg
-                rsetBufPos=1;
+            % if a QRS candidate occurs within 360ms of the previous QRS
+            % the algorithm determines if it is T wave or QRS
+            if cur_i-last_qrs_i < TTtol
+                %mean slope of the waveform at that position
+                range1 = cur_i-Tqrs:cur_i+Tqrs;
+                slope1 = max(diff(SignalI(range1)));
+                %mean slope of previous R wave
+                range2 = last_qrs_i-Tqrs:last_qrs_i+Tqrs;
+                slope2 = max(diff(SignalI(range2)));
+                % slope less then 0.5 of previous R
+                is_twave = abs(slope1) < abs(0.5*slope2);
             end
-            initMax = 0;
-            if rsetBufPos == lenRRavg
-                for q=1:lenRRavg
-                    QRSpeakBuf(q) = rsetBuf(q);
-                    noisePeakBuf(q) = 0;
-                end
-                qmedian = median(rsetBuf);
-                nmedian = 0;
-                %rrmedian = Fs;
-                %sbcount = round(Fs*(1.5+.15));
-                thresh1 = calcThresh(qmedian, nmedian, QRSupdate);
-                thresh2 = thresh1/2;
-                initBlank = 0;
-                initMax = 0;
-                %rsetCount = 0;
-                rsetBufPos = 1;
-                sbpeak = 0;
+            
+            % skip when a T wave is detected
+            if ~is_twave && cur_y >= THR_SIG2
+                % increment qrs count
+                qrs_count = qrs_count + 1;
+                % save index of MWI
+                QRSi(qrs_count) = cur_i;
+                % activate refractory period
+                ref_count = max(0,Tref-(i-cur_i));
             end
         end
-        if newPeak > initMax
-            initMax = newPeak;
+        
+        % update last QRS peak and RR interval
+        if last_qrs_i > 0
+            new_rr = cur_i - last_qrs_i;
         end
-    end
-%             [pktmp,idx] = max(Signal(pos+range));
-%             if pktmp ~= pk && abs(idx - length(range)/2) <3
-%             %if pktmp > Signal(pos+range(1)) && pktmp > Signal(pos+range(end)) && pktmp ~= pk
-%                 pk = pktmp;
-%                 if ~searchback
-%                     if pk >= thresh1
-%                         spk = (signalUpdate)*pk + (1-signalUpdate)*spk;
-%                     else
-%                         npk = noiseUpdate*pk +(1-noiseUpdate)*npk;
-%                     end
-%                 else
-%                     if pk >= thresh2
-%                         spk = (signalSBupdate)*pk + (1-signalSBupdate)*spk;
-%                     else
-%                         npk = noiseUpdate*pk +(1-noiseUpdate)*npk;
-%                     end
-%                 end
-%                 thresh1 = npk + (spk-npk)/4;
-%                 thresh2 = thresh1/2;
-%             end
-%             if ~searchback threshtmp = thresh1;
-%             else threshtmp = thresh2;
-%             end
-%             if v <= spk/2 && v2 > spk/2 && pk > threshtmp && waiting == 0
-% %                 if ~searchback
-% %                     spk = (signalUpdate)*pk + (1-signalUpdate)*spk;
-% %                 else
-% %                     spk = (signalSBpdate)*pk + (1-signalSBUpdate)*spk;
-% %                 end
-%                 QRS = [QRS, pos];
-%                 lastQRS = pos;
-%                 waitForNextPeak = 0;
-%                 if length(QRS) > 1
-%                     RR = [RR, QRS(end)-QRS(end-1)];
-%                     rRange = min(length(RR), lenRRavg)-1;
-%                     RRavg1 = mean(RR(end-rRange:end));
-%                     RRavg2 = RRavg1;
-%                     if rRange >= 7
-%                         % start updating searchback
-%                         tmpPos = intersect(find(RR <= RRhigh), find(RR >= RRlow));
-%                         tmpRange = min(length(tmpPos),lenRRavg)-1;
-%                         RRavg2 = mean(RR(end-tmpRange:end));
-%                         RRhigh = rrHighPerc*RRavg2;
-%                         RRlow = rrLowPerc*RRavg2;
-%                         RRmiss = rrMissLim*RRavg2;
-%                     else
-%                         RRhigh = rrHighPerc*RRavg2;
-%                         RRlow = rrLowPerc*RRavg2;
-%                         RRmiss = rrMissLim*RRavg2;
-%                     end
-% %                     RRavg1(RRavg1Pos) = RR(end) - RR(end-1);
-% %                     RRavg1Pos = RRavg1Pos+1;
-% %                     if RRavg1Pos >lenRRavg RRavg1Pos = 1; end
-%                 end
-%                 
-%                 waiting = blankPer;
-%                 thresh1 = npk + (spk-npk)/4;
-%                 thresh2 = thresh1/2;
-%                 searchback = 0;
-%             end
-%             if waiting > 0 
-%                 waiting = waiting-1; end
-%             
-%             % check if searchback is necessary
-%             if RRmiss ~= 0
-%                 if (pos-lastQRS) >= RRmiss
-%                     if searchback == 0 && waitForNextPeak == 0
-%                         pos2 = pos;
-%                         pos = lastQRS;
-%                         v2 = Signal(pos-1);
-%                         searchback = 1;
-%                         waiting = blankPer;
-%                         continue;
-%                     else
-%                         waitForNextPeak = 1;
-%                     end
-%                 end
-%             end
-%             if searchback && pos == pos2
-%                 searchback = 0;
-%             end
-%             
-%             v2 = Signal(pos);
-    thresh1ar(pos) = thresh1;
-    thresh2ar(pos) = thresh2;
-    v2 = v;
-    pos = pos+1;
-end
-QRS(pkCnt:end) = [];
-QRSreal(pkCnt:end) = [];
-RR(pkCnt:end) = [];
+        last_qrs_i = cur_i;
+        qrs_updated = true;
+        acthung = false;
+        
+    elseif b-a < 0 && a-c >= 0
+    
+        % update threshold history
+        THRs(last_peak_i+1:i) = THR_SIG1;
+        THRn(last_peak_i+1:i) = THR_NOISE1;
+        THRs2(last_peak_i+1:i) = THR_SIG2;
+        THRn2(last_peak_i+1:i) = THR_NOISE2;
+        last_peak_i = i;
 
-function thrsh = calcThresh(qmedian, nmedian, TH)
-thrsh = nmedian + TH*(qmedian - nmedian);
+        % find peak in the bandpassed signal
+        begin_i = max(1,i-2*DelayI);
+        end_i = min(i,length(SignalB));
+        y = max(SignalB(begin_i:end_i));
+        
+        %% find noise and QRS peaks
+        if a >= THR_SIG1
+            
+            % check if peak is higher
+            if ~acthung || a > cur_a
+                cur_a = a;
+                cur_i = i;
+                cur_y = y;
+                acthung = true;
+            end
+            
+            % bandpass filter check threshold
+            if y >= THR_SIG2
+                % adjust threshold for bandpass signal
+                SIG_LEV2 = 0.125*y + 0.875*SIG_LEV2;
+            end
+            % adjust Signal level
+            SIG_LEV1 = 0.125*a + 0.875*SIG_LEV1;
+            
+        elseif a >= THR_NOISE1
+            
+            %adjust noise level 1
+            NOISE_LEV1 = 0.125*a + 0.875*NOISE_LEV1;
+            %adjust noise level 2
+            if THR_NOISE2 <= y && y < THR_SIG2
+                NOISE_LEV2 = 0.125*y + 0.875*NOISE_LEV2;
+            end
+            
+        end
+    
+    elseif detection && (a < THR_NOISE1) && (i-last_qrs_i) >= round(1.66*rr_mean)
+        
+        % search back and locate the max in this interval
+        begin_i = last_qrs_i + Tref;
+        [new_a, x] = max(SignalI(begin_i:i));
+        new_i = begin_i + x - 1;
+        
+        if new_a >= THR_NOISE1 %&& new_a < THR_SIG1
+            
+            % update last QRS peak and RR interval
+            if last_qrs_i > 0
+                new_rr = new_i - last_qrs_i;
+            end
+            last_qrs_i = new_i;
+            qrs_updated = true;
+            
+            % find peak in the bandpassed signal
+            begin_i = max(1,new_i-2*DelayI);
+            end_i = min(new_i,length(SignalB));
+            new_y = max(SignalB(begin_i:end_i));
+            
+            % take care of bandpass signal threshold
+            if new_y >= THR_NOISE2
+                % increment qrs count
+                qrs_count2 = qrs_count2 + 1;
+                % save index of MWI 
+                QRS2(qrs_count2) = new_i;
+                % activate refractory period
+                ref_count = max(0,Tref-(i-new_i));
+                % when found with the second threshold
+                SIG_LEV2 = 0.25*new_y + 0.75*SIG_LEV2;
+            end
+            
+            %when found with the second threshold
+            SIG_LEV1 = 0.25*new_a + 0.75*SIG_LEV1;
+        end
+    end
+    
+    %% check whether a new QRS was detected and update heart rates
+    if qrs_updated && i > Ttrain && new_rr > 0
+        if ~detection
+            % initiate detection phase
+            detection = true;
+        end
+        
+        % update RR intervals calculate running average
+        rr_count = mod(rr_count,length(RR_int))+1;
+        RR_int(rr_count) = new_rr;
+        rr_mean = nanmean(RR_int);
+        
+        % check if new beat is regular
+        if new_rr >= 0.92*rr_mean && new_rr <= 1.16*rr_mean
+            % update buffer of selected RR intervals
+            sel_rr_count = mod(sel_rr_count,length(sel_RR_int))+1;
+            sel_RR_int(sel_rr_count) = new_rr;
+        end
+        
+        % check if heart rate is regular
+        irregular = RR_int < 0.92*rr_mean | RR_int > 1.16*rr_mean;
+        if ~isempty(find(irregular, 1))
+            % substitute the average
+            rr_mean = nanmean(sel_RR_int);
+            
+            % reduce thresholds to detect better in MVI
+            SIG_LEV1 = 0.5*SIG_LEV1;
+            NOISE_LEV1 = 0.5*NOISE_LEV1;
+            
+            % reduce thresholds to detect better in Bandpass filtered 
+            SIG_LEV2 = 0.5*SIG_LEV2;
+            NOISE_LEV2 = 0.5*NOISE_LEV2;
+        end
+    end
+    
+    % reset QRS detection flag
+    qrs_updated = false;
+    
+    %% adjust thresholds
+    % adjust the threshold with SNR for MWI signal
+    THR_SIG1 = NOISE_LEV1 + 0.25*abs(SIG_LEV1 - NOISE_LEV1);
+    THR_NOISE1 = 0.5*THR_SIG1;
+
+    % adjust the threshold with SNR for bandpassed signal
+    THR_SIG2 = NOISE_LEV2 + 0.25*abs(SIG_LEV2 - NOISE_LEV2);
+    THR_NOISE2 = 0.5*THR_SIG2;
+end
+
+% complete the threshold history
+THRs(last_peak_i+1:end) = THR_SIG1;
+THRn(last_peak_i+1:end) = THR_NOISE1;
+THRs2(last_peak_i+1:end) = THR_SIG2;
+THRn2(last_peak_i+1:end) = THR_NOISE2;
+
+% trim the output vectors
+QRSi(qrs_count+1:end) = [];
+QRS2(qrs_count2+1:end) = [];

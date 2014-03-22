@@ -1,4 +1,4 @@
-function [QRSi,QRS2,THRs,THRn,THRs2,THRn2] = tompkins_adapted(SignalB,SignalI,DelayI,Fs)
+function [QRSi,QRS2,THRs,THRn,THRs2,THRn2] = tompkins_backup(SignalB,SignalI,DelayI,Fs)
 
 %% initializations
 N = length(SignalI);    % length of MWI signal
@@ -139,7 +139,37 @@ for i = 2:length(SignalI)-1
             % adjust Signal level
             SIG_LEV1 = 0.125*a + 0.875*SIG_LEV1;
             
-        elseif detection && (i-last_qrs_i) >= round(1.66*rr_mean)
+        elseif a >= THR_NOISE1
+            
+            if detection && (i-last_qrs_i) >= round(1.66*rr_mean)
+                
+                % check if peak is higher
+                if ~acthung || a > cur_a
+                    cur_a = a;
+                    cur_i = i;
+                    cur_y = y;
+                    acthung = true;
+                    ser_back = true;
+                end
+                
+                % bandpass filter check threshold
+                if y >= THR_SIG2
+                    % adjust threshold for bandpass signal
+                    SIG_LEV2 = 0.25*y + 0.75*SIG_LEV2;
+                end
+                % adjust Signal level
+                SIG_LEV1 = 0.25*a + 0.75*SIG_LEV1;
+                
+            elseif (i-last_qrs_i) < round(0.8*rr_mean)
+                %adjust noise level 1
+                NOISE_LEV1 = 0.125*a + 0.875*NOISE_LEV1;
+                %adjust noise level 2
+                if THR_NOISE2 <= y && y < THR_SIG2
+                    NOISE_LEV2 = 0.125*y + 0.875*NOISE_LEV2;
+                end
+            end
+            
+        elseif a < THR_NOISE1 && detection && (i-last_qrs_i) >= round(1.66*rr_mean)
             
             % search back and locate the max in this interval
             begin_i = last_qrs_i + Tref;
@@ -172,21 +202,7 @@ for i = 2:length(SignalI)-1
             
             %when found with the second threshold
             SIG_LEV1 = 0.25*new_a + 0.75*SIG_LEV1;
-            
-        elseif a >= THR_NOISE1 && (~detection || (i-last_qrs_i) < round(0.8*rr_mean))
-            
-            %adjust noise level 1
-            NOISE_LEV1 = 0.125*a + 0.875*NOISE_LEV1;
-            
-            %adjust noise level 2
-            if THR_NOISE2 <= y && y < THR_SIG2
-                NOISE_LEV2 = 0.125*y + 0.875*NOISE_LEV2;
-            end
-            
         end
-    else
-        % reduce signal level
-        %SIG_LEV1 = SIG_LEV1 - 0.002*(SIG_LEV1-NOISE_LEV1);
     end
     
     %% check whether a new QRS was detected and update heart rates
