@@ -20,7 +20,7 @@ for i = 1:numel(Records)
     A(iStart:iEnd) = record.A;
     B(iStart:iEnd) = record.B;
     iStart = iEnd + 1;
-    ecgmath.compute_statistics(record.A,record.B)
+    %ecgmath.compute_statistics(record.A,record.B)
 end
 
 %% compute statistics

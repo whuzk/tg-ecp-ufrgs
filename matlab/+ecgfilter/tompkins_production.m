@@ -1,19 +1,13 @@
-function [QRSi,QRS2,THRs,THRn,THRs2,THRn2] = tompkins_adapted(SignalB,SignalI,DelayI,Fs)
+function QRS = tompkins_production(SignalB, SignalI, DelayI, Fs)
 
 %% initializations
 N = length(SignalI);    % length of MWI signal
-N2 = length(SignalB);   % length of bandpassed signal
 Tref = round(0.2*Fs);   % length of refractory period
 Ttrain = 2*Fs;          % length of training period
 Tqrs = round(0.05*Fs);  % half the length of a QRS wave
 TTtol = round(0.36*Fs); % tolerance for T wave identification
 
-QRSi = zeros(N,1);      % buffer for the R wave indices
-QRS2 = zeros(N,1);      % buffer for the R wave indices
-THRs = zeros(N,1);      % buffer for the Signal Threshold history
-THRn = zeros(N,1);      % buffer for the Noise Threshold history
-THRs2 = zeros(N2,1);    % buffer for the Signal Threshold history
-THRn2 = zeros(N2,1);    % buffer for the Noise Threshold history
+QRS = zeros(N,1);       % buffer for the R wave indices
 RR_int = NaN(1,8);      % buffer for the last RR intervals
 sel_RR_int = NaN(1,8);  % buffer for the selected RR intervals
 
@@ -25,8 +19,6 @@ rr_mean = 0;            % running average of latest RR intervals
 rr_count = 0;           % count of selected RR intervals in RR buffer
 sel_rr_count = 0;       % count of selected RR intervals in RR buffer
 qrs_count = 0;          % count of QRS complex in output QRS buffer
-qrs_count2 = 0;         % count of QRS complex in output QRS buffer
-last_peak_i = 0;        % index of last identified peak
 cur_i = 0;              % index of current candidate peak
 cur_a = 0;              % amplitude of current candidate peak in MWI
 cur_y = 0;              % amplitude of current candidate peak in BP
@@ -49,13 +41,6 @@ for i = DelayI+(1:Ttrain)
     
     % check if current sample is a peak
     if ispeak(SignalI, i)
-        
-        % update threshold history
-        THRs(last_peak_i+1:i) = THR_SIG1;
-        THRn(last_peak_i+1:i) = THR_NOISE1;
-        THRs2(last_peak_i+1:i) = THR_SIG2;
-        THRn2(last_peak_i+1:i) = THR_NOISE2;
-        last_peak_i = i;
         
         % get current sample
         a = SignalI(i);
@@ -89,13 +74,6 @@ while rr_count == 0 && i < length(SignalI)
     % check if current sample is a peak
     if ispeak(SignalI, i)
         
-        % update threshold history
-        THRs(last_peak_i+1:i) = THR_SIG1;
-        THRn(last_peak_i+1:i) = THR_NOISE1;
-        THRs2(last_peak_i+1:i) = THR_SIG2;
-        THRn2(last_peak_i+1:i) = THR_NOISE2;
-        last_peak_i = i;
-        
         % get current sample
         a = SignalI(i);
         % find peak in the bandpass signal
@@ -107,7 +85,7 @@ while rr_count == 0 && i < length(SignalI)
                 % increment qrs count
                 qrs_count = qrs_count + 1;
                 % save index of MWI
-                QRSi(qrs_count) = cur_i;
+                QRS(qrs_count) = cur_i;
                 % activate refractory period
                 ref_count = max(0,Tref-(i-cur_i));
                 % update last QRS index and RR interval
@@ -170,7 +148,7 @@ for i = i:length(SignalI)-1
                 % increment qrs count
                 qrs_count = qrs_count + 1;
                 % save index of MWI
-                QRSi(qrs_count) = cur_i;
+                QRS(qrs_count) = cur_i;
                 % activate refractory period
                 ref_count = max(0,Tref-(i-cur_i));
                 % update last QRS index and RR interval
@@ -184,13 +162,6 @@ for i = i:length(SignalI)-1
         
     elseif ispeak(SignalI, i)
     
-        % update threshold history
-        THRs(last_peak_i+1:i) = THR_SIG1;
-        THRn(last_peak_i+1:i) = THR_NOISE1;
-        THRs2(last_peak_i+1:i) = THR_SIG2;
-        THRn2(last_peak_i+1:i) = THR_NOISE2;
-        last_peak_i = i;
-
         % find peak in the bandpass signal
         y = findmax(SignalB, i-DelayI, DelayI);
         
@@ -233,9 +204,9 @@ for i = i:length(SignalI)-1
                 last_qrs_i = new_i;
                 qrs_updated = true;
                 % increment qrs count
-                qrs_count2 = qrs_count2 + 1;
+                qrs_count = qrs_count + 1;
                 % save index of MWI
-                QRS2(qrs_count2) = new_i;
+                QRS(qrs_count) = new_i;
                 % activate refractory period
                 ref_count = max(0,Tref-(i-new_i));
                 %when found with the second threshold
@@ -295,16 +266,8 @@ for i = i:length(SignalI)-1
     THR_SIG2 = NOISE_LEV2 + 0.25*abs(SIG_LEV2 - NOISE_LEV2);
     THR_NOISE2 = 0.5*THR_SIG2;
 end
-
-% complete the threshold history
-THRs(last_peak_i+1:end) = THR_SIG1;
-THRn(last_peak_i+1:end) = THR_NOISE1;
-THRs2(last_peak_i+1:end) = THR_SIG2;
-THRn2(last_peak_i+1:end) = THR_NOISE2;
-
-% trim the output vectors
-QRSi(qrs_count+1:end) = [];
-QRS2(qrs_count2+1:end) = [];
+% trim the output vector
+QRS(qrs_count+1:end) = [];
 
 
 function Result = ispeak(Signal, i)

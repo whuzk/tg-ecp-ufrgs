@@ -2,7 +2,7 @@ function Result = create_segmentation(Database, LeadName)
 import ecgutilities.*
 
 Records = fieldnames(Database);
-for i = 3%1:numel(Records)
+for i = 1:numel(Records)
     ECG = Database.(Records{i});
     
     [Fs,Bp,Sc,Leads,Data] = ecgutilities.interpret(ECG);
@@ -17,7 +17,7 @@ for i = 3%1:numel(Records)
         
         % processa o sinal da derivaçao
         Rpeaks = ecgfilter.detect_qrs(Data(:,j),Fs);
-        [A,B,R] = ecgutilities.merge_rpeaks(Bp, Rpeaks);
+        [A,B,R] = ecgutilities.merge_rpeaks(Bp, Rpeaks-5);
         Result.(Records{i}).A = A;
         Result.(Records{i}).B = B;
         Result.(Records{i}).R = R;

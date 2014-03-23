@@ -1,5 +1,7 @@
 function [A,B,R] = merge_rpeaks(R1, R2)
 
+VDI = 20;
+
 n = length(R1);
 m = length(R2);
 A = false(n+m,1);
@@ -10,20 +12,20 @@ i = 1;
 j = 1;
 k = 0;
 while (i <= n) || (j <= m)
-    while (i <= n) && (j <= m) && (R2(j) - R1(i) > 15)
+    while (i <= n) && (j <= m) && (R2(j) - R1(i) > VDI)
         k = k + 1;
         A(k) = true;
         R(k) = R1(i);
         i = i + 1;
     end
-    while (i <= n) && (j <= m) && (R1(i) - R2(j) > 15)
+    while (i <= n) && (j <= m) && (R1(i) - R2(j) > VDI)
         k = k + 1;
         B(k) = true;
         R(k) = R2(j);
         j = j + 1;
     end
     if (i <= n) && (j <= m)
-        if (abs(R2(j)-R1(i)) < 15)
+        if (abs(R2(j)-R1(i)) < VDI)
             k = k + 1;
             A(k) = true;
             B(k) = true;
