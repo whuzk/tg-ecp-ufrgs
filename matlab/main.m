@@ -7,10 +7,10 @@ import ecgtest.*
 close all;
 
 %% Criaçao do arquivo de teste do algoritmo de segmentaçao
-%Segment = create_segmentation(Database, LeadName);
+Segment = create_segmentation(Database, LeadName);
 %fprintf('Saving data to file...\n');
-%save_filepath = './resources/segment.mat';
-%save(save_filepath, '-struct', 'Segment', '-append');
+%save_filepath = './resources/segment_V3.mat';
+%save(save_filepath, '-struct', 'Segment');
 %fprintf('Segments saved to %s\n', save_filepath);
 %Segment = load('./resources/segment.mat');
 %test_segmentation(Segment)

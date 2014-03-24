@@ -1,16 +1,12 @@
-function [SignalH,SignalI,DelayH,DelayI,Fs] = tompkins_preprocess(Signal, Fs)
+function [SignalH,SignalI,Fs] = tompkins_preprocess(Signal, Fs)
 
 % validate input
 if ~isvector(Signal) || isempty(Signal)
   error('ecg must be a non-null vector');
 end
 
-% initialization
-DelayH = 0;
-DelayI = 0;
-resamp = false;%(Fs ~= 200);
-
 %% filter design
+resamp = false;%(Fs ~= 200);
 
 % resampling filter
 if resamp
@@ -30,22 +26,22 @@ end
 b_l = 1/36*[1 0 0 0 0 0 -2 0 0 0 0 0 1];
 a_l = [1 -2 1];
 h_l = filter(b_l, a_l, [1 zeros(1,12)]);
-d_l = 5;
+%d_l = 5;
 
 % high-pass filter
 b_h = 1/32*[-1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 32 -32 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1];
 a_h = [1 -1];
 h_h = filter(b_h, a_h, [1 zeros(1,32)]);
-d_h = 15;
+%d_h = 15;
 
-% derivative filter
+% derivative filter (2T delay)
 h_d = 1/8*[-1 -2 0 2 1];
-d_d = 2;
+%d_d = 2;
 
-% integration filter
+% integration filter (15T delay)
 Ws = round(0.15*Fs);
 h_i = ones(1,Ws)/Ws;
-d_i = floor(Ws/2);
+%d_i = floor(Ws/2);
 
 %% filtering
 
@@ -56,15 +52,12 @@ Signal = Signal(:) - Signal(1);
 if resamp
     N = length(Signal);
     SignalUp(1:p:N*p) = Signal; % upsample
-    Signal = conv2(SignalUp(:), h_r(:), 'full');
+    Signal = conv2(SignalUp(:), h_r(:), 'same');
     Signal = Signal(1:q:end);   % downsample
-    DelayH = DelayH + d_r;
 end
 
 % apply filters and update delays
-SignalL = conv2(Signal, h_l(:), 'full');
-SignalH = conv2(SignalL, h_h(:), 'full');
-DelayH = DelayH + d_l + d_h;
-SignalD = conv2(SignalH, h_d(:), 'full');
-SignalI = conv2(SignalD.^2, h_i(:), 'full');
-DelayI = DelayI + d_d + d_i;
+SignalL = conv2(Signal, h_l(:), 'same');
+SignalH = conv2(SignalL, h_h(:), 'same');
+SignalD = conv2(SignalH, h_d(:), 'same');
+SignalI = conv2(SignalD.^2, h_i(:), 'same');

@@ -11,19 +11,17 @@ function Result = detect_qrs(Signal, Fs)
 %
 
 % filtering
-[SignalB,SignalI,DelayH,DelayI,NewFs] = ecgfilter.tompkins_preprocess(Signal, Fs);
+[SignalB,SignalI,NewFs] = ecgfilter.tompkins_preprocess(Signal, Fs);
 
 % detection
-%[R,R2,THs,THn,THs2,THn2] ...
-% = ecgfilter.tompkins_adapted(SignalB, SignalI, DelayI, NewFs);
-R = ecgfilter.tompkins_production(SignalB, SignalI, DelayI, NewFs);
-
-% adjustment
-Radj = round((R-DelayH-DelayI)*Fs/NewFs);
-Result = ecgmath.neighbour_max(Signal,Radj,10);
+R = ecgfilter.tompkins_production(SignalB, SignalI, NewFs);
+Result = round(R*Fs/NewFs);
 
 %{
-% plot
+[R,R2,THs,THn,THs2,THn2] = ...
+    ecgfilter.tompkins_adapted(SignalB, SignalI, NewFs);
+Result = round(R*Fs/NewFs);
+Result = ecgmath.neighbour_max(Signal,Result,10);
 figure;
 hold on, grid on;
 plot([SignalB THs2 THn2]);

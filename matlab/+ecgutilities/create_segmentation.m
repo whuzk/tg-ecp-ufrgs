@@ -14,6 +14,7 @@ for i = 1:numel(Records)
         else
             disp(['processing ' Records{i} '.' Leads{j}]);
         end
+        %continue;
         
         % processa o sinal da derivaçao
         Rpeaks = ecgfilter.detect_qrs(Data(:,j),Fs);
@@ -21,12 +22,12 @@ for i = 1:numel(Records)
         Result.(Records{i}).A = A;
         Result.(Records{i}).B = B;
         Result.(Records{i}).R = R;
-        
         %{
         figure; hold on;
         plot(Data(:,j));
         stem(R, A*0.2, 'g');
         stem(R, B*0.1, 'r');
         %}
+        ecgmath.compute_statistics(A,B)
     end
 end
