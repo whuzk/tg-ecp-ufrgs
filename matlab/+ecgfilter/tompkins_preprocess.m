@@ -34,6 +34,13 @@ a_h = [1 -1];
 h_h = filter(b_h, a_h, [1 zeros(1,32)]);
 %d_h = 15;
 
+% alternative bandpass filter
+%fbp = fdesign.bandpass('Fst1,Fp1,Fp2,Fst2,Ast1,Ap,Ast2',1,8,13,20,30,1,20,Fs);
+fbp = fdesign.bandpass('Fst1,Fp1,Fp2,Fst2,Ast1,Ap,Ast2',1,8,18,25,30,1,20,Fs);
+Hd1 = design(fbp,'equiripple');
+h_b = Hd1.Numerator;
+%d_b = 20;
+
 % derivative filter (2T delay)
 h_d = 1/8*[-1 -2 0 2 1];
 %d_d = 2;
@@ -57,7 +64,8 @@ if resamp
 end
 
 % apply filters and update delays
-SignalL = conv2(Signal, h_l(:), 'same');
-SignalH = conv2(SignalL, h_h(:), 'same');
+%SignalL = conv2(Signal, h_l(:), 'same');
+%SignalH = conv2(SignalL, h_h(:), 'same');
+SignalH = conv2(Signal, h_b(:), 'same');
 SignalD = conv2(SignalH, h_d(:), 'same');
 SignalI = conv2(SignalD.^2, h_i(:), 'same');

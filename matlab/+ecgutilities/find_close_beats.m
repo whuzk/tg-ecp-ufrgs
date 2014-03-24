@@ -8,7 +8,7 @@ function [A, B] = find_close_beats(R1, R2)
 % Saída:
 %   incides das batidas identificadas
 %
-VDI1 = round(0.05*Fs);
+VDI1 = round(0.10*Fs);
 VDI2 = round(0.20*Fs);
 
 n = length(R1);

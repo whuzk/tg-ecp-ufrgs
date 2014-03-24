@@ -33,7 +33,7 @@ for i = 2:Ttrain
             % adjust signal levels
             SIG_LEV1 = 0.125*a + 0.875*SIG_LEV1;
             SIG_LEV2 = 0.125*y + 0.875*SIG_LEV2;
-        elseif a < 0.5*THR_SIG1
+        else
             % adjust noise levels
             NOISE_LEV1 = 0.125*a + 0.875*NOISE_LEV1;
             NOISE_LEV2 = 0.125*y + 0.875*NOISE_LEV2;
@@ -71,7 +71,7 @@ while new_rr == 0 && i < length(SignalI)
             % increment qrs count
             qrs_count = qrs_count + 1;
             % save index of MWI
-            QRS(qrs_count) = cur_i;
+            QRS(qrs_count) = max(0,Tref-(i-cur_i));
             % activate refractory period
             ref_count = Tref;
             % update last QRS index and RR interval
@@ -101,7 +101,7 @@ while new_rr == 0 && i < length(SignalI)
                 cur_y = y;
                 act_search = true;
             end
-        elseif a < 0.5*THR_SIG1
+        else
             % adjust noise levels
             NOISE_LEV1 = 0.125*a + 0.875*NOISE_LEV1;
             NOISE_LEV2 = 0.125*y + 0.875*NOISE_LEV2;
@@ -122,6 +122,7 @@ rr_i = 1;                       % current position in main RR buffer
 sel_rr_i = 0;                   % current position in second RR buffer
 RR_int(rr_i) = new_rr;          % initialize main RR buffer
 rr_mean = nanmean(RR_int);      % running avereage of RR intervals
+rr_half = round(0.5*rr_mean);   % half of RR running average
 rr_miss = round(1.66*rr_mean);  % interval for qrs to be assumed missed
 qrs_updated = false;            % flag to indicate detection of QRS
 ser_back_i = 0;                 % index of searchback starting point
@@ -142,13 +143,14 @@ for i = i:length(SignalI)-1
         % check if candidate peak is from qrs
         if cur_y >= THR_SIG2
             % skip when a T wave is detected
-            if ~istwave(SignalI, cur_i, last_qrs_i, TTtol, TQtol)
+            if cur_i-last_qrs_i > TTtol || ...
+                ~istwave(SignalI, cur_i, last_qrs_i, TQtol)
                 % increment qrs count
                 qrs_count = qrs_count + 1;
                 % save index of MWI
                 QRS(qrs_count) = cur_i;
                 % activate refractory period
-                ref_count = Tref;
+                ref_count = max(0,Tref-(i-cur_i));
                 % update last QRS index and RR interval
                 new_rr = cur_i - last_qrs_i;
                 last_qrs_i = cur_i;
@@ -177,7 +179,7 @@ for i = i:length(SignalI)-1
                 act_search = true;
                 ser_back_i = i;
             end
-        elseif a < 0.5*THR_SIG1
+        else
             % adjust noise levels
             NOISE_LEV1 = 0.125*a + 0.875*NOISE_LEV1;
             NOISE_LEV2 = 0.125*y + 0.875*NOISE_LEV2;
@@ -187,7 +189,7 @@ for i = i:length(SignalI)-1
         
         % search back and locate the max in this interval
         center = ser_back_i + round(rr_mean);
-        [new_a, new_i] = findmax(SignalI, center, round(0.5*rr_mean));
+        [new_a, new_i] = findmax(SignalI, center, rr_half);
         
         % find peak in the bandpass signal
         new_y = findmax(SignalB, new_i, TPtol);
@@ -195,7 +197,8 @@ for i = i:length(SignalI)-1
         % check if candidate peak is from qrs
         if new_a > 0.5*THR_SIG1 && new_y >= 0.5*THR_SIG2
             % skip when a T wave is detected
-            if ~istwave(SignalI, new_i, last_qrs_i, TTtol, TQtol)
+            if new_i-last_qrs_i > TTtol || ...
+                ~istwave(SignalI, new_i, last_qrs_i, TQtol)
                 % update last QRS peak and RR interval
                 new_rr = new_i - last_qrs_i;
                 last_qrs_i = new_i;
@@ -248,12 +251,14 @@ for i = i:length(SignalI)-1
             % substitute the average
             rr_mean = nanmean(sel_RR_int);
         end
+        
         % calculate RR miss limit
         rr_miss = round(1.66*rr_mean);
+        % calculate half of RR mean
+        rr_half = round(0.5*rr_mean);
         
         % enable searchback
         ser_back_i = last_qrs_i;
-        
         % reset detection flag
         qrs_updated = false;
     end
@@ -281,17 +286,12 @@ end_i = min(N,i+l);
 [y,x] = max(Signal(begin:end_i));
 x = x + begin - 1;
 
-function Result = istwave(Signal, candQrs, lastQrs, tolerance, qrsLen)
-% check if QRS candidate occurs near the previous QRS
-if candQrs-lastQrs <= tolerance
-    % max slope of the candidate waveform
-    begin1 = max(1,candQrs-qrsLen);
-    slope1 = max(diff(Signal(begin1:candQrs)));
-    % max slope of previous QRS waveform
-    begin2 = max(1,lastQrs-qrsLen);
-    slope2 = max(diff(Signal(begin2:lastQrs)));
-    % slope less then 0.5 of previous QRS
-    Result = slope1 < 0.5*slope2;
-else
-    Result = false;
-end
+function Result = istwave(Signal, candQrs, lastQrs, qrsLen)
+% max slope of the candidate waveform
+begin1 = max(1,candQrs-qrsLen);
+slope1 = max(diff(Signal(begin1:candQrs)));
+% max slope of previous QRS waveform
+begin2 = max(1,lastQrs-qrsLen);
+slope2 = max(diff(Signal(begin2:lastQrs)));
+% slope less then 0.5 of previous QRS
+Result = slope1 < 0.5*slope2;

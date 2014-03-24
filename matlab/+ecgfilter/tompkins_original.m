@@ -251,6 +251,11 @@ for i = i:length(SignalI)-1
         if ~isempty(find(irregular, 1))
             % substitute the average
             rr_mean = nanmean(sel_RR_int);
+            % adjust levels
+            SIG_LEV1 = 0.5*SIG_LEV1;
+            SIG_LEV2 = 0.5*SIG_LEV2;
+            NOISE_LEV1 = 0.5*NOISE_LEV1;
+            NOISE_LEV2 = 0.5*NOISE_LEV2;
         end
         % calculate RR miss limit
         rr_miss = round(1.66*rr_mean);

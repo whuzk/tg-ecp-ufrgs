@@ -1,38 +1,42 @@
-Signal = Database.e0112.Signals{1}.Data;
-Signal = Signal - Signal(1);
-Fs = 250;
-
-% butterworth
-fc = [5 15]*2/Fs;
-[b,a] = butter(2,fc);
-d = 11;
+[Fs,~,~,~,Data] = ecgutilities.interpret(Database2.e0108);
+Signal = Data(:,2);
 
 % low-pass filter
 b_l = 1/36*[1 0 0 0 0 0 -2 0 0 0 0 0 1];
 a_l = [1 -2 1];
 h_l = filter(b_l, a_l, [1 zeros(1,12)]);
+%d_l = 5;
 
 % high-pass filter
 b_h = 1/32*[-1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 32 -32 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1];
 a_h = [1 -1];
 h_h = filter(b_h, a_h, [1 zeros(1,32)]);
+%d_h = 15;
+
+% alternative bandpass filter
+fbp = fdesign.bandpass('Fst1,Fp1,Fp2,Fst2,Ast1,Ap,Ast2',1,8,18,25,30,1,20,Fs);
+Hd1 = design(fbp,'equiripple');
+h_b = Hd1.Numerator;
+%d_b = 20;
 
 % derivative filter (2T delay)
-h_d = 0.1*[-1 -2 0 2 1];
+h_d = 1/8*[-1 -2 0 2 1];
+%d_d = 2;
 
 % integration filter (15T delay)
 Ws = round(0.15*Fs);
 h_i = ones(1,Ws)/Ws;
+%d_i = floor(Ws/2);
 
-% apply filters and update delays
-SignalH1 = filter(b, a, Signal);
-SignalH1 = [zeros(d,1); SignalH1(1:end-d)];
-SignalD1 = filter(h_d, 1, SignalH1);
-SignalI1 = filter(h_i, 1, SignalD1.^2);
+% apply filters
+SignalL1 = conv2(Signal, h_l(:), 'same');
+SignalH1 = conv2(SignalL1, h_h(:), 'same');
+SignalD1 = conv2(SignalH1, h_d(:), 'same');
+SignalI1 = conv2(SignalD1.^2, h_i(:), 'same');
 
-SignalL = filter(b_l, a_l, Signal);
-SignalH2 = filter(b_h, a_h, SignalL);
-SignalD2 = filter(h_d, 1, SignalH2);
-SignalI2 = filter(h_i, 1, SignalD2.^2);
+SignalH2 = conv2(Signal, h_b(:), 'same');
+SignalD2 = conv2(SignalH2, h_d(:), 'same');
+SignalI2 = conv2(SignalD2.^2, h_i(:), 'same');
 
-figure, plot([SignalI1 SignalI2]);
+figure, plot([SignalH2 SignalH1]);
+figure, plot([SignalI2 SignalI1]);

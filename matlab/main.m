@@ -1,13 +1,12 @@
 % main.m
-%   Programa principal. Carrega os dados da base de ECGs e processa cada
-%   registro na base. Nota: execute o arquivo init.m primeiro.
+%   Programa principal. Nota: execute o arquivo init.m primeiro.
 %
 import ecgutilities.*
 import ecgtest.*
 close all;
 
 %% Criaçao do arquivo de teste do algoritmo de segmentaçao
-Segment = create_segmentation(Database, LeadName);
+Segment = create_segmentation(QTDB, LeadName);
 %fprintf('Saving data to file...\n');
 %save_filepath = './resources/segment_V3.mat';
 %save(save_filepath, '-struct', 'Segment');

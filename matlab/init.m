@@ -18,11 +18,12 @@ Measures = {
 };
 
 % nome dos registros
-load('.\resources\dbnames.mat', 'EDBnames');
+load('.\resources\dbnames.mat');
 
 % registros de ecg
-Database = load('C:\ecg\edb.mat');
-%Database = load('C:\ecg\edb.mat', EDBnames{1:10});
+EDB = load('C:\ecg\edb.mat');
+%MITDB = load('C:\ecg\mitdb.mat');
+%QTDB = load('C:\ecg\qtdb.mat');
 
 % inicializa gerador pseudo-randomico
-rng('shuffle');
+%rng('shuffle');
