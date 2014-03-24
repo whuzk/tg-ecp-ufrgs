@@ -1,6 +1,7 @@
-function [A,B,R] = merge_rpeaks(R1, R2)
+function [A,B,R] = merge_rpeaks(R1, R2, Fs)
 
-VDI = 20;
+VDI1 = round(0.05*Fs);
+VDI2 = round(0.20*Fs);
 
 n = length(R1);
 m = length(R2);
@@ -10,40 +11,42 @@ R = zeros(n+m,1);
 
 i = 1;
 j = 1;
-k = 0;
+k = 1;
 while (i <= n) || (j <= m)
-    while (i <= n) && (j <= m) && (R2(j) - R1(i) > VDI)
-        k = k + 1;
-        A(k) = true;
-        R(k) = R1(i);
-        i = i + 1;
-    end
-    while (i <= n) && (j <= m) && (R1(i) - R2(j) > VDI)
-        k = k + 1;
+    while (i <= n) && (j <= m) && (R2(j) <= R1(i))
+        if R1(i) - R2(j) <= VDI1
+            A(k) = true;
+            i = i + 1;
+        end
         B(k) = true;
         R(k) = R2(j);
+        k = k + 1;
         j = j + 1;
     end
-    if (i <= n) && (j <= m)
-        if (abs(R2(j)-R1(i)) < VDI)
-            k = k + 1;
-            A(k) = true;
+    while (i <= n) && (j <= m) && (R1(i) <= R2(j))
+        if R2(j) - R1(i) <= VDI2
             B(k) = true;
-            R(k) = R2(j);
-            i = i + 1;
-            j = j + 1;
-        elseif R1(i) < R2(j)
-            i = i + 1;
-        else
             j = j + 1;
         end
-    elseif (i <= n)
+        A(k) = true;
+        R(k) = R1(i);
+        k = k + 1;
         i = i + 1;
-    elseif (j <= m)
+    end
+    while (i <= n) && (j > m)
+        A(k) = true;
+        R(k) = R1(i);
+        k = k + 1;
+        i = i + 1;
+    end
+    while (j <= m) && (i > n)
+        B(k) = true;
+        R(k) = R2(j);
+        k = k + 1;
         j = j + 1;
     end
 end
 
-A(k+1:end) = [];
-B(k+1:end) = [];
-R(k+1:end) = [];
+A(k:end) = [];
+B(k:end) = [];
+R(k:end) = [];

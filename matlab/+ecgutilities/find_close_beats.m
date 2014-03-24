@@ -1,32 +1,38 @@
-function [A, B] = find_close_beats(Rpeaks, Predicted)
+function [A, B] = find_close_beats(R1, R2)
 %   Obtem os incides das batidas que foram corretamente idfentificadas.
 %
 % Entradas:
-%   Rpeaks    - localizaçao correta dos picos da onda R
-%   Predicted - localizaçao predita dos picos da onda R
+%   R1 - localizaçao correta dos picos da onda R
+%   R2 - localizaçao predita dos picos da onda R
 %
 % Saída:
 %   incides das batidas identificadas
 %
-VDI = 20;
+VDI1 = round(0.05*Fs);
+VDI2 = round(0.20*Fs);
 
-n = length(Rpeaks);
-m = length(Predicted);
+n = length(R1);
+m = length(R2);
 A = false(n,1);
 B = false(m,1);
 
 i = 1;
-j = 2;
-while (i <= m)
-    while (j <= n) && (Predicted(i) - Rpeaks(j) > VDI)
+j = 1;
+while (i <= n) && (j <= m)
+    while (i <= n) && (j <= m) && (R2(j) <= R1(i))
+        if R1(i) - R2(j) <= VDI1
+            A(i) = true;
+            B(j) = true;
+            i = i + 1;
+        end
         j = j + 1;
     end
-    if (j > n)
-        break
-    elseif abs(Predicted(i) - Rpeaks(j)) < VDI
-        A(j) = true;
-        B(i) = true;
-        j = j + 1; 
+    while (i <= n) && (j <= m) && (R1(i) <= R2(j))
+        if R2(j) - R1(i) <= VDI2
+            A(i) = true;
+            B(j) = true;
+            j = j + 1;
+        end
+        i = i + 1;
     end
-    i = i + 1;
 end
