@@ -1,6 +1,8 @@
 function [QRSi,QRS2,THRs,THRn,THRs2,THRn2] = tompkins_adapted(SignalF,SignalI,Fs)
 
 %% global initializations
+SignalF = abs(SignalF);     % absolute value of filtered signal
+D = [0; diff(SignalI)];     % derivative of the integrated signal
 N = length(SignalI);        % length of integrated signal
 Ttrain = 2*Fs;              % length of training period
 Tref = round(0.20*Fs);      % length of refractory period
@@ -21,10 +23,10 @@ SIG_LEV2 = 0;           % Signal level in filtered signal
 NOISE_LEV2 = 0;         % Noise level in filtered signal
 
 %% algorithm - phase 1
-for i = 2:Ttrain
+for i = TPtol+1:Ttrain
     
     % check if current sample is a peak
-    if ispeak(SignalI, i)
+    if D(i) > 0 && D(i+1) <= 0
         
         % get current sample
         a = SignalI(i);
@@ -35,12 +37,12 @@ for i = 2:Ttrain
         % check if peak is from qrs
         if a >= THR_SIG1 && y >= THR_SIG2
             % adjust signal levels
-            SIG_LEV1 = 0.125*a + 0.875*SIG_LEV1;
-            SIG_LEV2 = 0.125*y + 0.875*SIG_LEV2;
+            SIG_LEV1 = 0.25*a + 0.75*SIG_LEV1;
+            SIG_LEV2 = 0.25*y + 0.75*SIG_LEV2;
         else
             % adjust noise levels
-            NOISE_LEV1 = 0.125*a + 0.875*NOISE_LEV1;
-            NOISE_LEV2 = 0.125*y + 0.875*NOISE_LEV2;
+            NOISE_LEV1 = 0.25*a + 0.75*NOISE_LEV1;
+            NOISE_LEV2 = 0.25*y + 0.75*NOISE_LEV2;
         end
     end
     
@@ -68,7 +70,7 @@ new_rr = 0;             % new RR interval after QRS detection
 
 %% algorithm - phase 2
 i = Ttrain+1;
-while new_rr == 0 && i < length(SignalI)
+while new_rr == 0 && i < N-TPtol+1
     
     % get current sample
     a = SignalI(i);
@@ -101,7 +103,7 @@ while new_rr == 0 && i < length(SignalI)
         % reset active search flag
         act_search = false;
     
-    elseif ispeak(SignalI, i)
+    elseif D(i) > 0 && D(i+1) <= 0
         
         % find peak in the filtered signal
         y = findmax(SignalF, i, TPtol);
@@ -137,20 +139,15 @@ end
 
 %% initializations for phase 3
 QRS2 = zeros(N,1);              % buffer for QRS detected in searchback
-RR_int = NaN(1,8);              % buffer for previous RR intervals
-sel_RR_int = NaN(1,8);          % buffer for selected RR intervals
 qrs_count2 = 0;                 % current position in second QRS buffer
-rr_i = 1;                       % current position in main RR buffer
-sel_rr_i = 0;                   % current position in second RR buffer
-RR_int(rr_i) = new_rr;          % initialize main RR buffer
-rr_mean = nanmean(RR_int);      % running avereage of RR intervals
-rr_half = round(0.5*rr_mean);   % half of RR running average
-rr_miss = round(1.66*rr_mean);  % interval for qrs to be assumed missed
+rr_mean = new_rr;               % running average of RR intervals
+rr_half = round(0.5*rr_mean);   % half of RR average
+rr_miss = round(1.8*rr_mean);  % interval for qrs to be assumed missed
 qrs_updated = false;            % flag to indicate detection of QRS
 ser_back_i = 0;                 % index of searchback starting point
 
 %% algorithm - phase 3
-for i = i:length(SignalI)-1
+for i = i:N-TPtol
     
     % get current sample
     a = SignalI(i);
@@ -186,7 +183,7 @@ for i = i:length(SignalI)-1
         % reset active search flag
         act_search = false;
         
-    elseif ispeak(SignalI, i)
+    elseif D(i) > 0 && D(i+1) <= 0
     
         % find peak in the filtered signal
         y = findmax(SignalF, i, TPtol);
@@ -215,7 +212,7 @@ for i = i:length(SignalI)-1
         
         % find peak in the filtered signal
         new_y = findmax(SignalF, new_i, TPtol);
-
+        
         % check if candidate peak is from qrs
         if new_a > 0.5*THR_SIG1 && new_y >= 0.5*THR_SIG2
             % skip when a T wave is detected
@@ -255,27 +252,13 @@ for i = i:length(SignalI)-1
     % check whether a new QRS was detected
     if qrs_updated
         
-        % update RR intervals and calculate running average
-        rr_i = mod(rr_i,length(RR_int))+1;
-        RR_int(rr_i) = new_rr;
-        rr_mean = nanmean(RR_int);
-        
-        % check if new beat is regular
-        if new_rr >= 0.92*rr_mean && new_rr <= 1.16*rr_mean
-            % update buffer of selected RR intervals
-            sel_rr_i = mod(sel_rr_i,length(sel_RR_int))+1;
-            sel_RR_int(sel_rr_i) = new_rr;
-        end
-        
-        % check if heart rate is regular
-        irregular = RR_int < 0.92*rr_mean | RR_int > 1.16*rr_mean;
-        if ~isempty(find(irregular, 1))
-            % substitute the average
-            rr_mean = nanmean(sel_RR_int);
+        % update RR interval average
+        if 0.8*rr_mean < new_rr && new_rr < 1.2*rr_mean
+            rr_mean = 0.8*rr_mean + 0.2*new_rr;
         end
         
         % calculate RR miss limit
-        rr_miss = round(1.66*rr_mean);
+        rr_miss = round(1.8*rr_mean);
         % calculate half of RR mean
         rr_half = round(0.5*rr_mean);
         
@@ -301,18 +284,9 @@ QRSi(qrs_count+1:end) = [];
 QRS2(qrs_count2+1:end) = [];
 
 
-function Result = ispeak(Signal, i)
-% get current and neighbour samples
-a = Signal(i-1);
-b = Signal(i);
-c = Signal(i+1);
-Result = a-b < 0 && b-c >= 0;
-
 function [y,x] = findmax(Signal,i,l)
-N = length(Signal);
 begin = max(1,i-l);
-end_i = min(N,i+l);
-[y,x] = max(Signal(begin:end_i));
+[y,x] = max(Signal(begin:i+l));
 x = x + begin - 1;
 
 function Result = istwave(Signal, candQrs, lastQrs, qrsLen)

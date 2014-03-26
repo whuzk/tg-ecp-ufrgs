@@ -30,15 +30,16 @@ a_l = [1 -2 1];
 b_h = 1/32*[-1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 32 -32 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1];
 a_h = [1 -1];
 
-% derivative filter
-h_d = 1/8*[-1 -2 0 2 1];
-
 % cascade of previous filters
-t_f = minreal(tf(b_l,a_l)*tf(b_h,a_h)*tf(h_d,1));
+t_f = minreal(tf(b_l,a_l)*tf(b_h,a_h));
 a_f = fliplr(t_f.den{1});
 b_f = t_f.num{1};
 h_f = filter(b_f, a_f, [1; zeros(length(b_f)-1,1)]);
 %d_f = floor(length(b_f)/2);
+
+% derivative filter
+h_d = 1/8*[-1 -2 0 2 1];
+%d_d = floor(length(h_d)/2);
 
 % integration filter
 Ws = round(0.15*Fs);
@@ -59,4 +60,5 @@ end
 
 % apply filters
 SignalF = conv2(Signal, h_f(:), 'same');
-SignalI = conv2(SignalF.^2, h_i(:), 'same');
+SignalD = conv2(SignalF, h_d(:), 'same');
+SignalI = conv2(SignalD.^2, h_i(:), 'same');

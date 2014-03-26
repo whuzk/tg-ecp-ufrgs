@@ -12,7 +12,6 @@ function Result = detect_qrs(Signal, Fs)
 
 % filtering
 [SignalF,SignalI,NewFs] = ecgfilter.tompkins_preprocess(Signal, Fs);
-SignalF = abs(SignalF);
 
 %{
 [R,R2,THs,THn,THs2,THn2] = ...
