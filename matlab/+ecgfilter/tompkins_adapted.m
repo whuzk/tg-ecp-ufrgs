@@ -1,24 +1,24 @@
-function [QRSi,QRS2,THRs,THRn,THRs2,THRn2] = tompkins_adapted(SignalB,SignalI,Fs)
+function [QRSi,QRS2,THRs,THRn,THRs2,THRn2] = tompkins_adapted(SignalF,SignalI,Fs)
 
 %% global initializations
-N = length(SignalI);        % length of MWI signal
+N = length(SignalI);        % length of integrated signal
 Ttrain = 2*Fs;              % length of training period
 Tref = round(0.20*Fs);      % length of refractory period
 TQtol = round(0.10*Fs);     % tolerance for comparing QRS waves
 TTtol = round(0.36*Fs);     % tolerance for T wave identification
-TPtol = round(0.05*Fs);     % tolerance for finding peaks in BP signal
+TPtol = round(0.05*Fs);     % tolerance for peaks in filtered signal
 
 %% initializations for phase 1
 THRs = zeros(N,1);      % buffer for the Signal Threshold history
 THRn = zeros(N,1);      % buffer for the Noise Threshold history
 THRs2 = zeros(N,1);     % buffer for the Signal Threshold history
 THRn2 = zeros(N,1);     % buffer for the Noise Threshold history
-THR_SIG1 = 0;           % Signal threshold in MWI
-SIG_LEV1 = 0;           % Signal level in MWI
-NOISE_LEV1 = 0;         % Noise level in MWI
-THR_SIG2 = 0;           % Signal threshold in Bandpass
-SIG_LEV2 = 0;           % Signal level in Bandpass
-NOISE_LEV2 = 0;         % Noise level in Bandpass
+THR_SIG1 = 0;           % Signal threshold in integrated signal
+SIG_LEV1 = 0;           % Signal level in integrated signal
+NOISE_LEV1 = 0;         % Noise level in integrated signal
+THR_SIG2 = 0;           % Signal threshold in filtered signal
+SIG_LEV2 = 0;           % Signal level in filtered signal
+NOISE_LEV2 = 0;         % Noise level in filtered signal
 
 %% algorithm - phase 1
 for i = 2:Ttrain
@@ -29,15 +29,15 @@ for i = 2:Ttrain
         % get current sample
         a = SignalI(i);
         
-        % find peak in the bandpass signal
-        y = findmax(SignalB, i, TPtol);
+        % find peak in the filtered signal
+        y = findmax(SignalF, i, TPtol);
         
         % check if peak is from qrs
         if a >= THR_SIG1 && y >= THR_SIG2
             % adjust signal levels
             SIG_LEV1 = 0.125*a + 0.875*SIG_LEV1;
             SIG_LEV2 = 0.125*y + 0.875*SIG_LEV2;
-        else%if a < 0.5*THR_SIG1
+        else
             % adjust noise levels
             NOISE_LEV1 = 0.125*a + 0.875*NOISE_LEV1;
             NOISE_LEV2 = 0.125*y + 0.875*NOISE_LEV2;
@@ -62,8 +62,8 @@ ref_count = 0;          % counter for the refractory period
 qrs_count = 0;          % count of QRS complex in main QRS buffer
 last_qrs_i = 0;         % index of last detected QRS complex
 cur_i = 0;              % index of current candidate peak
-cur_a = 0;              % amplitude of current candidate peak in MWI
-cur_y = 0;              % amplitude of current candidate peak in BP
+cur_a = 0;              % amplitude of current candidate peak in integrated signal
+cur_y = 0;              % amplitude of current candidate peak in filtered signal
 new_rr = 0;             % new RR interval after QRS detection
 
 %% algorithm - phase 2
@@ -73,14 +73,18 @@ while new_rr == 0 && i < length(SignalI)
     % get current sample
     a = SignalI(i);
     
-    % check if the active search is on
-    if act_search && a < 0.5*cur_a
+    % check if we are in the refractory period
+    if ref_count > 0
+        
+        ref_count = ref_count - 1;
+        
+    elseif act_search && a < 0.5*cur_a
         
         % check if candidate peak is from qrs
         if cur_y >= THR_SIG2
             % increment qrs count
             qrs_count = qrs_count + 1;
-            % save index of MWI
+            % save index of integrated signal
             QRSi(qrs_count) = cur_i;
             % activate refractory period
             ref_count = max(0,Tref-(i-cur_i));
@@ -99,8 +103,8 @@ while new_rr == 0 && i < length(SignalI)
     
     elseif ispeak(SignalI, i)
         
-        % find peak in the bandpass signal
-        y = findmax(SignalB, i, TPtol);
+        % find peak in the filtered signal
+        y = findmax(SignalF, i, TPtol);
         
         % check if peak is candidate to be from qrs
         if a >= THR_SIG1
@@ -111,7 +115,7 @@ while new_rr == 0 && i < length(SignalI)
                 cur_y = y;
                 act_search = true;
             end
-        else%if a < 0.5*THR_SIG1
+        else
             % adjust noise levels
             NOISE_LEV1 = 0.125*a + 0.875*NOISE_LEV1;
             NOISE_LEV2 = 0.125*y + 0.875*NOISE_LEV2;
@@ -161,11 +165,11 @@ for i = i:length(SignalI)-1
         % check if candidate peak is from qrs
         if cur_y >= THR_SIG2
             % skip when a T wave is detected
-            if cur_i-last_qrs_i > TTtol || ...%max(TTtol,rr_half) || ...
+            if cur_i-last_qrs_i > TTtol || ...
                 ~istwave(SignalI, cur_i, last_qrs_i, TQtol)
                 % increment qrs count
                 qrs_count = qrs_count + 1;
-                % save index of MWI
+                % save index of integrated signal
                 QRSi(qrs_count) = cur_i;
                 % activate refractory period
                 ref_count = max(0,Tref-(i-cur_i));
@@ -184,8 +188,8 @@ for i = i:length(SignalI)-1
         
     elseif ispeak(SignalI, i)
     
-        % find peak in the bandpass signal
-        y = findmax(SignalB, i, TPtol);
+        % find peak in the filtered signal
+        y = findmax(SignalF, i, TPtol);
         
         % check if peak is candidate to be from qrs
         if a >= THR_SIG1
@@ -197,7 +201,7 @@ for i = i:length(SignalI)-1
                 act_search = true;
                 ser_back_i = i;
             end
-        else%if a < 0.5*THR_SIG1
+        else
             % adjust noise levels
             NOISE_LEV1 = 0.125*a + 0.875*NOISE_LEV1;
             NOISE_LEV2 = 0.125*y + 0.875*NOISE_LEV2;
@@ -209,13 +213,13 @@ for i = i:length(SignalI)-1
         center = ser_back_i + round(rr_mean);
         [new_a, new_i] = findmax(SignalI, center, rr_half);
         
-        % find peak in the bandpass signal
-        new_y = findmax(SignalB, new_i, TPtol);
+        % find peak in the filtered signal
+        new_y = findmax(SignalF, new_i, TPtol);
 
         % check if candidate peak is from qrs
         if new_a > 0.5*THR_SIG1 && new_y >= 0.5*THR_SIG2
             % skip when a T wave is detected
-            if new_i-last_qrs_i > TTtol || ...%max(TTtol,rr_half) || ...
+            if new_i-last_qrs_i > TTtol || ...
                 ~istwave(SignalI, new_i, last_qrs_i, TQtol)
                 % update last QRS peak and RR interval
                 new_rr = new_i - last_qrs_i;
@@ -223,7 +227,7 @@ for i = i:length(SignalI)-1
                 qrs_updated = true;
                 % increment qrs count
                 qrs_count2 = qrs_count2 + 1;
-                % save index of MWI
+                % save index of integrated signal
                 QRS2(qrs_count2) = new_i;
                 % activate refractory period
                 ref_count = max(0,Tref-(i-new_i));

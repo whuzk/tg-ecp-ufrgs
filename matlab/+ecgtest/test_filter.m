@@ -1,16 +1,14 @@
-[Fs,~,~,~,Data] = ecgutilities.interpret(Database2.e0108);
+[Fs,~,~,~,Data] = ecgutilities.interpret(EDB.e0103);
 Signal = Data(:,2);
 
 % low-pass filter
 b_l = 1/36*[1 0 0 0 0 0 -2 0 0 0 0 0 1];
 a_l = [1 -2 1];
-h_l = filter(b_l, a_l, [1 zeros(1,12)]);
 %d_l = 5;
 
 % high-pass filter
 b_h = 1/32*[-1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 32 -32 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1];
 a_h = [1 -1];
-h_h = filter(b_h, a_h, [1 zeros(1,32)]);
 %d_h = 15;
 
 % alternative bandpass filter
@@ -28,15 +26,19 @@ Ws = round(0.15*Fs);
 h_i = ones(1,Ws)/Ws;
 %d_i = floor(Ws/2);
 
+% cascade of filters
+t1 = minreal(tf(b_l,a_l)*tf(b_h,a_h)*tf(h_d,1));
+a1 = fliplr(t1.den{1});
+b1 = t1.num{1};
+%d1 = floor(length(b1)/2);
+h1 = filter(b1, a1, [1; zeros(length(b1)-1,1)]);
+h2 = conv(h_b, h_d);
+
 % apply filters
-SignalL1 = conv2(Signal, h_l(:), 'same');
-SignalH1 = conv2(SignalL1, h_h(:), 'same');
-SignalD1 = conv2(SignalH1, h_d(:), 'same');
-SignalI1 = conv2(SignalD1.^2, h_i(:), 'same');
+SignalF1 = conv2(Signal, h1(:), 'same').^2;
+SignalI1 = conv2(SignalF1, h_i(:), 'same');
 
-SignalH2 = conv2(Signal, h_b(:), 'same');
-SignalD2 = conv2(SignalH2, h_d(:), 'same');
-SignalI2 = conv2(SignalD2.^2, h_i(:), 'same');
+SignalF2 = conv2(Signal, h2(:), 'same').^2;
+SignalI2 = conv2(SignalF2, h_i(:), 'same');
 
-figure, plot([SignalH2 SignalH1]);
 figure, plot([SignalI2 SignalI1]);

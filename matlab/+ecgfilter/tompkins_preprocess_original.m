@@ -1,4 +1,4 @@
-function [SignalF,SignalI,Fs] = tompkins_preprocess(Signal, Fs)
+function [SignalF,SignalI,Fs] = tompkins_preprocess_original(Signal, Fs)
 
 % validate input
 if ~isvector(Signal) || isempty(Signal)
@@ -6,7 +6,7 @@ if ~isvector(Signal) || isempty(Signal)
 end
 
 %% filter design
-resamp = false;%(Fs ~= 200);
+resamp = (Fs ~= 200);
 
 % resampling filter
 if resamp
@@ -18,22 +18,27 @@ if resamp
     a_r = [1 1 0 0];
     h_r = firls(L-1, f_r, a_r);
     h_r = p*h_r.*kaiser(L,5)';
-    d_r = floor(L/2/q);
+    %d_r = floor(L/2/q);
     Fs = 200;
 end
 
-% alternative bandpass filter
-%fbp = fdesign.bandpass('Fst1,Fp1,Fp2,Fst2,Ast1,Ap,Ast2',1,8,13,20,30,1,20,Fs);
-fbp = fdesign.bandpass('Fst1,Fp1,Fp2,Fst2,Ast1,Ap,Ast2',1,8,18,25,30,1,20,Fs);
-Hd1 = design(fbp,'equiripple');
-h_b = Hd1.Numerator;
+% low-pass filter
+b_l = 1/36*[1 0 0 0 0 0 -2 0 0 0 0 0 1];
+a_l = [1 -2 1];
+
+% high-pass filter
+b_h = 1/32*[-1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 32 -32 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1];
+a_h = [1 -1];
 
 % derivative filter
 h_d = 1/8*[-1 -2 0 2 1];
 
 % cascade of previous filters
-h_f = conv(h_b, h_d);
-%d_f = floor(length(h_f)/2);
+t_f = minreal(tf(b_l,a_l)*tf(b_h,a_h)*tf(h_d,1));
+a_f = fliplr(t_f.den{1});
+b_f = t_f.num{1};
+h_f = filter(b_f, a_f, [1; zeros(length(b_f)-1,1)]);
+%d_f = floor(length(b_f)/2);
 
 % integration filter
 Ws = round(0.15*Fs);

@@ -3,10 +3,10 @@
 %
 import ecgutilities.*
 import ecgtest.*
-close all;
+%close all;
 
 %% Criaçao do arquivo de teste do algoritmo de segmentaçao
-Segment = create_segmentation(QTDB, LeadName);
+Segment = create_segmentation(EDB, LeadName);
 %fprintf('Saving data to file...\n');
 %save_filepath = './resources/segment_V3.mat';
 %save(save_filepath, '-struct', 'Segment');

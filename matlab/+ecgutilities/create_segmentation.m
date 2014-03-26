@@ -1,8 +1,7 @@
 function Result = create_segmentation(Database, LeadName)
 import ecgutilities.*
 
-%Records = fieldnames(Database);
-Records = {'sele0129'};
+Records = fieldnames(Database);
 for i = 1:numel(Records)
     ECG = Database.(Records{i});
     
