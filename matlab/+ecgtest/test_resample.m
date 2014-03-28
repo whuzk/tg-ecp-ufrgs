@@ -1,10 +1,8 @@
 import ecgfilter.*
 
 %% initialization
-%Signal = Database.e0103.Signals{1}.Data;
-%Signal = Signal - Signal(1);
-%Fs = 250;
-%NewFs = 200;
+Signal = Database.e0103.Signals{1}.Data;
+Signal = Signal - Signal(1);
 
 %% filter design
 [p,q] = rat(NewFs/Fs, 1E-12);
@@ -28,10 +26,10 @@ Res3 = resample3(Signal, NewFs, Fs, h_r);
 toc;
 
 %% verification
-%norm(Res1 - Res2)
-%figure, plot([Res1 Res2]);
-%norm(Res1 - Res3)
-%figure, plot([Res1 Res3]);
+norm(Res1 - Res2)
+figure, plot([Res1 Res2]);
+norm(Res1 - Res3)
+figure, plot([Res1 Res3]);
 
 %% inverse resampling
 tic;

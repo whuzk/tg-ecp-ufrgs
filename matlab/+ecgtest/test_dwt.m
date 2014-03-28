@@ -1,3 +1,5 @@
+import ecgfilter.*
+
 % load mother wavelet
 if ~exist('noisdopp','var')
     load noisdopp;
@@ -24,8 +26,10 @@ Lo_D = wrev(Lo_R);
 
 % wavelet decomposition
 [C,L] = wavedec(X,J,Lo_D,Hi_D);
-[A,D] = ecgmath.dpadwt(X,J,Lo_D,Hi_D);
+%[A,D] = dpadwt(X,J,Lo_D,Hi_D);
+[A,D] = rpadwt(X,J,Lo_D,Hi_D);
 
+%{
 % verification
 norm(A{1}-C(1:L(1)));
 end_i = L(1);
@@ -33,13 +37,17 @@ for i = 1:J
     norm(D{i}-C(end_i+(1:L(i+1))));
     end_i = end_i + L(i+1);
 end
+%}
 
 % Wavelet reconstruction
 X1 = waverec(C,L,Lo_R,Hi_R);
-X2 = ecgmath.dpaidwt(A{1},D,N,Lo_R,Hi_R);
+%X2 = dpaidwt(A{1},D,N,Lo_R,Hi_R);
+X2 = rpaidwt(A{1},D,N,Lo_R,Hi_R);
 
+%{
 % Verification
 norm(X-X1)
 norm(X-X2)
 figure, plot([X X1]);
 figure, plot([X X2]);
+%}
