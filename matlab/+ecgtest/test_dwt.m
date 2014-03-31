@@ -12,7 +12,7 @@ end
 
 if ~exist('F','var')
     % load mother wavelet
-    wname = deblankl('db3');
+    wname = deblankl('db2');
     [~,fname] = wavemngr('fields',wname,'type','file');
     F = feval(fname,wname);
     
@@ -27,7 +27,7 @@ if ~exist('F','var')
 end
 
 %% analytic
-%
+%{
 % wavelet decomposition
 [C,L] = wavedec(X,J,Lo_D,Hi_D);
 [A,D] = dpadwt(X,J,Lo_D,Hi_D);
@@ -55,11 +55,21 @@ figure, plot([X X1]);
 figure, plot([X X2]);
 figure, plot([X X3]);
 figure, plot([X X4]);
-%
+%}
 %% real-time
 %{
-[A3,D3] = rtdwt(X,3,Lo_D,Hi_D,Lo_R,Hi_R);
-%
+[A,D] = rtdwt2(X,3,Lo_D,Hi_D);
+XR = dpaidwt(A{end},D,N,Lo_R,Hi_R);
+XR2 = rtidwt2(A{end},D,N,Lo_R,Hi_R);
+%norm(X-XR)
+norm(X-XR2)
+%figure, plot([X XR]);
+figure, plot([X XR2]);
+%}
+XR = rtdwt3(X,3,Lo_D,Hi_D,Lo_R,Hi_R);
+norm(X-XR)
+figure, plot([X XR]);
+%{
 Signal1 = zeros(1,N);
 Signal2 = zeros(1,N);
 figure(1);
