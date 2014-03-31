@@ -14,12 +14,12 @@ D = D(2:end);
 
 function [A,D] = rdwt(i,j,J,A,D,H,G)
 if j > J
-    for j = 1:J
-        len = floor((length(A{j})+length(H)-1)/2);
-        for p = 1:(len-length(A{j+1}))
-            [A,D] = post(j,A,D,H,G);
-        end
-    end
+    %for j = 1:J
+    %    len = floor((length(A{j})+length(H)-1)/2);
+    %    for p = 1:(len-length(A{j+1}))
+    %        [A,D] = post(j,A,D,H,G);
+    %    end
+    %end
 elseif mod(i,2) ~= 0
     k = (i+1)/2;
     m = 1:min(i,length(H));

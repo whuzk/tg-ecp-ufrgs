@@ -1,4 +1,4 @@
-function [SignalF,SignalI,Fs] = tompkins_preprocess(Signal, Fs)
+function [SignalF,SignalI] = tompkins_preprocess(Signal, Fs)
 
 % validate input
 if ~isvector(Signal) || isempty(Signal)

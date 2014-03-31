@@ -25,9 +25,15 @@ elseif (i == 0)
     end
 elseif mod(i,2) ~= 0
     k = (i+1)/2;
-    p = length(A{1+j+1});
-    m = 1:min(p,ceil(length(H)/2));
-    A{1+j}(k) = A{1+j+1}(p-m+1)*H(2*m-1) + D{1+j+1}(p-m+1)*G(2*m-1);
+    if mod(k,2) == 0
+        p = k/2;
+        m = 1:min(p,ceil(length(H)/2));
+        A{1+j}(1+k) = A{1+j+1}(p-m+1)*H(2*m-1) + D{1+j+1}(p-m+1)*G(2*m-1);
+    else
+        p = (k-1)/2;
+        m = 1:min(p,floor(length(H)/2));
+        A{1+j}(1+k) = A{1+j+1}(p-m+1)*H(2*m) + D{1+j+1}(p-m+1)*G(2*m);
+    end
     if j == 1
         m = 1:min(k,ceil(length(H)/2));
         A{1+0}(1+i+1) = A{1+1}(k-m+1)*H(2*m-1) + D{1+1}(k-m+1)*G(2*m-1);

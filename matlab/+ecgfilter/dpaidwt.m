@@ -7,7 +7,7 @@ for j = 2:J
     L(j) = length(D{j-1});
 end
 
-delay = floor(length(H)/2);
+delay = length(H)-2;
 for j = J:-1:1
     a = upsample(a(:),2);
     d = upsample(D{j}(:),2);

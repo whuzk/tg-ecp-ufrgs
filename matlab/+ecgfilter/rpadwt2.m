@@ -6,7 +6,7 @@ D = cell(J+1,1);
 A{1} = x(:)';
 H = H(:);
 G = G(:);
-for i = 1:N+10
+for i = 1:N
     [A,D] = rdwt(i,1,J,A,D,H,G);
 end
 A = A(2:end);
