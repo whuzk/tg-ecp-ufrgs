@@ -1,4 +1,4 @@
-function a = dpaidwt(a,D,N,H,G)
+function a = dpaidwt2(a,D,N,H,G)
 
 J = length(D);
 L = zeros(J,1);

@@ -56,8 +56,13 @@ figure, plot([X X2]);
 figure, plot([X X3]);
 figure, plot([X X4]);
 %}
+[A,D] = rtdwt2(X,3,Lo_D,Hi_D);
+XR = rtidwt2(A{end},D,N,Lo_R,Hi_R);
+norm(X-XR)
+figure, plot([X XR]);
+
 %% real-time
-%
+%{
 [A,D] = rtdwt2(X,3,Lo_D,Hi_D);
 XR = dpaidwt(A{end},D,N,Lo_R,Hi_R);
 XR2 = rtidwt2(A{end},D,N,Lo_R,Hi_R);
@@ -65,7 +70,7 @@ norm(X-XR)
 norm(X-XR2)
 figure, plot([X XR]);
 figure, plot([X XR2]);
-%
+%}
 %XR = rtdwt3(X,3,Lo_D,Hi_D,Lo_R,Hi_R);
 %norm(X-XR)
 %figure, plot([X XR]);

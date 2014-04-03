@@ -1,4 +1,4 @@
-function [A,D] = rtdwt(X,J,H,G,Lo_R,Hi_R)
+function [A,D] = rtdwt_backup(X,J,H,G,Lo_R,Hi_R)
 
 N = length(X);
 L = length(H);
