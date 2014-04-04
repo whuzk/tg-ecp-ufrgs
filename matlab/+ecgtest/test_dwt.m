@@ -27,76 +27,52 @@ if ~exist('F','var')
 end
 
 %% analytic
-%{
 % wavelet decomposition
 [C,L] = wavedec(X,J,Lo_D,Hi_D);
-[A,D] = dpadwt(X,J,Lo_D,Hi_D);
-[A1,D1] = rpadwt(X,3,Lo_D,Hi_D);
-[A2,D2] = rpadwt2(X,J,Lo_D,Hi_D);
+[A1,D1] = dpadwt1(X,J,Lo_D,Hi_D);
+[A2,D2] = dpadwt2(X,J,Lo_D,Hi_D);
+[A3,D3] = rpadwt1(X,J,Lo_D,Hi_D);
+[A4,D4] = rpadwt2(X,J,Lo_D,Hi_D);
+[A5,D5] = rtdwt2(X,J,Lo_D,Hi_D);
 
 % wavelet reconstruction
-X1 = waverec(C,L,Lo_R,Hi_R);
-X2 = dpaidwt(A{end},D,N,Lo_R,Hi_R);
-X3 = rpaidwt(A1{end},D1,N,Lo_R,Hi_R);
-X4 = dpaidwt(A2{end},D2,N,Lo_R,Hi_R);
-%{
-% de-noising
-[XD,CXD,LXD] = wden(X,'sqtwolog','h','sln',J,wname);
-XD2 = dpaidwt(A{end},denoise(D,J,N),N,Lo_R,Hi_R);
-XD3 = rtdenoise(X,3,256,W);
-figure, plot([XD2 XD3]);
-%}
+XR = waverec(C,L,Lo_R,Hi_R);
+X1 = dpaidwt1(A1{end},D1,N,Lo_R,Hi_R);
+X2 = dpaidwt2(A2{end},D2,N,Lo_R,Hi_R);
+X3 = dpaidwt1(A3{end},D3,N,Lo_R,Hi_R);
+X4 = dpaidwt2(A4{end},D4,N,Lo_R,Hi_R);
+X5 = rtidwt2(A5{end},D5,N,Lo_R,Hi_R);
+
 % verification
+norm(X-XR)
 norm(X-X1)
 norm(X-X2)
 norm(X-X3)
 norm(X-X4)
+norm(X-X5)
+figure, plot([X XR]);
 figure, plot([X X1]);
 figure, plot([X X2]);
 figure, plot([X X3]);
 figure, plot([X X4]);
-%}
-[A,D] = rtdwt2(X,3,Lo_D,Hi_D);
-XR = rtidwt2(A{end},D,N,Lo_R,Hi_R);
-norm(X-XR)
-figure, plot([X XR]);
+figure, plot([X X5]);
+%{
+% de-noising
+XD = wden(X,'sqtwolog','h','sln',J,wname);
+XD1 = dpaidwt1(A1{end},denoise(D1,J,N),N,Lo_R,Hi_R);
+XD2 = dpaidwt2(A2{end},denoise(D2,J,N),N,Lo_R,Hi_R);
+XD3 = dpaidwt1(A3{end},denoise(D3,J,N),N,Lo_R,Hi_R);
+XD4 = dpaidwt2(A4{end},denoise(D4,J,N),N,Lo_R,Hi_R);
+XD5 = rtidwt2(A5{end},denoise(D5,J,N),N,Lo_R,Hi_R);
 
-%% real-time
-%{
-[A,D] = rtdwt2(X,3,Lo_D,Hi_D);
-XR = dpaidwt(A{end},D,N,Lo_R,Hi_R);
-XR2 = rtidwt2(A{end},D,N,Lo_R,Hi_R);
-norm(X-XR)
-norm(X-XR2)
-figure, plot([X XR]);
-figure, plot([X XR2]);
-%}
-%XR = rtdwt3(X,3,Lo_D,Hi_D,Lo_R,Hi_R);
-%norm(X-XR)
-%figure, plot([X XR]);
-%{
-Signal1 = zeros(1,N);
-Signal2 = zeros(1,N);
-figure(1);
-subplot(2,1,1); grid on;
-title('Original signal');
-lh1 = line((1:N)',Signal1);
-xlim([1 N]);
-subplot(2,1,2); grid on;
-title('Reconstructed signal');
-lh2 = line((1:N)',Signal2);
-xlim([1 N]);
-J = 3;
-M = 256;
-for i = 1:N
-    Signal1 = [Signal1(2:end) X(i)];
-    [A,D] = dpadwt(Signal1(end-M+1:end),J,Lo_D,Hi_D);
-    XD = dpaidwt(A{end},denoise(D,J,M),M,Lo_R,Hi_R);
-    %XD = dpaidwt(A{end},D,M,Lo_R,Hi_R);
-    Signal2 = [Signal2(2:end) XD(end)];
-    set(lh1, 'ydata', Signal1);
-    set(lh2, 'ydata', Signal2);
-    drawnow;
-end
-%norm(Signal2-Signal1)
+norm(XD-XD1)
+norm(XD-XD2)
+norm(XD-XD3)
+norm(XD-XD4)
+norm(XD-XD5)
+figure, plot([XD XD1]);
+figure, plot([XD XD2]);
+figure, plot([XD XD3]);
+figure, plot([XD XD4]);
+figure, plot([XD XD5]);
 %}

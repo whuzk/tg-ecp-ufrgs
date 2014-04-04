@@ -3,29 +3,41 @@ function X = rtidwt2(a,D,N,H,G)
 J = size(D,1);
 X = zeros(N,1);
 L = length(H);
-S = zeros(J,(L+2)/2);
-D2 = zeros(J,(L+2)/2);
+M = L/2;
+C = 2*(M-1);
+S = zeros(J,max(C,L/2+1));
+D2 = zeros(J,max(C,L/2+1));
 H = H(:);
 G = G(:);
 
-S(end,end-1:end) = a(1:2);
-D2(end,end-1:end) = D{end}(1:2);
-[S,D2,D,out] = recursive1(0,J,S,D2,D,H,G);
-for i = 3:length(a)
+out = [];
+S(end,end-C+1:end) = a(1:C);
+D2(end,end-C+1:end) = D{end}(1:C);
+for j = J:-1:1
+    for p = C-M:-1:0
+        if j == 1
+            out = [out produce(p,j,S,D2,H,G)];
+        else
+            [S,D2,D] = update_idwt(p,j,S,D2,D,H,G);
+        end
+    end
+end
+
+for i = C+1:length(a)
     X = push(X, out);
     S(end,:) = push(S(end,:), a(i));
     D2(end,:) = push(D2(end,:), D{end}(i));
     [S,D2,D,out] = recursive2(0,J,S,D2,D,H,G);
 end
-X = push(X, out(1:end-2));
+X = push(X, out(1:end-(L-2)));
 
 
-function [S,D2,D,out] = recursive1(p,j,S,D2,D,H,G)
+function [S,D2,D,out] = recursive1(j,S,D2,D,H,G)
 if j == 1
-    out = produce(p,j,S,D2,H,G);
+    out = produce(0,j,S,D2,H,G);
 else
-    [S,D2,D] = update_idwt(p,j,S,D2,D,H,G);
-    [S,D2,D,out] = recursive1(p,j-1,S,D2,D,H,G);
+    [S,D2,D] = update_idwt(0,j,S,D2,D,H,G);
+    [S,D2,D,out] = recursive1(j-1,S,D2,D,H,G);
 end
 
 function [S,D2,D,out] = recursive2(p,j,S,D2,D,H,G)
