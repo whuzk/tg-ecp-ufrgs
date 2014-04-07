@@ -1,19 +1,19 @@
-function X = rtidwt2(a,D,N,H,G)
+function X = rtidwt1(a,D,N,H,G)
 
 count = 0;
 J = size(D,1);
 X = zeros(N,1);
 L = length(H);
 M = L/2;
-C = 2*(M-1);
-S = zeros(J,max(C,M+1));
-D2 = zeros(J,max(C,M+1));
+C = L-1;
+S = zeros(J,max(C,M+1)+1);
+D2 = zeros(J,max(C,M+1)+1);
 H = H(:);
 G = G(:);
 
 out = [];
-S(end,end-C+1:end) = a(1:C);
-D2(end,end-C+1:end) = D{end}(1:C);
+S(end,end-C:end) = a(1:C+1);
+D2(end,end-C:end) = D{end}(1:C+1);
 for j = J:-1:1
     for p = C-M:-1:0
         if j == 1
@@ -24,14 +24,21 @@ for j = J:-1:1
     end
 end
 
-for i = C+1:length(a)
+for i = C+2:length(a)
     X = push(X, out);
     count = count + length(out);
     S(end,:) = push(S(end,:), a(i));
     D2(end,:) = push(D2(end,:), D{end}(i));
     [S,D2,D,out] = recursive2(0,J,S,D2,D,H,G);
 end
-X = push(X, out(1:N-count));
+if length(out) < N-count
+    X = push(X, out);
+    count = count + length(out);
+    S(end,:) = push(S(end,:), 0);
+    D2(end,:) = push(D2(end,:), 0);
+    [~,~,~,out] = recursive2(0,J,S,D2,D,H,G);
+end
+X = push(X, out(1:min(end,N-count)));
 
 
 function [S,D2,D,out] = recursive2(p,j,S,D2,D,H,G)
@@ -54,8 +61,8 @@ D{j-1}(1:l) = [];
 
 function out = produce(p,j,S,D2,H,G)
 m = 1:length(H)/2;
-out(1) = S(j,end-m+1-p)*H(2*m-1) + D2(j,end-m+1-p)*G(2*m-1);
-out(2) = S(j,end-m+1-p)*H(2*m) + D2(j,end-m+1-p)*G(2*m);
+out(1) = S(j,end-m-p)*H(2*m) + D2(j,end-m-p)*G(2*m);
+out(2) = S(j,end-m+1-p)*H(2*m-1) + D2(j,end-m+1-p)*G(2*m-1);
 
 function X = push(X,v)
 if isempty(v)
