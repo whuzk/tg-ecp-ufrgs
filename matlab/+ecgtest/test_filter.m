@@ -6,7 +6,7 @@ close all;
 Signal = Data(1:10000,2);
 
 % load wavelet filter
-wname = deblankl('db3');
+wname = deblankl('db2');
 [~,fname] = wavemngr('fields',wname,'type','file');
 F = feval(fname,wname);
 W = F/sum(F);
