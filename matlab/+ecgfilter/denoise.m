@@ -4,7 +4,7 @@ noise_level = std(D{1});
 threshold_s = 4;
 
 %noise_level = median(abs(D{1}))/0.6745;
-%threshold_s = noise_level*sqrt(2*log(N));
+%threshold_s = sqrt(2*log(N));
 
 thr = threshold_s*noise_level;
 for j = 1:J
