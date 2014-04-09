@@ -2,22 +2,19 @@ import ecgfilter.*
 close all;
 
 % load ecg
-[Fs,~,~,~,Data] = ecgutilities.interpret(EDB.e0103);
-Signal = Data(1:10000,2);
+[Fs,~,~,~,Data] = ecgutilities.interpret(EDB.e0116);
+Signal = Data(180001:190000,2);
 
-% load wavelet filter
-wname = deblankl('db2');
-[~,fname] = wavemngr('fields',wname,'type','file');
-F = feval(fname,wname);
-W = F/sum(F);
+% de-noise
+SignalD = wden(Signal,'sqtwolog','h','sln',3,'db5');
+%SignalD = cyclicrtdenoise3(Signal,128,'db5');
 
 % apply filters
 [SignalF1,SignalI1] = tompkins_preprocess(Signal, Fs);
-[SignalF2,SignalI2] = tompkins_preprocess_original(Signal, Fs);
-SignalI3 = chen_preprocess(Signal, Fs, W);
+[SignalF2,SignalI2] = tompkins_preprocess(SignalD, Fs);
 
 % plot figures
 figure, plot(Signal);
+figure, plot(SignalD);
 figure, plot(SignalI1);
 figure, plot(SignalI2);
-figure, plot(SignalI3);

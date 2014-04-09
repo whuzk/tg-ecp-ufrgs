@@ -9,7 +9,7 @@ end
 Signal = Signal(:) - Signal(1);
 
 % wavelet de-noise
-SignalW = ecgfilter.rtdenoise(Signal,3,256,W);
+SignalW = ecgfilter.cyclicrtdenoise3(Signal,256,W);
 %[b,a] = butter(4,30*2/Fs);
 %SignalW = filter(b,a,Signal);
 
