@@ -1,7 +1,7 @@
 import ecgfilter.*
 
-% load mother wavelet
-if ~exist('noisdopp','var')
+% load signal
+if ~exist('X','var')
     %load noisdopp;
     %X = noisdopp(:);
     load leleccum;
@@ -10,23 +10,11 @@ if ~exist('noisdopp','var')
     J = round(log2(N));
 end
 
-if ~exist('F','var')
-    % load mother wavelet
-    wname = deblankl('db2');
-    [~,fname] = wavemngr('fields',wname,'type','file');
-    F = feval(fname,wname);
-    
-    % normalize filter sum
-    W = F/sum(F);
-    
-    % associated orthogonal filters
-    Lo_R = sqrt(2)*W;
-    Hi_R = qmf(Lo_R);
-    Hi_D = wrev(Hi_R);
-    Lo_D = wrev(Lo_R);
-end
+% load wavelet filters
+[Lo_D,Hi_D,Lo_R,Hi_R] = wfilters('db10');
 
 %% analytic
+%{
 % wavelet decomposition
 [C,L] = wavedec(X,J,Lo_D,Hi_D);
 [A1,D1] = dpadwt1(X,J,Lo_D,Hi_D);
@@ -81,3 +69,11 @@ figure, plot([XD XD3]);
 figure, plot([XD XD4]);
 figure, plot([XD XD5]);
 figure, plot([XD XD6]);
+%}
+%[A2,D2] = rtdwt1(X,3,Lo_D,Hi_D);
+%[A,D] = dpadwt1(X,4,Lo_D,Hi_D);
+%XR = truertidwt1(A{end},D,N,Lo_R,Hi_R);
+XR = rtdenoise3(X,5,128,'db2');
+%XR = cyclicrtdenoise3(X,3,128,'db2');
+norm(X-XR)
+figure, plot([X XR]);
