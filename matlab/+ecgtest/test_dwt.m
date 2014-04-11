@@ -11,10 +11,9 @@ if ~exist('X','var')
 end
 
 % load wavelet filters
-[Lo_D,Hi_D,Lo_R,Hi_R] = wfilters('db10');
+[Lo_D,Hi_D,Lo_R,Hi_R] = wfilters('db2');
 
 %% analytic
-%{
 % wavelet decomposition
 [C,L] = wavedec(X,J,Lo_D,Hi_D);
 [A1,D1] = dpadwt1(X,J,Lo_D,Hi_D);
@@ -69,11 +68,3 @@ figure, plot([XD XD3]);
 figure, plot([XD XD4]);
 figure, plot([XD XD5]);
 figure, plot([XD XD6]);
-%}
-%[A2,D2] = rtdwt1(X,3,Lo_D,Hi_D);
-%[A,D] = dpadwt1(X,4,Lo_D,Hi_D);
-%XR = truertidwt1(A{end},D,N,Lo_R,Hi_R);
-XR = rtdenoise3(X,5,128,'db2');
-%XR = cyclicrtdenoise3(X,3,128,'db2');
-norm(X-XR)
-figure, plot([X XR]);

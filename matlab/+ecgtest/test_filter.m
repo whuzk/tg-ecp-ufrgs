@@ -1,9 +1,9 @@
 import ecgfilter.*
-close all;
+%close all;
 
 % load ecg
 [Fs,~,~,~,Data] = ecgutilities.interpret(EDB.e0103);
-Signal = Data(:,2);
+Signal = Data(:,1);
 
 % remove noise
 SignalD = wavfilter(Signal,round(log2(Fs)),'db5');
