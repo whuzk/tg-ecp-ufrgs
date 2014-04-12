@@ -20,7 +20,7 @@ for i = 1%1:numel(Records)
         [Beats,R,RR,Template] = ecgfilter.preprocess(Data(:,j), Fs);
         
         % seleciona as batidas corretamente identificadas
-        [index1,index2] = ecgutilities.find_close_beats(Bp, R-5);
+        [index1,index2] = ecgutilities.find_close_beats(Bp, R, Fs);
         
         % agrega anotaçoes de diagnostico
         id = num2str(j-1);

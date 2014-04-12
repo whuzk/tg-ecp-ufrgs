@@ -1,14 +1,7 @@
-function [Filtered,Delay] = suppress_baseline(Signal, Fs)
-%   Remove a linha de base flutuante de um sinal de ECG usando um filtro
-%   wavelet adaptativo, de acordo com o metodo de Park.
-%
-% Entradas:
-%   Signal - amplitudes do sinal original
-%   Fs     - taxa de amostragem do sinal
-%
-% Saída:
-%   Filtered - amplitudes do sinal filtrado¨
-%   Delay - atraso médio da filtragem
-%
-Filtered = Signal;
-Delay = 0;
+function Result = suppress_baseline(Beat,l)
+
+n = length(Beat);
+y0 = mean(Beat(1:l));
+y1 = mean(Beat(end-l+1:end));
+P = polyfit([1 n],[y0 y1],1);
+Result = Beat-polyval(P,1:n)';

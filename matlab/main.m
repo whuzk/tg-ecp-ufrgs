@@ -15,7 +15,7 @@ Segment = create_segmentation(EDB, LeadName);
 %test_segmentation(Segment)
 
 %% Criaçao do arquivo de batidas
-%Beatset = create_beatset(Database, LeadName);
+%Beatset = create_beatset(EDB, LeadName);
 %fprintf('Saving data to file...\n');
 %save_filepath = './resources/beatset.mat';
 %save(save_filepath, '-struct', 'Beatset');

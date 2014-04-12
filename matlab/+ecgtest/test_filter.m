@@ -3,17 +3,18 @@ import ecgfilter.*
 
 % load ecg
 [Fs,~,~,~,Data] = ecgutilities.interpret(EDB.e0103);
-Signal = Data(:,1);
+Signal = Data(:,2);
 
 % remove noise
-SignalD = wavfilter(Signal,round(log2(Fs)),'db5');
+SignalD = suppress_noise(Signal,Fs);
+%SignalD = wavelet_filter(Signal,Fs,'bior3.5');
 
 % apply filters
-[SignalF1,SignalI1] = tompkins_preprocess(Signal, Fs);
-[SignalF2,SignalI2] = tompkins_preprocess(SignalD, Fs);
+[SignalF,SignalI] = tompkins_filter(Signal, Fs);
+%R = ecgfeatures.tompkins_production(SignalF, SignalI, Fs);
+%SignalD = myfilter(Signal,R);
 
 % plot figures
 figure, plot(Signal);
 figure, plot(SignalD);
-figure, plot(SignalI1);
-figure, plot(SignalI2);
+figure, plot(SignalI);

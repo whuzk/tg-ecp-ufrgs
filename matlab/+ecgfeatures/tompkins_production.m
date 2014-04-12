@@ -196,7 +196,7 @@ for i = i:N-TPtol
         new_y = findmax(SignalF, new_i, TPtol);
         
         % check if candidate peak is from qrs
-        if new_a > 0.5*THR_SIG1 && new_y >= 0.5*THR_SIG2
+        if new_a >= 0.5*THR_SIG1 && new_y >= 0.5*THR_SIG2
             % skip when a T wave is detected
             if new_i-last_qrs_i > TTtol || ...
                 ~istwave(SignalI, new_i, last_qrs_i, TQtol)

@@ -1,6 +1,8 @@
-function Y = wavfilter(X,J,wname)
+function Y = wavelet_filter(X,Fs,wname)
 
+% initializations
 N = length(X);
+J = round(log2(Fs));
 
 % load wavelet filters
 [Lo_D,Hi_D,Lo_R,Hi_R] = wfilters(wname);

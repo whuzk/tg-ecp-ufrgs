@@ -1,18 +1,5 @@
-function [Filtered,Delay] = suppress_noise(Signal, Fs)
-%   Remove o ruído de alta frequência de um sinal de ECG usando um filtro
-%   de Butterworth.
-%
-% Entradas:
-%   Signal - amplitudes do sinal original
-%   Fs     - taxa de amostragem do sinal
-%
-% Saída:
-%   Filtered - amplitudes do sinal filtrado
-%   Delay - atraso médio da filtragem
-%
-N = 4;                          % ordem do filtro
-Fc = 40;                        % frequencias de corte (em Hertz)
-Wn = Fc * 2/Fs;                 % frequencias de corte normalizadas
-[B,A] = butter(N, Wn);          % coeficientes do filtro
-Filtered = filter(B, A, Signal);
-Delay = fix(mean(grpdelay(B,A)));
+function Result = suppress_noise(Signal, Fs)
+
+flp = fdesign.lowpass('Fp,Fst,Ap,Ast',30,50,0.01,60,Fs);
+hd = design(flp,'equiripple');
+Result = conv2(Signal, hd.numerator(:), 'same');

@@ -17,7 +17,7 @@ for i = 1:numel(Records)
         %continue;
         
         % processa o sinal da derivaçao
-        Rpeaks = ecgfilter.detect_qrs(Data(:,j),Fs);
+        Rpeaks = ecgfeatures.detect_qrs(Data(:,j),Fs);
         [A,B,R] = ecgutilities.merge_rpeaks(Bp, Rpeaks, Fs);
         Result.(Records{i}).A = A;
         Result.(Records{i}).B = B;

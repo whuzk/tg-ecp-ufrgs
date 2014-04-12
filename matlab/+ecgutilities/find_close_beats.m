@@ -1,4 +1,4 @@
-function [A, B] = find_close_beats(R1, R2)
+function [A, B] = find_close_beats(R1, R2, Fs)
 %   Obtem os incides das batidas que foram corretamente idfentificadas.
 %
 % Entradas:

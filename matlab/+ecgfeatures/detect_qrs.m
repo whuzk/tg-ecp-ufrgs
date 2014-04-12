@@ -9,15 +9,13 @@ function Result = detect_qrs(Signal, Fs)
 % Saída:
 %   localizaçao dos picos de onda R
 %
-
-% filtering
-[SignalF,SignalI,NewFs] = ecgfilter.tompkins_preprocess(Signal, Fs);
+[SignalF,SignalI] = ecgfilter.tompkins_filter(Signal, Fs);
+Result = ecgfeatures.tompkins_production(SignalF, SignalI, Fs);
 
 %{
 [R,R2,THs,THn,THs2,THn2] = ...
-    ecgfilter.tompkins_adapted(SignalF, SignalI, NewFs);
-Result = round(R*Fs/NewFs);
-%Result = ecgmath.neighbour_max(Signal,Result,10);
+    ecgfeatures.tompkins_adapted(SignalF, SignalI, Fs);
+Result = R;
 figure;
 hold on, grid on;
 plot([SignalF THs2 THn2]);
@@ -28,7 +26,3 @@ plot(R, SignalI(R), 'kx');
 plot(R2, SignalI(R2), 'ko');
 ecgutilities.plot_signal_r(Signal, Result);
 %}
-
-% detection
-R = ecgfilter.tompkins_production(SignalF, SignalI, NewFs);
-Result = round(R*Fs/NewFs);
