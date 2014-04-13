@@ -1,5 +1,4 @@
-import ecgmath.*
-import ecgfilter.*
+import ecgmmo.*
 %close all;
 
 % load ecg
@@ -17,6 +16,14 @@ Y5 = mmo_derivative(Signal,B);
 Y6 = mmo_derivative_flat(Signal,s);
 Y7 = mmo_open_closing(Signal,B,B);
 Y8 = mmo_close_opening(Signal,B,B);
+Y9 = mmo_average(Signal,B,B);
+Y10 = rterosion(Signal,B);
+Y11 = rtdilation(Signal,B);
+Y12 = rtopening(Signal,B,B);
+Y13 = rtclosing(Signal,B,B);
+Y14 = rtopenclosing(Signal,B,B);
+Y15 = rtcloseopening(Signal,B,B);
+Y16 = rtaverage_flat(Signal,s,s);
 
 % plot figures
 figure, plot(Signal);

@@ -7,7 +7,7 @@ Signal = Data(1:10000,2);
 
 % apply filters
 Y1 = suppress_noise(Signal,Fs);
-Y2 = suppress_baseline2(Signal,Fs);
+Y2 = baseline_filter(Signal,Fs);
 Y3 = chu_filter(Signal,Fs);
 Y4 = krishnan_filter(Signal,Fs);
 Y5 = trahanias_filter(Signal,Fs);
