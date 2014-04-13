@@ -1,16 +1,14 @@
 function Result = mmo_derivative_flat(Signal, s)
-% Aplica a operaçao de derivaçao morfologica no sinal de acordo com um
-% elemento estruturador constante igual a zero, de tamanho 2*s+1
+% Aplica a operaçao de derivaçao no sinal de acordo com um elemento
+% estruturador nulo de tamanho 2*s+1
 
-Result = zeros(size(Signal));
-Signal = [
-    ones(s,1)*Signal(1)
-    Signal(:)
-    ones(s,1)*Signal(end)
-];
+N = length(Signal);
+Result = zeros(N,1);
+Signal = Signal(:);
 
-for i = 1:length(Result)
-    W = Signal(i:i+2*s);
-    f = Signal(i+s);
-    Result(i) = (min(W) + max(W) - 2*f) / s;
+k = 0:2*s;
+for i = 3*s+1:N
+    w = Signal(i-k);
+    f = Signal(i-s);
+    Result(i-s) = (min(w)+max(w)-2*f)/s;
 end

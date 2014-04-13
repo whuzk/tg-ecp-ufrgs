@@ -1,4 +1,4 @@
-function Y = cyclicrtdenoise3(X,J,M,wname)
+function Y = rtdenoise3(X,J,M,wname)
 
 %% intializations
 [Lo_D,Hi_D,Lo_R,Hi_R] = wfilters(wname);

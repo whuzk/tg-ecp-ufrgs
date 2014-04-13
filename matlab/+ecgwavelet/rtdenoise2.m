@@ -1,4 +1,4 @@
-function Y = truertdenoise(X,J,M,F)
+function Y = rtdenoise2(X,J,M,F)
 
 %% intializations
 Lo_R = sqrt(2)*F(:);

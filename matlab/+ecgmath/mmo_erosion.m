@@ -4,18 +4,19 @@ function Result = mmo_erosion(Signal, B)
 
 N = length(Signal);
 M = length(B);
-l1 = floor((M-1)/2);
-l2 = floor((M+1)/2);
+if mod(M,2) == 0
+    error('Structuring element B must have odd length.');
+end
 
-Result = zeros(size(Signal));
-Signal = [
-    ones(l1,1)*Signal(1)
-    Signal(:)
-    ones(l2,1)*Signal(end)
-];
+Result = zeros(N,1);
+Signal = Signal(:);
 B = B(:);
 
-for i = 1:N
-    W = Signal(i:i+M-1);
-    Result(i) = min(W-B);
+delay = (M-1)/2;
+pad = zeros(delay,1);
+Signal = [pad; Signal; pad];
+
+k = M-1:-1:0;
+for i = M:N+M-1
+    Result(i-M+1) = min(Signal(i-k)-B);
 end
