@@ -3,45 +3,26 @@
 % terms of sensibility and/or positive predictivity
 
 %% EDB
-EDB.D3 = {}; %none
-EDB.MLI = {}; %none
-EDB.MLIII = {
-    'e0108' 'e0111' 'e0112' 'e0116' ...
-    'e0118' 'e0119' 'e0129' 'e0151' ...
-    'e0155' 'e0159' 'e0611'
+EDB.bad = {
+    'e0611.MLIII'
+    'e0119.MLIII'
 };
-EDB.V1 = {}; %none
-EDB.V2 = {'e0305' 'e0415'};
-EDB.V3 = {}; %none
-EDB.V4 = {'e0116'};
-EDB.V5 = {'e0801' 'e0817'};
 
 %% MITDB
-MITDB.MLII = {
-    'e105' 'e106' 'e108' 'e201' 'e203' ...
-    'e207' 'e210' 'e219' 'e231' 'e232'
+MITDB.bad = {
+    'e103.V2'
+    'e105.V1'
+    'e106.V1'
+    'e200.V1'
+    'e201.V1'
+    'e203.MLII'
+    'e203.V1'
+    'e207.MLII'
+    'e207.V1'
+    'e208.V1'
+    'e209.V1'
+    'e210.MLII'
+    'e210.V1'
+    'e217.V1'
+    'e221.V1'
 };
-MITDB.V1 = {
-    'e101' 'e105' 'e106' 'e108' 'e115' ...
-    'e200' 'e201' 'e203' 'e207' 'e208' ...
-    'e209' 'e219' 'e231' 'e232'
-};
-MITDB.V2 = {'e103' 'e104'};
-MITDB.V4 = {}; %none
-MITDB.V5 = {}; %none
-
-%% QTDB
-QTDB.MLII = {}; %none
-QTDB.V1 = {}; %none
-QTDB.V2 = {}; %none
-QTDB.V3 = {'sele0129'};
-QTDB.V5 = {}; %none
-QTDB.D3 = {}; %none
-QTDB.D4 = {}; %none
-QTDB.CM2 = {}; %none
-QTDB.CM5 = {}; %none
-QTDB.CC5 = {}; %none
-QTDB.ML5 = {}; %none
-QTDB.V1V2 = {}; %none
-QTDB.V2V3 = {}; %none
-QTDB.V4V5 = {}; %none

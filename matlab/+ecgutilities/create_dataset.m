@@ -1,4 +1,4 @@
-function Result = create_dataset(Beatset)
+function Result = create_dataset(Beatset, LeadName)
 % Criaçao do conjunto de caracteristicas
 %
 import ecgutilities.*;
@@ -7,8 +7,14 @@ import ecgutilities.*;
 Records = fieldnames(Beatset);
 BeatCount = 0;
 for i = 1:numel(Records)
-    Data = Beatset.(Records{i});
-    BeatCount = BeatCount + size(Data.Beats,2);
+    Record = Beatset.(Records{i});
+    if isfield(Record,LeadName)
+        Data = Record.(LeadName);
+        BeatCount = BeatCount + size(Data.Beats,2);
+    end
+end
+if BeatCount == 0
+    error('no beats to be processed');
 end
 
 %
@@ -23,7 +29,7 @@ Gopalak.Diagnosis = zeros(BeatCount,2);
 iStart = 1;
 iEnd = 0;
 for i = 1:numel(Records)
-    Data = Beatset.(Records{i});
+    Data = Beatset.(Records{i}).(LeadName);
     iEnd = iEnd + size(Data.Beats,2);
     
     % seleciona itens especificos de anotaçao

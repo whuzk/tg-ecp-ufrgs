@@ -1,12 +1,25 @@
-function Result = test_segmentation(Segment)
+function Result = test_segmentation(Segment, varargin)
 import ecgutilities.*
+
+if nargin == 1
+    LeadName = 'all';
+else
+    LeadName = varargin{1};
+end
 
 %% count the results
 Records = fieldnames(Segment);
 count = 0;
 for i = 1:numel(Records)
-    record = Segment.(Records{i});
-    count = count + length(record.A);
+    Record = Segment.(Records{i});
+    if strcmp(LeadName,'all')
+        Leads = fieldnames(Record);
+        for j = 1:numel(Leads)
+            count = count + length(Record.(Leads{j}).A);
+        end
+    elseif isfield(Record,LeadName)
+        count = count + length(Record.(LeadName).A);
+    end
 end
 
 %% group the results
@@ -15,12 +28,23 @@ B = false(count,1);
 iStart = 1;
 iEnd = 0;
 for i = 1:numel(Records)
-    record = Segment.(Records{i});
-    iEnd = iEnd + length(record.A);
-    A(iStart:iEnd) = record.A;
-    B(iStart:iEnd) = record.B;
-    iStart = iEnd + 1;
-    %ecgmath.compute_statistics(record.A,record.B)
+    Record = Segment.(Records{i});
+    if strcmp(LeadName,'all')
+        Leads = fieldnames(Record);
+        for j = 1:numel(Leads)
+            Data = Record.(Leads{j});
+            iEnd = iEnd + length(Data.A);
+            A(iStart:iEnd) = Data.A;
+            B(iStart:iEnd) = Data.B;
+            iStart = iEnd + 1;
+        end
+    elseif isfield(Record,LeadName)
+        Data = Record.(LeadName);
+        iEnd = iEnd + length(Data.A);
+        A(iStart:iEnd) = Data.A;
+        B(iStart:iEnd) = Data.B;
+        iStart = iEnd + 1;
+    end
 end
 
 %% compute statistics

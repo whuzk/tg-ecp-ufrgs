@@ -6,7 +6,7 @@ import ecgtest.*
 %close all;
 
 %% Criaçao do arquivo de teste do algoritmo de segmentaçao
-Segment = create_segmentation(EDB, LeadName);
+Segment = create_segmentation(EDB);
 %fprintf('Saving data to file...\n');
 %save_filepath = './resources/segment_V3.mat';
 %save(save_filepath, '-struct', 'Segment');
@@ -15,7 +15,7 @@ Segment = create_segmentation(EDB, LeadName);
 %test_segmentation(Segment)
 
 %% Criaçao do arquivo de batidas
-%Beatset = create_beatset(EDB, LeadName);
+%Beatset = create_beatset(EDB);
 %fprintf('Saving data to file...\n');
 %save_filepath = './resources/beatset.mat';
 %save(save_filepath, '-struct', 'Beatset');
@@ -23,7 +23,7 @@ Segment = create_segmentation(EDB, LeadName);
 %Beatset = load('./resources/beatset.mat');
 
 %% Criaçao do arquivo de caracteristicas
-%Dataset = create_dataset(Beatset);
+%Dataset = create_dataset(Beatset, LeadName);
 %fprintf('Saving data to file...\n');
 %save_filepath = './resources/dataset.mat';
 %save(save_filepath, '-struct', 'Dataset');

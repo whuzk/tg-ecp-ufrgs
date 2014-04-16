@@ -35,7 +35,7 @@ for i = TPtol+1:Ttrain
             % adjust signal levels
             SIG_LEV1 = 0.25*a + 0.75*SIG_LEV1;
             SIG_LEV2 = 0.25*y + 0.75*SIG_LEV2;
-        else
+        elseif a >= 0.5*THR_SIG1
             % adjust noise levels
             NOISE_LEV1 = 0.25*a + 0.75*NOISE_LEV1;
             NOISE_LEV2 = 0.25*y + 0.75*NOISE_LEV2;
@@ -57,10 +57,11 @@ cur_i = 0;              % index of current candidate peak
 cur_a = 0;              % amplitude of current candidate peak in integrated signal
 cur_y = 0;              % amplitude of current candidate peak in filtered signal
 new_rr = 0;             % new RR interval after QRS detection
+rr_mean = 0;            % running average of RR intervals
 
 %% algorithm - phase 2
 i = Ttrain+1;
-while new_rr == 0 && i < N-TPtol+1
+while qrs_count < 3 && i < N-TPtol+1
     
     % get current sample
     a = SignalI(i);
@@ -83,6 +84,7 @@ while new_rr == 0 && i < N-TPtol+1
             % update last QRS index and RR interval
             if last_qrs_i > 0
                 new_rr = cur_i - last_qrs_i;
+                rr_mean = max(rr_mean,new_rr);
             end
             last_qrs_i = cur_i;
             % adjust signal levels
@@ -107,7 +109,7 @@ while new_rr == 0 && i < N-TPtol+1
                 cur_y = y;
                 act_search = true;
             end
-        else
+        elseif a >= 0.5*THR_SIG1
             % adjust noise levels
             NOISE_LEV1 = 0.125*a + 0.875*NOISE_LEV1;
             NOISE_LEV2 = 0.125*y + 0.875*NOISE_LEV2;
@@ -122,9 +124,8 @@ while new_rr == 0 && i < N-TPtol+1
 end
 
 %% initializations for phase 3
-rr_mean = new_rr;               % running avereage of RR intervals
 rr_half = round(0.5*rr_mean);   % half of RR average
-rr_miss = round(1.8*rr_mean);  % interval for qrs to be assumed missed
+rr_miss = round(1.8*rr_mean);   % interval for qrs to be assumed missed
 qrs_updated = false;            % flag to indicate detection of QRS
 ser_back_i = 0;                 % index of searchback starting point
 
@@ -142,7 +143,7 @@ for i = i:N-TPtol
     elseif act_search && a < 0.5*cur_a
     
         % check if candidate peak is from qrs
-        if cur_y >= THR_SIG2
+        if cur_y >= 0.5*THR_SIG2
             % skip when a T wave is detected
             if cur_i-last_qrs_i > TTtol || ...
                 ~istwave(SignalI, cur_i, last_qrs_i, TQtol)
@@ -180,7 +181,7 @@ for i = i:N-TPtol
                 act_search = true;
                 ser_back_i = i;
             end
-        else
+        elseif a >= 0.5*THR_SIG1
             % adjust noise levels
             NOISE_LEV1 = 0.125*a + 0.875*NOISE_LEV1;
             NOISE_LEV2 = 0.125*y + 0.875*NOISE_LEV2;
@@ -220,10 +221,10 @@ for i = i:N-TPtol
             SIG_LEV2 = 0.25*new_y + 0.75*SIG_LEV2;
         elseif THR_SIG1 >= 0.05*SignalI(last_qrs_i)
             % adjust noise levels
-            SIG_LEV1 = 0.975*SIG_LEV1;
-            SIG_LEV2 = 0.975*SIG_LEV2;
-            NOISE_LEV1 = 0.975*NOISE_LEV1;
-            NOISE_LEV2 = 0.975*NOISE_LEV2;
+            SIG_LEV1 = 0.99*SIG_LEV1;
+            SIG_LEV2 = 0.99*SIG_LEV2;
+            NOISE_LEV1 = 0.99*NOISE_LEV1;
+            NOISE_LEV2 = 0.99*NOISE_LEV2;
         else
             % postpone searchback
             ser_back_i = center;
@@ -235,7 +236,7 @@ for i = i:N-TPtol
     if qrs_updated
         
         % update RR interval average
-        if 0.8*rr_mean < new_rr && new_rr < 1.2*rr_mean
+        if 0.5*rr_mean < new_rr && new_rr < 1.5*rr_mean
             rr_mean = 0.8*rr_mean + 0.2*new_rr;
         end
         
