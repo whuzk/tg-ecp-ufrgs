@@ -6,7 +6,7 @@ import ecgtest.*
 %close all;
 
 %% Criaçao do arquivo de teste do algoritmo de segmentaçao
-Segment = create_segmentation(EDB);
+Segment = create_segmentation(MITDB);
 %fprintf('Saving data to file...\n');
 %save_filepath = './resources/segment_V3.mat';
 %save(save_filepath, '-struct', 'Segment');

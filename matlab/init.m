@@ -21,8 +21,8 @@ Measures = {
 load('.\resources\dbnames.mat');
 
 % registros de ecg
-EDB = load('C:\ecg\edb.mat');
-%MITDB = load('C:\ecg\mitdb.mat');
+%EDB = load('C:\ecg\edb.mat');
+MITDB = load('C:\ecg\mitdb.mat');
 %QTDB = load('C:\ecg\qtdb.mat');
 
 % inicializa gerador pseudo-randomico

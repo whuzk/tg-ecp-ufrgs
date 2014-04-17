@@ -2,11 +2,10 @@ import ecgfilter.*
 %close all;
 
 % load ecg
-[Fs,~,~,~,Data] = ecgutilities.interpret(EDB.e0116);
-Signal = Data(:,2);
+[Fs,~,~,~,Data] = ecgutilities.interpret(EDB.e0103);
+Signal = Data(:,1);
 
 % apply filters
-%{
 Y1 = suppress_noise(Signal,Fs);
 Y2 = baseline_filter(Signal,Fs);
 Y3 = chu_filter(Signal,Fs);
@@ -26,9 +25,3 @@ figure, plot(Y5);
 figure, plot(Y6);
 figure, plot(Y7);
 figure, plot(Y8);
-%}
-
-Y1 = sogari_filter(Signal,Fs);
-[~,Y2] = tompkins_filter(Signal, Fs);
-figure, plot(Y1);
-figure, plot(Y2);

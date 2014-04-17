@@ -1,15 +1,23 @@
-function Result = sogari_filter(Signal,Fs)
+function [Result,offset] = sogari_filter(Signal,Fs,varargin)
+
+if nargin > 2
+    M = varargin{1};
+else
+    M = 4;
+end
 
 % linear filtering
 Temp1 = smooth_and_diff(Signal,Fs);
 %figure, plot(Temp1);
 
 % non-linear transformation
-Temp2 = mobd(Temp1,4);
+Temp2 = mobd(Temp1,M);
 %figure, plot(Temp2);
 
 % shaping
-Result = shape(Temp2,Fs);
+offset = round(0.05*Fs);
+B = ones(2*offset+1,1);
+Result = imdilate(Temp2,B);
 
 
 function Result = smooth_and_diff(Signal,Fs)
@@ -26,9 +34,3 @@ for i = M:N
     p = abs(prod(w))*10^M;
     Result(i) = log(p+1)/log(M);
 end
-
-function Result = shape(Signal,Fs)
-Ws = round(0.15*Fs);
-h = ones(1,Ws);
-Result = imdilate(Signal, h');
-%Result = wconv1(Signal, h/Ws, 'same');
