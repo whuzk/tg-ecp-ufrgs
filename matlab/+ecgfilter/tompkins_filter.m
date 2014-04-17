@@ -13,7 +13,7 @@ h_d = 1/8*[-1 -2 0 2 1];
 %d_d = (length(h_d)-1)/2; =[2]
 
 % integration filter
-Ws = floor(0.15*Fs);
+Ws = floor(0.07*Fs)*2+1;
 h_i = ones(1,Ws)/Ws;
 %d_i = (Ws-1)/2; ~[0.075*Fs-0.5]
 

@@ -1,7 +1,7 @@
 function [A,B,R] = merge_rpeaks(R1, R2, Fs)
 
-VDI1 = round(0.10*Fs);
-VDI2 = round(0.20*Fs);
+VDI1 = round(0.16*Fs);
+VDI2 = round(0.16*Fs);
 
 n = length(R1);
 m = length(R2);

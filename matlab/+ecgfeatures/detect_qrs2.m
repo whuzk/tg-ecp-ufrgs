@@ -3,6 +3,8 @@ function Result = detect_qrs2(Signal, Fs)
 [Filtered,offset] = ecgfilter.sogari_filter(Signal,Fs);
 Result = ecgfeatures.sogari_qrs(Filtered,Fs) + offset;
 %{
+%[~,Filtered] = ecgfilter.tompkins_filter(Signal,Fs);
+%offset = 0;
 [Result,R2,THs,THn,RRm] = ecgfeatures.sogari_qrs(Filtered,Fs);
 Result = Result + offset;
 R2 = R2 + offset;

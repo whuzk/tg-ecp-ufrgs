@@ -10,7 +10,7 @@ VP = length(find( Known &  Predicted));     % verdadeiros positivos
 VN = length(find(~Known & ~Predicted));     % verdadeiros negativos
 FP = length(find(~Known &  Predicted));     % falsos positivos
 FN = length(find( Known & ~Predicted));     % falsos negativos
-TT = length(find(Known));                   % total conhecido
+TT = VP + FN;                               % total conhecido
 
 Result = [
     VP/(VP+FN)      % sensibilidade
@@ -20,3 +20,5 @@ Result = [
     (VP+VN)/TT      % acuracia
     (FP+FN)/TT      % taxa de detecçcao falsa
 ];
+
+%disp(['FP = ' num2str(FP) '; FN = ' num2str(FN) '; TT = ' num2str(TT)])

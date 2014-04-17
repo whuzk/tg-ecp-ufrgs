@@ -21,8 +21,9 @@ Result = imdilate(Temp2,B);
 
 
 function Result = smooth_and_diff(Signal,Fs)
-Ws = round(0.01*Fs);
-h1 = ones(1,Ws)/Ws;
+%Ws = round(0.01*Fs);
+%h1 = ones(1,Ws)/Ws;
+h1 = [1 2 3 4 5 6 5 4 3 2 1]/36;
 h2 = wconv1(h1, [1 -1]);
 Result = wconv1(Signal, h2, 'same');
 
