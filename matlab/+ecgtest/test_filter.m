@@ -1,4 +1,5 @@
 import ecgfilter.*
+import ecgfastcode.*
 %close all;
 
 % load ecg
@@ -13,7 +14,7 @@ Y4 = krishnan_filter(Signal,Fs);
 Y5 = trahanias_filter(Signal,Fs);
 Y6 = sun_filter(Signal,Fs);
 [~,Y7] = tompkins_filter(Signal, Fs);
-Y8 = sogari_filter(Signal,Fs);
+Y8 = c_filter_double(Signal,Fs);
 
 % plot figures
 figure, plot(Signal);

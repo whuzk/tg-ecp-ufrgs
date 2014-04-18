@@ -10,9 +10,12 @@ for i = 1:numel(Records)
         disp(['processing ' Records{i} '.' Leads{j}]);
         
         % processa o sinal da derivaçao
-        %Rpeaks = ecgfeatures.detect_qrs(Data(:,j),Fs);
-        Rpeaks = ecgfeatures.detect_qrs2(Data(:,j),Fs);
+        Filt = ecgfastcode.c_filter_double(Data(:,j),Fs);
+        %Rpeaks = ecgfeatures.detect_qrs(Filt,Fs);
+        Rpeaks = ecgfeatures.sogari_qrs(Filt,Fs);
         [A,B,R] = ecgutilities.merge_rpeaks(Bp, Rpeaks, Fs);
+        
+        % salva o resultado
         Result.(Records{i}).(Leads{j}).A = A;
         Result.(Records{i}).(Leads{j}).B = B;
         Result.(Records{i}).(Leads{j}).R = R;

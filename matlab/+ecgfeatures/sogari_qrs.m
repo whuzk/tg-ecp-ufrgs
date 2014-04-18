@@ -2,8 +2,6 @@ function [QRSi,QRS2,THRs,THRn,RRm] = sogari_qrs(Signal,Fs)
 
 %% initializations
 N = length(Signal);             % length of signal
-TTrain = 2*Fs;                  % length of training period
-Tref = round(0.20*Fs);          % length of refractory period
 THRs = zeros(N,1);              % buffer for the Signal Threshold history
 THRn = zeros(N,1);              % buffer for the Noise Threshold history
 RRm = zeros(N,1);               % buffer for the RR mean history
@@ -63,10 +61,10 @@ for i = 2:N-1
     end
     
     %% qrs detection and estimation of signal/noise levels
-    if peak_detected && peak_i-last_qrs_i > Tref% && peak_amp > 0.5*THR_SIG
+    if peak_detected && peak_i-last_qrs_i > round(0.2*Fs)
         
         % decrease estimation ratio for times beyond the training period
-        if i == TTrain
+        if i == 2*Fs
             lev_est_ratio = lev_est_ratio/2;
         end
         
@@ -78,31 +76,19 @@ for i = 2:N-1
         end
         
         % assert qrs
-    	if (i > TTrain) && (peak_amp >= THR_SIG) && ...
-                ~istwave(Signal, peak_i, last_qrs_i, Fs)
+        if (i > 2*Fs) && (peak_amp >= THR_SIG) && ~istwave(Signal, peak_i, last_qrs_i, Fs)
             qrs_detected = true;
         end
-        
     end
     
     %% search back
-    if qrs_detected || ser_back_i == 0 || (signal_rising && a >= THR_SIG)
+    if qrs_detected || (signal_rising && a >= THR_SIG)
         
         % do nothing if:
         %   1. a qrs complex was detected in the current iteration
-        %   2. no previous qrs were detected in previous iterations
-        %   3. a new qrs might be detected in the following iteretions
+        %   2. a new qrs might be detected in the following iterations
         
-    elseif i-ser_back_i >= 2*rr_miss
-        
-        % reduce signal and noise levels
-        SIG_LEV = 0.5*SIG_LEV;
-        NOISE_LEV = 0.5*NOISE_LEV;
-        
-        % postpone searchback
-        ser_back_i = ser_back_i + round(rr_mean);
-        
-    elseif i-ser_back_i >= rr_miss
+    elseif (ser_back_i > 0) && i-ser_back_i >= rr_miss
         
         % search back and locate the max in this interval
         center = ser_back_i + round(rr_mean);
@@ -118,6 +104,12 @@ for i = 2:N-1
             qrs_detected = true;
             % adjust signal levels
             SIG_LEV = estimate(SIG_LEV,0.25,peak_amp);
+        else
+            % reduce levels by half
+            SIG_LEV = 0.5*SIG_LEV;
+            NOISE_LEV = 0.5*NOISE_LEV;
+            % postpone searchback
+            ser_back_i = center;
         end
     end
     
@@ -125,10 +117,12 @@ for i = 2:N-1
     %% update QRS info and RR-interval
     if qrs_detected
         
-        % increment qrs count
+        % push new QRS index to output buffer
         qrs_count = qrs_count + 1;
-        % save index of integrated signal
         QRSi(qrs_count) = peak_i;
+        
+        % update QRS amplitude estimation
+        qrs_amp = estimate(qrs_amp,0.2,peak_amp);
         
         % update RR interval
         if last_qrs_i > 0
@@ -139,13 +133,12 @@ for i = 2:N-1
             end
         end
         
-        % update QRS index and amplitude
-        qrs_amp = estimate(qrs_amp,0.2,peak_amp);
-        last_qrs_i = peak_i;
-        ser_back_i = peak_i;
-        
         % calculate RR missed limit
         rr_miss = round(1.8*rr_mean);
+        
+        % update indices
+        last_qrs_i = peak_i;
+        ser_back_i = peak_i;
     end
     
     %% update threshold
