@@ -4,8 +4,10 @@
 #include <math.h>
 #include "mex.h"
 
-#define DEFAULT_M_FACTOR    3
-#define INTEGRATION_LEN_MS  100
+#define MIN_INPUTS  2
+#define MAX_INPUTS  2
+#define MIN_OUTPUTS 1
+#define MAX_OUTPUTS 5
 
 static double sigThreshold;     // signal threshold
 static double signalLevel;      // signal level
@@ -207,9 +209,23 @@ void updateInfo(mwSize peakIdx, double peakAmp, int Fs)
     searchBackIdx = peakIdx;
 }   
 
+/* Update history vectors */
+void updateHist(mwSize i, double *thr1, double *thr2, double *rrint)
+{
+    if (thr1 != NULL) {
+        thr1[i] = sigThreshold;
+    }
+    if (thr2 != NULL) {
+        thr2[i] = 0.5*sigThreshold;
+    }
+    if (rrint != NULL) {
+        rrint[i] = rrIntMean;
+    }
+}
+
 /* Main algorithm */
-loop( double *x, mwSize i, int Fs, double *qrs, double *qrs2,
-      double *thrshist, double *thrnhist, double *rrinthist)
+void loop( double *x, mwSize i, int Fs, double *qrs, double *qrs2,
+           double *thr1hist, double *thr2hist, double *rrinthist)
 {
     mwSize peakIdx;         // current detected peak index
     double peakAmp;         // current detected peak amplitude
@@ -223,10 +239,9 @@ loop( double *x, mwSize i, int Fs, double *qrs, double *qrs2,
     wasQrsDetected = wasPeakDetected && detectQrs(x, i, peakIdx, peakAmp, Fs);
     
     // search back
-    //wasQrsDetected = wasQrsDetected || searchBack(x, i, &peakIdx, &peakAmp, Fs);
     if (!wasQrsDetected) {
         wasQrsDetected = searchBack(x, i, &peakIdx, &peakAmp, Fs);
-        if (wasQrsDetected) {
+        if (wasQrsDetected && qrs2 != NULL) {
             qrs2[qrsCount2++] = peakIdx+1;
         }
     }
@@ -241,9 +256,22 @@ loop( double *x, mwSize i, int Fs, double *qrs, double *qrs2,
     sigThreshold = noiseLevel + 0.25*fabs(signalLevel - noiseLevel);
     
     // update history
-    thrshist[i] = sigThreshold;
-    thrnhist[i] = 0.5*sigThreshold;
-    rrinthist[i] = rrIntMean;
+    updateHist(i, thr1hist, thr2hist, rrinthist);
+}
+
+/* Adjust size of output arguments */
+void adjustSize( double *vector, mxArray *mxarray,
+                 mwSize nrows, mwSize ncols, mwSize newlen)
+{
+    if (vector != NULL) {
+        if (ncols == 1) {
+            mxSetM(mxarray, newlen);
+        }
+        else {
+            mxSetN(mxarray, newlen);
+        }
+        mxSetPr(mxarray, mxRealloc(vector, newlen*sizeof(double)));
+    }
 }
 
 /* Process input and output arguments */
@@ -252,12 +280,12 @@ void processArgs( int nlhs, mxArray *plhs[],
                   mwSize *nrows, mwSize *ncols, int *sampFreq)
 {
     /* check for proper number of arguments */
-    if (nrhs != 2) {
+    if (nrhs < MIN_INPUTS || nrhs > MAX_INPUTS) {
         mexErrMsgIdAndTxt(
                 "EcgToolbox:c_detect_qrs:nrhs",
                 "Two inputs required.");
     }
-    if (nlhs < 1 || nlhs > 5) {
+    if (nlhs < MIN_OUTPUTS || nlhs > MAX_OUTPUTS) {
         mexErrMsgIdAndTxt(
                 "EcgToolbox:c_detect_qrs:nlhs",
                 "One output required and four optional.");
@@ -294,11 +322,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
                   int nrhs, const mxArray *prhs[])
 {
     double *inVector;
-    double *outVector1;
-    double *outVector2;
-    double *outVector3;
-    double *outVector4;
-    double *outVector5;
+    double *outVectors[MAX_OUTPUTS] = {NULL};
     int sampFreq;
     
     mwSize nrows;
@@ -314,38 +338,22 @@ void mexFunction( int nlhs, mxArray *plhs[],
     /* get a pointer to the data in the input vector  */
     inVector = mxGetPr(prhs[0]);
     
-    /* create the output vectors */
-    plhs[0] = mxCreateDoubleMatrix(nrows,ncols,mxREAL);
-    plhs[1] = mxCreateDoubleMatrix(nrows,ncols,mxREAL);
-    plhs[2] = mxCreateDoubleMatrix(nrows,ncols,mxREAL);
-    plhs[3] = mxCreateDoubleMatrix(nrows,ncols,mxREAL);
-    plhs[4] = mxCreateDoubleMatrix(nrows,ncols,mxREAL);
-    
-    /* get a pointer to the data in the output vectors */
-    outVector1 = mxGetPr(plhs[0]);
-    outVector2 = mxGetPr(plhs[1]);
-    outVector3 = mxGetPr(plhs[2]);
-    outVector4 = mxGetPr(plhs[3]);
-    outVector5 = mxGetPr(plhs[4]);
+    /* create the output vectors and get the pointers */
+    for (mwSize i = 0; i < nlhs; i++) {
+        plhs[i] = mxCreateDoubleMatrix(nrows,ncols,mxREAL);
+        outVectors[i] = mxGetPr(plhs[i]);
+    }
     
     /* initialize global variables */
     initVariables(sampFreq);
     
     /* main algorithm */
     for (mwSize i = 0; i < inLen; i++) {
-        loop(inVector, i, sampFreq, outVector1, outVector2,
-                outVector3, outVector4, outVector5);
+        loop(inVector, i, sampFreq, outVectors[0], outVectors[1],
+                outVectors[2], outVectors[3], outVectors[4]);
     }
     
     /* adjust size of outputs */
-    if (ncols == 1) {
-        mxSetM(plhs[0], qrsCount);
-        mxSetM(plhs[1], qrsCount2);
-    }
-    else {
-        mxSetN(plhs[0], qrsCount);
-        mxSetN(plhs[1], qrsCount2);
-    }
-    mxSetPr(plhs[0], mxRealloc(outVector1, qrsCount*sizeof(double)));
-    mxSetPr(plhs[1], mxRealloc(outVector2, qrsCount2*sizeof(double)));
+    adjustSize(outVectors[0],plhs[0],nrows,ncols,qrsCount);
+    adjustSize(outVectors[1],plhs[1],nrows,ncols,qrsCount2);
 }

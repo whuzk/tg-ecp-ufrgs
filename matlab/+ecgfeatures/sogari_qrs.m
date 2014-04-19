@@ -1,14 +1,14 @@
-function [QRSi,QRS2,THRs,THRn,RRm] = sogari_qrs(Signal,Fs)
+function [QRS1,QRS2,THR1,THR2,RR] = sogari_qrs(Signal,Fs)
 
 %% initializations
 N = length(Signal);             % length of signal
-THRs = zeros(N,1);              % buffer for the Signal Threshold history
-THRn = zeros(N,1);              % buffer for the Noise Threshold history
-RRm = zeros(N,1);               % buffer for the RR mean history
+THR1 = zeros(N,1);              % buffer for the Signal Threshold history
+THR2 = zeros(N,1);              % buffer for the Noise Threshold history
+RR = zeros(N,1);                % buffer for the RR mean history
 THR_SIG = 0;                    % Signal threshold
 SIG_LEV = 0;                    % Signal level
 NOISE_LEV = 0;                  % Noise level
-QRSi = zeros(N,1);              % buffer for the R wave indices
+QRS1 = zeros(N,1);              % buffer for the R wave indices
 QRS2 = zeros(N,1);              % buffer for QRS detected in searchback
 qrs_count = 0;                  % count of QRS complex in main QRS buffer
 qrs_count2 = 0;                 % current position in second QRS buffer
@@ -122,7 +122,7 @@ for i = 1:N
         
         % push new QRS index to output buffer
         qrs_count = qrs_count + 1;
-        QRSi(qrs_count) = peak_i;
+        QRS1(qrs_count) = peak_i;
         
         % update QRS amplitude estimation
         qrs_amp = estimate(qrs_amp,0.2,peak_amp);
@@ -148,13 +148,13 @@ for i = 1:N
     THR_SIG = NOISE_LEV + 0.25*abs(SIG_LEV - NOISE_LEV);
     
     %% history
-    THRs(i) = THR_SIG;
-    THRn(i) = 0.5*THR_SIG;
-    RRm(i) = rr_mean;
+    THR1(i) = THR_SIG;
+    THR2(i) = 0.5*THR_SIG;
+    RR(i) = rr_mean;
 end
 
 % trim the output vectors
-QRSi(qrs_count+1:end) = [];
+QRS1(qrs_count+1:end) = [];
 QRS2(qrs_count2+1:end) = [];
 
 
