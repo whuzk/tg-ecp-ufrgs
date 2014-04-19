@@ -7,7 +7,7 @@
 #define DEFAULT_M_FACTOR    3
 #define INTEGRATION_LEN_MS  100
 
-const double hVector[] = {
+static const double hVector[] = {
     1.0/4,
     0.0/4,
     0.0/4,
@@ -78,10 +78,10 @@ void nlconvolve(const double *x, mwSize nx, int m, double *y)
 }
 
 /* Integration filter impulse response */
-double *createIntegrationFilter(int Fs, int *hlen)
+double *createIntegrationFilter(int Fs, mwSize *hlen)
 {
-    int n = (int)(Fs*INTEGRATION_LEN_MS*0.0005)*2+1;
-    double *h = (double*)malloc(n*sizeof(double));
+    mwSize n = (int)(Fs*INTEGRATION_LEN_MS*0.0005)*2+1;
+    double *h = (double*)mxMalloc(n*sizeof(double));
     
     for (int i = 0; i < n; i++) {
         h[i] = 1.0/n;
@@ -184,7 +184,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     outVector = mxGetPr(plhs[0]);
     
     /* create a temporary vector */
-    tempVector = (double*)calloc(inLen,sizeof(double));
+    tempVector = (double*)mxMalloc(inLen*sizeof(double));
     
     /* create the integration filter impulse response */
     hVector2 = createIntegrationFilter(sampFreq,&hLen2);
@@ -199,6 +199,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
     convolve(tempVector, inLen, hVector2, hLen2, outVector);
     
     /* deallocate memory */
-    free(tempVector);
-    free(hVector2);
+    mxFree(tempVector);
+    mxFree(hVector2);
 }

@@ -78,12 +78,13 @@ void quantize(int *x, mwSize nx, int numBits, int targetRes)
 }
 
 /* Integration filter impulse response */
-int *createIntegrationFilter(int Fs, int *hlen, int *factor)
+int *createIntegrationFilter(int Fs, mwSize *hlen, int *factor)
 {
-    int *h,n;
+    int *h;
+    mwSize n;
     
     n = (int)(Fs*INTEGRATION_LEN_MS*0.0005)*2+1;
-    h = (int*)malloc(n*sizeof(int));
+    h = (int*)mxMalloc(n*sizeof(int));
     for (int i = 0; i < n; i++) {
         h[i] = 1;
     }
@@ -202,7 +203,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     outVector = (int*)mxGetData(plhs[0]);
     
     /* create a temporary vector */
-    tempVector = (int*)calloc(inLen,sizeof(int));
+    tempVector = (int*)mxMalloc(inLen*sizeof(int));
     
     /* create the integration filter impulse response */
     hVector2 = createIntegrationFilter(sampFreq,&hLen2,&filterFactor2);
@@ -220,6 +221,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
     convolve(tempVector, inLen, hVector2, hLen2, outVector, filterFactor2);
     
     /* deallocate memory */
-    free(tempVector);
-    free(hVector2);
+    mxFree(tempVector);
+    mxFree(hVector2);
 }

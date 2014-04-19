@@ -1,24 +1,32 @@
-import ecgfilter.*
+import ecgfastcode.*
 %close all;
 
 % load ecg
 [Fs,~,~,~,Data] = ecgutilities.interpret(EDB.e0103);
 Signal = Data(:,2);
 Signal = round(Signal*200);
-SignalInt32 = int32(Signal);
 
-% filter
+Filt = c_filter_double(Signal,Fs);
+[Result,R2,THs,THn,RRm] = c_detect_qrs(Filt,Fs);
+%[Result2,R22,THs2,THn2,RRm2] = ecgfeatures.sogari_qrs(Filt,Fs);
+
 %{
-h = [1 0 0 0 0 0 -2 0 0 0 0 0 1]/4;
-Y1 = wconv1(Signal, h, 'same');
-Y2 = ecgfilter.mobd(Y1,3);
-Ws = floor(0.05*Fs)*2+1;
-Y3 = wconv1(Y2,ones(1,Ws)/Ws,'same');
+norm(Result-Result2)
+norm(R2-R22)
+norm(THs-THs2)
+norm(THn-THn2)
+norm(RRm-RRm2)
+figure, plot(abs(Result-Result2))
+figure, plot(abs(R2-R22))
+figure, plot(abs(THs-THs2))
+figure, plot(abs(THn-THn2))
+figure, plot(abs(RRm-RRm2))
 %}
-
-Z3 = double(c_filter(SignalInt32,Fs));
-Z3 = c_filter_double(Signal,Fs);
-
-%figure, plot(Signal);
-norm(Y3-Z3)
-figure, plot([Y3 Z3]);
+%
+figure;
+hold on, grid on;
+plot([Filt THs THn]);
+plot(Result, Filt(Result), 'kx');
+plot(R2, Filt(R2), 'ko');
+figure, plot(RRm);
+%

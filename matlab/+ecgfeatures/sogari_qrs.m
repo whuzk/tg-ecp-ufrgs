@@ -23,7 +23,7 @@ signal_rising = false;          % flag to indicate a rise in the signal
 lev_est_ratio = 0.125;          % ratio of signal/noise level estimation
 
 %% algorithm
-for i = 2:N-1
+for i = 1:N
     
     % get current sample
     a = Signal(i);
@@ -91,8 +91,11 @@ for i = 2:N-1
     elseif (ser_back_i > 0) && i-ser_back_i >= rr_miss
         
         % search back and locate the max in this interval
-        center = ser_back_i + round(rr_mean);
-        [peak_amp, peak_i] = findmax(Signal, center, round(0.5*rr_mean));
+        len = round(rr_mean);
+        begin = ser_back_i + floor(len/2);
+        [~,x] = max(Signal(begin+(0:len-1)));
+        peak_i = begin + x - 1;
+        peak_amp = Signal(peak_i);
         
         % check if candidate peak is from qrs
         if peak_amp >= 0.5*THR_SIG && ~istwave(Signal, peak_i, last_qrs_i, Fs)
@@ -109,7 +112,7 @@ for i = 2:N-1
             SIG_LEV = 0.5*SIG_LEV;
             NOISE_LEV = 0.5*NOISE_LEV;
             % postpone searchback
-            ser_back_i = center;
+            ser_back_i = ser_back_i + len;
         end
     end
     
@@ -160,11 +163,6 @@ Result = (1-r)*x + r*v;
 
 function Result = limit(x,a,b)
 Result = min(max(x,a),b);
-
-function [y,x] = findmax(Signal,i,l)
-begin = max(1,i-l);
-[y,x] = max(Signal(begin:i+l));
-x = x + begin - 1;
 
 function Result = istwave(Signal, candQrs, lastQrs, Fs)
 if candQrs-lastQrs < round(0.36*Fs)
