@@ -14,7 +14,8 @@ for i = 1:length(desc_files)
     [~,var_name,~] = fileparts(file.name);
     fprintf('Converting %s...\n', var_name);
     ECG = convert_physiobank_ecg(db_dir, var_name);
-    Database.(['e' var_name]) = ECG;
+    var_name = matlab.lang.makeValidName(var_name);
+    Database.(var_name) = ECG;
 end
 
 % salva toda a base para o arquivo de saida

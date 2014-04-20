@@ -1,4 +1,8 @@
-function [Fs,Bp,Sc,Leads,Data] = interpret(ECG)
+function [Fs,Bp,Sc,Leads] = interpret(ECG)
+% Fs - sampling frequency
+% Bp - beat locations
+% Sc - number of leads
+% Leads - the signals
 
 % get basic info
 Fs = sscanf(ECG.SamplingFrequency,'%d');
@@ -40,15 +44,10 @@ Bp = str2double(ECG.Annotations.Sample(index));
 
 % get the signals
 Leads = cell(1,Sc);
-Data = zeros(N,Sc);
 for i = 1:Sc
     Lead = ECG.Signals{i};
-    Leads{i} = Lead.Description;
-    Gain = sscanf(Lead.Gain,'%d');
-    Signal = Lead.Data-Lead.Data(1);
-    Span = (max(Signal)-min(Signal))/2;
-    if (Span <= 24)
-        Gain = 1;
-    end
-    Data(:,i) = Signal/Gain;
+    Leads{i}.name = Lead.Description;
+    Leads{i}.res = sscanf(Lead.Resolution,'%d');
+    Leads{i}.gain = sscanf(Lead.Gain,'%d');
+    Leads{i}.data = Lead.Data;
 end
