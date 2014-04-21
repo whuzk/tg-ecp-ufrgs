@@ -1,4 +1,4 @@
-function [Result,mem,cmp] = running_max(Signal,M)
+function [Result,mem,cmp] = running_max(Signal,M,ai)
 N = length(Signal);
 Result = zeros(N,1);
 mem = zeros(N,1);
@@ -6,7 +6,9 @@ cmp = zeros(N,1);
 pos = zeros(1,M);
 val = zeros(1,M);
 first = 1;
-len = 0;
+len = 1;
+pos(1) = 0;
+val(1) = ai;
 for i = 1:N
     % get the current sample
     a = Signal(i);

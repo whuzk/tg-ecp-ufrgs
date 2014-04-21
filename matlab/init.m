@@ -19,10 +19,10 @@ Measures = {
 };
 
 % nome dos registros
-load('.\resources\dbnames.mat');
+load('.\matfiles\dbnames.mat');
 
 % registros de ecg
-EDB = load('C:\ecg\edb.mat', 'e0103');
+EDB = load('C:\ecg\edb.mat');
 %MITDB = load('C:\ecg\mitdb.mat');
 %QTDB = load('C:\ecg\qtdb.mat');
 

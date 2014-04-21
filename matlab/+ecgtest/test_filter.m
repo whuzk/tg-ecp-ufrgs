@@ -5,10 +5,10 @@ import ecgmath.*
 %close all;
 
 % load ecg
-%[Fs,Bp,~,Leads] = interpret(EDB.e0103);
-%Signal = Leads{1}.data(1:1000);
-%Signal = (Signal - Signal(1));
-%SignalInt = int16(Signal);
+[Fs,Bp,~,Leads] = interpret(EDB.e0611);
+Signal = Leads{2}.data;%(1:1000);
+Signal = (Signal - Signal(1));
+SignalInt = int16(Signal);
 
 % apply filters
 %{
@@ -33,17 +33,22 @@ figure, plot(Y7);
 figure, plot(Y8);
 %}
 
+[Filt,delay] = sogari_filter(Signal,Fs,4);
+delay = floor(delay);
+%{
 %figure, plot(Signal);
-Filt = filter_double(Signal,Fs,3);
-Filt2 = double(filter_int(SignalInt,Fs));
+[Filt2,delay2] = filter_double(Signal,Fs,3);
+%Filt2 = double(filter_int(SignalInt,Fs));
 figure, plot(abs(Filt-Filt2));
 figure, plot([Filt Filt2]);
 norm(Filt-Filt2)
-
-%{
-[Rdetected,R2,TH1,TH2,RR] = ecgfastcode.c_detect_qrs(Filt,Fs);
-ecgutilities.plot_signal_qrs(Signal,Filt,Rdetected,R2,TH1,TH2,RR);
-[A,B,R] = ecgutilities.merge_rpeaks(Bp, Rdetected, Fs);
+delay-delay2
+%}
+%
+[Rdetected,R2,TH1,TH2,RR] = ecgfastcode.detect_qrs(Filt,Fs);
+ecgutilities.plot_signal_r(Signal,Rdetected-delay);
+ecgutilities.plot_signal_qrs(Filt,Rdetected,R2,TH1,TH2,RR);
+[A,B,R] = ecgutilities.merge_rpeaks(Bp, Rdetected-delay, Fs);
 ecgutilities.plot_signal_rcomp(Signal,A,B,R);
 ecgmath.compute_statistics(A,B)
-%}
+%

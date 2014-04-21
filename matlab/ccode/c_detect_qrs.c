@@ -135,8 +135,8 @@ bool searchBack(double *x, mwSize i, mwSize *peakIdx, double *peakAmp, int Fs)
         }
         else {
             // reduce levels by half
-            signalLevel = 0.5*signalLevel;
-            noiseLevel = 0.5*noiseLevel;
+            //signalLevel = 0.5*signalLevel;
+            //noiseLevel = 0.5*noiseLevel;
             // postpone searchback
             searchBackIdx += len;
             return false;

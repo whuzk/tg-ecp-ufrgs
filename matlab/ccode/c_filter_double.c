@@ -5,10 +5,16 @@
 #include "mex.h"
 #include "c_ecg_utils.h"
 
+#define MIN_INPUTS  2
+#define MAX_INPUTS  3
+#define MIN_OUTPUTS 1
+#define MAX_OUTPUTS 2
+
 #define DEFAULT_M_FACTOR    3
+#define GAIN_DELAY_LEN_MS   50
 #define INTEGRATION_LEN_MS  100
 
-static const double hVector[] = {
+static const double lpfhVector[] = {
     1.0/4,
     0.0/4,
     0.0/4,
@@ -25,17 +31,81 @@ static const double hVector[] = {
 };
 
 /* Integration filter impulse response */
-double *createIntegrationFilter(int Fs, mwSize *hlen)
+double *createIntegrationFilter(mwSize nh)
 {
-    mwSize n = 32;//(int)(Fs*INTEGRATION_LEN_MS*0.0005)*2+1;
-    double *h = (double*)mxMalloc(n*sizeof(double));
+    double *h = (double*)mxMalloc(nh*sizeof(double));
+    for (int i = 0; i < nh; i++) {
+        h[i] = 1.0/nh;
+    }
+    return h;
+}
+
+/* Automatic gain control */
+void gain_control( const double *x, mwSize nx, double *y,
+                   int Fs, double maxg, mwSize delay)
+{
+    double *g = (double*)mxMalloc(nx*sizeof(double));
     
-    for (int i = 0; i < n; i++) {
-        h[i] = 1.0/n;
+    maxfilter(x, nx, 2*Fs, g, -HUGE_VAL);
+    
+    for (mwSize i = 0; i < delay; i++) {
+        y[i] = 0;
+    }
+    for (mwSize i = delay; i < nx; i++) {
+        y[i] = fmin(maxg, x[i-delay] * maxg / fmax(1,g[i]));
     }
     
-    *hlen = n;
-    return h;
+    mxFree(g);
+}
+
+/* Process the input vector */
+double processInput(const double *x, mwSize nx, double *y, int Fs, int m)
+{
+    double *tempVector;
+    double *mvihVector;
+    double delay = 0;
+    double maxGain;
+    mwSize lpfhLen;
+    mwSize mvihLen;
+    mwSize gainLen;
+    
+    /* calculate length of filter impulse responses */
+    lpfhLen = sizeof(lpfhVector)/sizeof(double);
+    mvihLen = (int)(Fs*INTEGRATION_LEN_MS*0.0005)*2+1;
+    gainLen = (int)(Fs*GAIN_DELAY_LEN_MS*0.001);
+    maxGain = (1 << (8*sizeof(int)/m)) - 1;
+    
+    /* create a temporary vector */
+    tempVector = (double*)mxMalloc(nx*sizeof(double));
+    
+    /* create the integration filter impulse response */
+    mvihVector = createIntegrationFilter(mvihLen);
+    
+    /* call the computational routine 1 */
+    fir(x, nx, lpfhVector, lpfhLen, y);
+    delay += (lpfhLen-1)/2;
+    
+    /* call the computational routine 2 */
+    absolute(y, nx, tempVector);
+    delay += 0;
+    
+    /* call the computational routine 3 */
+    gain_control(tempVector, nx, y, Fs, maxGain, gainLen);
+    delay += gainLen;
+    
+    /* call the computational routine 4 */
+    nlfir(y, nx, m, tempVector);
+    delay += (m-1)/2;
+    
+    /* call the computational routine 5 */
+    fir(tempVector, nx, mvihVector, mvihLen, y);
+    delay += (mvihLen-1)/2;
+    
+    /* deallocate memory */
+    mxFree(tempVector);
+    mxFree(mvihVector);
+    
+    return delay;
 }
 
 /* Process input and output arguments */
@@ -45,12 +115,12 @@ void processArgs( int nlhs, mxArray *plhs[],
                   int *sampFreq, int *mFactor)
 {
     /* check for proper number of arguments */
-    if (nrhs < 2 || nrhs > 3) {
+    if (nrhs < MIN_INPUTS || nrhs > MAX_INPUTS) {
         mexErrMsgIdAndTxt(
                 "EcgToolbox:c_filter_double:nrhs",
                 "One input required and two optional.");
     }
-    if (nlhs != 1) {
+    if (nlhs < MIN_OUTPUTS || nlhs > MAX_OUTPUTS) {
         mexErrMsgIdAndTxt(
                 "EcgToolbox:c_filter_double:nlhs",
                 "One output required.");
@@ -102,24 +172,19 @@ void mexFunction( int nlhs, mxArray *plhs[],
 {
     double *inVector;
     double *outVector;
-    double *hVector2;
-    double *tempVector;
+    double delay;
     int sampFreq;
     int mFactor;
-    
     mwSize nrows;
     mwSize ncols;
     mwSize inLen;
-    mwSize hLen;
-    mwSize hLen2;
     
     /* process arguments */
-    processArgs(nlhs, plhs, nrhs, prhs,
-            &nrows, &ncols, &sampFreq, &mFactor);
+    processArgs(nlhs, plhs, nrhs, prhs, &nrows, &ncols,
+            &sampFreq, &mFactor);
     
-    /* calculate the length of the vectors */
+    /* calculate the size of vectors */
     inLen = max(nrows,ncols);
-    hLen = sizeof(hVector)/sizeof(double);
     
     /* get a pointer to the data in the input vector  */
     inVector = mxGetPr(prhs[0]);
@@ -130,28 +195,11 @@ void mexFunction( int nlhs, mxArray *plhs[],
     /* get a pointer to the data in the output vector */
     outVector = mxGetPr(plhs[0]);
     
-    /* create a temporary vector */
-    tempVector = (double*)mxMalloc(inLen*sizeof(double));
+    /* process the input vector, and obtain the delay */
+    delay = processInput(inVector, inLen, outVector, sampFreq, mFactor);
     
-    /* create the integration filter impulse response */
-    hVector2 = createIntegrationFilter(sampFreq,&hLen2);
-    
-    /* call the computational routine 1 */
-    //convolve(inVector, inLen, hVector, hLen, outVector);
-    fir(inVector, inLen, hVector, hLen, outVector);
-    
-    /* call the computational routine 2 */
-    absolute(outVector, inLen);
-    
-    /* call the computational routine 3 */
-    //nlconvolve(tempVector, inLen, mFactor, outVector);
-    nlfir(outVector, inLen, mFactor, tempVector);
-    
-    /* call the computational routine 4 */
-    //convolve(tempVector, inLen, hVector2, hLen2, outVector);
-    fir(tempVector, inLen, hVector2, hLen2, outVector);
-    
-    /* deallocate memory */
-    mxFree(tempVector);
-    mxFree(hVector2);
+    /* create the output scalar */
+    if (nlhs > 1) {
+        plhs[1] = mxCreateDoubleScalar(delay);
+    }
 }
