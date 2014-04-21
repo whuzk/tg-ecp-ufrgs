@@ -10,9 +10,9 @@
 #define MIN_OUTPUTS 1
 #define MAX_OUTPUTS 2
 
-#define DEFAULT_M_FACTOR    3
-#define GAIN_DELAY_LEN_MS   50
-#define INTEGRATION_LEN_MS  100
+#define DEFAULT_M   3
+#define GAIN_LEN_MS 50
+#define MAFH_LEN_MS 100
 
 static const double lpfhVector[] = {
     1.0/4,
@@ -30,19 +30,21 @@ static const double lpfhVector[] = {
     1.0/4
 };
 
-/* Integration filter impulse response */
-double *createIntegrationFilter(mwSize nh)
+/* Moving-average filter impulse response */
+double *createMovingAverageFilter(mwSize nh)
 {
     double *h = (double*)mxMalloc(nh*sizeof(double));
+    double factor = 1 << (int)ceil(log2(nh));//nh;
+    
     for (int i = 0; i < nh; i++) {
-        h[i] = 1.0/nh;
+        h[i] = 1.0/factor;
     }
     return h;
 }
 
 /* Automatic gain control */
 void gain_control( const double *x, mwSize nx, double *y,
-                   int Fs, double maxg, mwSize delay)
+                   int Fs, double ming, double maxg, mwSize delay)
 {
     double *g = (double*)mxMalloc(nx*sizeof(double));
     
@@ -52,7 +54,7 @@ void gain_control( const double *x, mwSize nx, double *y,
         y[i] = 0;
     }
     for (mwSize i = delay; i < nx; i++) {
-        y[i] = fmin(maxg, x[i-delay] * maxg / fmax(1,g[i]));
+        y[i] = fmin(maxg, x[i-delay] * maxg / fmax(ming, g[i]));
     }
     
     mxFree(g);
@@ -62,48 +64,47 @@ void gain_control( const double *x, mwSize nx, double *y,
 double processInput(const double *x, mwSize nx, double *y, int Fs, int m)
 {
     double *tempVector;
-    double *mvihVector;
+    double *mafhVector;
     double delay = 0;
     double maxGain;
+    double minGain;
     mwSize lpfhLen;
-    mwSize mvihLen;
+    mwSize mafhLen;
     mwSize gainLen;
     
     /* calculate length of filter impulse responses */
     lpfhLen = sizeof(lpfhVector)/sizeof(double);
-    mvihLen = (int)(Fs*INTEGRATION_LEN_MS*0.0005)*2+1;
-    gainLen = (int)(Fs*GAIN_DELAY_LEN_MS*0.001);
-    maxGain = (1 << (8*sizeof(int)/m)) - 1;
+    mafhLen = (int)(Fs*MAFH_LEN_MS*0.0005)*2+1;
+    gainLen = (int)(Fs*GAIN_LEN_MS*0.001);
+    maxGain = (1 << ((8*sizeof(int)-1)/m))-1;
+    minGain = 1 << 3;
     
     /* create a temporary vector */
     tempVector = (double*)mxMalloc(nx*sizeof(double));
     
     /* create the integration filter impulse response */
-    mvihVector = createIntegrationFilter(mvihLen);
+    mafhVector = createMovingAverageFilter(mafhLen);
     
     /* call the computational routine 1 */
-    fir(x, nx, lpfhVector, lpfhLen, y);
-    delay += (lpfhLen-1)/2;
+    fir(x, nx, lpfhVector, lpfhLen, tempVector);
+    delay += (lpfhLen-1)/2.0;
     
     /* call the computational routine 2 */
-    absolute(y, nx, tempVector);
-    delay += 0;
-    
-    /* call the computational routine 3 */
-    gain_control(tempVector, nx, y, Fs, maxGain, gainLen);
+    absolute(tempVector, nx, tempVector);
+    gain_control(tempVector, nx, y, Fs, minGain, maxGain, gainLen);
     delay += gainLen;
     
-    /* call the computational routine 4 */
+    /* call the computational routine 3 */
     nlfir(y, nx, m, tempVector);
-    delay += (m-1)/2;
+    delay += (m-1)/2.0;
     
-    /* call the computational routine 5 */
-    fir(tempVector, nx, mvihVector, mvihLen, y);
-    delay += (mvihLen-1)/2;
+    /* call the computational routine 4 */
+    fir(tempVector, nx, mafhVector, mafhLen, y);
+    delay += (mafhLen-1)/2.0;
     
     /* deallocate memory */
     mxFree(tempVector);
-    mxFree(mvihVector);
+    mxFree(mafhVector);
     
     return delay;
 }
@@ -162,7 +163,7 @@ void processArgs( int nlhs, mxArray *plhs[],
         *mFactor = (int)mxGetScalar(prhs[2]);
     }
     else {
-        *mFactor = DEFAULT_M_FACTOR;
+        *mFactor = DEFAULT_M;
     }
 }
 

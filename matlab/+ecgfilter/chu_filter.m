@@ -1,5 +1,5 @@
 function Result = chu_filter(Signal,Fs)
-import ecgmath.*
+import ecgmmo.*
 
 % noise suppression
 B = 0.01*[0 1 5 1 0];

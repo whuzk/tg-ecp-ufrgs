@@ -9,27 +9,23 @@ M = process_args(varargin,nargin-2);
 [Temp1,d] = smooth_and_diff(Signal);
 delay = delay + d;
 
-% absolute value
-Temp2 = abs(Temp1);
-
 % improve dynamic range
-[Temp3,G,d] = improve_range(Temp2,Fs,2^(floor(32/M))-1);
+[Temp2,G,d] = improve_range(Temp1,Fs,2^3,2^(floor(31/M))-1);
 delay = delay + d;
 
 % non-linear transformation
-[Temp4,d] = ecgfilter.filter_mobd(Temp3,M);
+[Temp3,d] = ecgfilter.filter_mobd(Temp2,M);
 delay = delay + d;
 
 % integration
-[Result,d] = integrate(Temp4,Fs);
+[Result,d] = integrate(Temp3,Fs);
 delay = delay + d;
 
 % plots
 %{
-figure, plot(Temp1);
-figure, plot([Temp2 G]);
+figure, plot([Temp1 G]);
+figure, plot(Temp2);
 figure, plot(Temp3);
-figure, plot(Temp4);
 %}
 
 function [Result,delay] = smooth_and_diff(Signal)
@@ -37,10 +33,11 @@ h = [1 0 0 0 0 0 -2 0 0 0 0 0 1]/4;
 Result = filter(h,1,Signal);
 delay = (length(h)-1)/2;
 
-function [Result,G,delay] = improve_range(Signal,Fs,maxg)
+function [Result,G,delay] = improve_range(Signal,Fs,ming,maxg)
+Signal = abs(Signal);
 delay = floor(0.05*Fs);
 G = ecgmath.running_max(Signal,2*Fs,-Inf);
-Temp = Signal(1:end-delay)./max(1,G(delay+1:end));
+Temp = Signal(1:end-delay)./max(ming,G(delay+1:end));
 Result = [zeros(delay,1); min(maxg,maxg*Temp)];
 
 function [Result,delay] = integrate(Signal,Fs)

@@ -126,7 +126,7 @@ void nlfir(const double *x, mwSize nx, int m, double *y)
 }
 
 /* Absolute value */
-void absolute(double *x, mwSize nx, double *y)
+void absolute(const double *x, mwSize nx, double *y)
 {
     for (mwSize i = 0; i < nx; i++) {
         y[i] = fabs(x[i]);
@@ -184,18 +184,18 @@ void maxfilter(const double *x, mwSize nx, mwSize m, double *y, double ai)
         a = x[i];
         // search for the first element greater than the current sample
         j = len;
-        while (j > 0 && a >= val[(first+j-2) % m + 1]) {
+        while (j > 0 && a >= val[(first + j - 1) % m]) {
             j = j - 1;
         }
         // put the sample next to element found and adjust the length
-        idx = (first+j-1) % m + 1;
+        idx = (first + j) % m;
         val[idx] = a;
         pos[idx] = i;
         len = j + 1;
         // check if the first in line has gone out of the windows length
-        if (len > m || pos[first] <= i - m) {
+        if (len > m || pos[first] == i - m) {
             len = len - 1;
-            first = first % m + 1;
+            first = (first + 1) % m;
         }
         // store the result
         y[i] = val[first];

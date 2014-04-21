@@ -1,5 +1,5 @@
 function Result = krishnan_filter(Signal,Fs)
-import ecgmath.*
+import ecgmmo.*
 
 % baseline removal
 L1 = round(0.1*Fs)*2+1;
