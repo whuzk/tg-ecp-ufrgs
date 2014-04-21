@@ -3,6 +3,7 @@
  *=======================================================================*/
 #include <math.h>
 #include "mex.h"
+#include "c_ecg_utils.h"
 
 #define MIN_INPUTS  2
 #define MAX_INPUTS  2
@@ -23,45 +24,6 @@ static double rrIntMean;        // running average of RR intervals
 static mwSize rrIntMiss;        // interval for qrs to be assumed as missed
 static double levelEstRatio;    // ratio of signal/noise level estimation
 static bool isSignalRising;     // flag to indicate a rise in the signal
-
-/* Iterative estimator */
-double estimate(double x, double r, double v)
-{
-    return (1-r)*x + r*v;
-}
-
-/* Limit a value by lower and upper bounds */
-double limit(double x, double a, double b)
-{
-    return fmin(fmax(x,a),b);
-}
-
-/* Find the position of the maximum value */
-mwSize findmax(double *x, mwSize nx)
-{
-    mwSize pos = 0;
-    double y = x[0];
-    
-    for (mwSize i = 1; i < nx; i++) {
-        if (x[i] > y) {
-            y = x[i];
-            pos = i;
-        }
-    }
-    return pos;
-}
-
-/* Get the maximum slope of the signal */
-double maxdiff(double *x, mwSize nx)
-{
-    double d = 0;
-    for (mwSize i = 1; i < nx; i++) {
-        if (x[i]-x[i-1] > d) {
-            d = x[i]-x[i-1];
-        }
-    }
-    return d;
-}
 
 /* Check for T wave */
 bool istwave(double *x, mwSize candQrs, mwSize lastQrs, int Fs)
@@ -148,10 +110,7 @@ bool detectQrs(double *x, mwSize i, mwSize peakIdx, double peakAmp, int Fs)
         }
         
         // assert qrs
-        if (i > 2*Fs && peakAmp >= sigThreshold && !istwave(x, peakIdx, lastQrsIdx, Fs)) {
-            return true;
-        }
-        else return false;
+        return (i > 2*Fs && peakAmp >= sigThreshold && !istwave(x, peakIdx, lastQrsIdx, Fs));
     }
     else return false;
 }

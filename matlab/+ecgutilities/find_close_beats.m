@@ -1,4 +1,4 @@
-function [A, B] = find_close_beats(R1, R2, Fs)
+function [A, B] = find_close_beats(Rref, Rtest, Fs)
 %   Obtem os incides das batidas que foram corretamente idfentificadas.
 %
 % Entradas:
@@ -8,31 +8,55 @@ function [A, B] = find_close_beats(R1, R2, Fs)
 % Saída:
 %   incides das batidas identificadas
 %
-VDI1 = round(0.16*Fs);
-VDI2 = round(0.16*Fs);
+VDI = round(0.15*Fs);
 
-n = length(R1);
-m = length(R2);
+n = length(Rref);
+m = length(Rtest);
 A = false(n,1);
 B = false(m,1);
+
+Rref = [Rref(:); Inf];
+Rtest = [Rtest(:); Inf];
 
 i = 1;
 j = 1;
 while (i <= n) && (j <= m)
-    while (i <= n) && (j <= m) && (R2(j) <= R1(i))
-        if R1(i) - R2(j) <= VDI1
+    % get differences
+    d1 = Rref(i) - Rtest(j);
+    d2 = Rref(i+1) - Rtest(j+1);
+    
+    % check precedence
+    if d1 > 0
+        % test annotation is earliest
+        d3 = Rref(i) - Rtest(j+1);
+        
+        if (d1 <= VDI && (d1 < abs(d3) || abs(d2) < abs(d3)))
+            % (1) current test annotation is within the validation interval
+            % and is a better match than the next test annotation: pair it
             A(i) = true;
             B(j) = true;
             i = i + 1;
+            j = j + 1;
+        else
+            % (2) there is no match to the current test annotation. hence,
+            % do not do anything and go to the next test annotation.
+            j = j + 1;
         end
-        j = j + 1;
-    end
-    while (i <= n) && (j <= m) && (R1(i) <= R2(j))
-        if R2(j) - R1(i) <= VDI2
+    else
+        % reference annotation is earliest
+        d4 = Rref(i+1) - Rtest(j);
+        
+        if (-d1 <= VDI && (-d1 < abs(d4) || abs(d2) < abs(d4)))
+            % (3) current ref. annotation is within the validation interval
+            % and is a better match than the next ref. annotation: pair it
             A(i) = true;
             B(j) = true;
             j = j + 1;
+            i = i + 1;
+        else
+            % (4) There is no match to the current ref. annotation. hence,
+            % do not do anything and go to the next ref. annotation.
+            i = i + 1;
         end
-        i = i + 1;
     end
 end

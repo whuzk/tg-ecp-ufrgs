@@ -3,6 +3,7 @@
  *=======================================================================*/
 #include <math.h>
 #include "mex.h"
+#include "c_ecg_utils.h"
 
 #define DEFAULT_M_FACTOR    3
 #define INTEGRATION_LEN_MS  100
@@ -23,64 +24,10 @@ static const double hVector[] = {
     1.0/4
 };
 
-/* Multiply and accumulate */
-double multacc(const double *x, const double *h, mwSize start, mwSize end)
-{
-    double acc = 0;
-    for (mwSize k = start; k < end; k++) {
-        acc += h[k] * x[-k];
-    }
-    return acc;
-}
-
-/* Multiply together */
-double multmult(const double *x, mwSize start, mwSize end)
-{
-    double prod = 1.0;
-    for (mwSize k = start; k < end; k++) {
-        prod *= x[-k];
-    }
-    return prod;
-}
-
-/* Normal convolution */
-void convolve( const double *x, mwSize nx,
-               const double *h, mwSize nh,
-               double *y)
-{
-    mwSize offset = nh/2;
-    
-    for (mwSize i = offset; i < nh; i++) {
-        y[i-offset] = multacc(x+i, h, 0, i+1);
-    }
-    for (mwSize i = nh; i < nx; i++) {
-        y[i-offset] = multacc(x+i, h, 0, nh);
-    }
-    for (mwSize i = nx; i < nx+offset; i++) {
-        y[i-offset] = multacc(x+i, h, i-nx+1, nh);
-    }
-}
-
-/* Non-linear convolution  */
-void nlconvolve(const double *x, mwSize nx, int m, double *y)
-{
-    mwSize offset = m/2;
-    
-    for (mwSize i = offset; i < m; i++) {
-        y[i-offset] = fabs(multmult(x+i, 0, i+1));
-    }
-    for (mwSize i = m; i < nx; i++) {
-        y[i-offset] = fabs(multmult(x+i, 0, m));
-    }
-    for (mwSize i = nx; i < nx+offset; i++) {
-        y[i-offset] = fabs(multmult(x+i, i-nx+1, m));
-    }
-}
-
 /* Integration filter impulse response */
 double *createIntegrationFilter(int Fs, mwSize *hlen)
 {
-    mwSize n = (int)(Fs*INTEGRATION_LEN_MS*0.0005)*2+1;
+    mwSize n = 32;//(int)(Fs*INTEGRATION_LEN_MS*0.0005)*2+1;
     double *h = (double*)mxMalloc(n*sizeof(double));
     
     for (int i = 0; i < n; i++) {
@@ -190,13 +137,19 @@ void mexFunction( int nlhs, mxArray *plhs[],
     hVector2 = createIntegrationFilter(sampFreq,&hLen2);
     
     /* call the computational routine 1 */
-    convolve(inVector, inLen, hVector, hLen, outVector);
+    //convolve(inVector, inLen, hVector, hLen, outVector);
+    fir(inVector, inLen, hVector, hLen, outVector);
     
     /* call the computational routine 2 */
-    nlconvolve(outVector, inLen, mFactor, tempVector);
+    absolute(outVector, inLen);
     
     /* call the computational routine 3 */
-    convolve(tempVector, inLen, hVector2, hLen2, outVector);
+    //nlconvolve(tempVector, inLen, mFactor, outVector);
+    nlfir(outVector, inLen, mFactor, tempVector);
+    
+    /* call the computational routine 4 */
+    //convolve(tempVector, inLen, hVector2, hLen2, outVector);
+    fir(tempVector, inLen, hVector2, hLen2, outVector);
     
     /* deallocate memory */
     mxFree(tempVector);
