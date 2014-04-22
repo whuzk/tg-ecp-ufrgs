@@ -9,7 +9,7 @@ Database = struct();
 desc_files = dir([db_dir '*.hea']);
 
 % percorre a lista e carrega os arquivos
-for i = 1:length(desc_files)
+for i = 1%1:length(desc_files)
     file = desc_files(i);
     [~,var_name,~] = fileparts(file.name);
     fprintf('Converting %s...\n', var_name);

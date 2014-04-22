@@ -76,7 +76,7 @@ double processInput(const double *x, mwSize nx, double *y, int Fs, int m)
     lpfhLen = sizeof(lpfhVector)/sizeof(double);
     mafhLen = (int)(Fs*MAFH_LEN_MS*0.0005)*2+1;
     gainLen = (int)(Fs*GAIN_LEN_MS*0.001);
-    maxGain = (1 << ((8*sizeof(int)-1)/m))-1;
+    maxGain = (1 << min(15,(8*sizeof(int)-1)/m)) - 1;
     minGain = 1 << 3;
     
     /* create a temporary vector */
@@ -158,12 +158,26 @@ void processArgs( int nlhs, mxArray *plhs[],
     /* get the second required input  */
     *sampFreq = (int)mxGetScalar(prhs[1]);
     
+    /* make sure the sampling frequency is positive */
+    if (*sampFreq <= 0) {
+        mexErrMsgIdAndTxt(
+                "EcgToolbox:c_filter_double:freqNotPositive",
+                "Sampling frequency must be positive.");
+    }
+    
     /* get the first optional input  */
     if (nrhs > 2) {
         *mFactor = (int)mxGetScalar(prhs[2]);
     }
     else {
         *mFactor = DEFAULT_M;
+    }
+    
+    /* make sure the filter order is within pre-defined limits */
+    if (*mFactor < 1 || *mFactor > 8) {
+        mexErrMsgIdAndTxt(
+                "EcgToolbox:c_filter_double:badFilterOrder",
+                "Filter order must be between 1 and 8.");
     }
 }
 

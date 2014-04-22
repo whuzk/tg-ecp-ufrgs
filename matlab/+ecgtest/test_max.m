@@ -1,5 +1,5 @@
-[Fs,Bp,~,~,Data] = ecgutilities.interpret(EDB.e0116);
-Signal = Data(:,2);
+[Fs,Bp,~,Leads] = ecgutilities.interpret(EDB.e0305);
+Signal = Leads{1}.data;
 %Signal = linspace(0,1000,1000000);
 %Signal = linspace(1000,0,1000000);
 
@@ -9,7 +9,7 @@ Cmax = zeros(total,1);
 Smean = zeros(total,1);
 Cmean = zeros(total,1);
 for i = 1:total
-    [~,mem,cmp] = ecgmath.running_max(Signal,i);
+    [~,mem,cmp] = ecgmath.running_max(Signal,i,-Inf);
     Smax(i) = max(mem);
     Cmax(i) = max(cmp);
     Smean(i) = mean(mem);

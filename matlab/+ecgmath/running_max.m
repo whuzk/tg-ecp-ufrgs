@@ -15,7 +15,7 @@ for i = 1:N
     
     % search for the first element greater than the current sample
     j = len;
-    count = 0;
+    count = 1;
     while j > 0 && a >= val(mod(first+j-2,M)+1)
         j = j - 1;
         count = count + 1;

@@ -7,7 +7,7 @@ for i = 1:numel(Records)
     [Fs,Bp,Sc,Leads] = interpret(ECG);
     for j = 1:Sc
         disp(['processing ' Records{i} '.' Leads{j}.name]);
-        Info = extract_rpeak_info(Leads{j}.data,Fs,Bp);
+        Info = extract_qrs_info(Leads{j}.data,Fs,Bp);
         Result.(Records{i}).(Leads{j}.name) = Info;
     end
 end
