@@ -307,10 +307,12 @@ void mexFunction( int nlhs, mxArray *plhs[],
     initVariables(sampFreq);
     
     /* main algorithm */
+    tic();
     for (mwSize i = 0; i < inLen; i++) {
         loop(inVector, i, sampFreq, outVectors[0], outVectors[1],
                 outVectors[2], outVectors[3], outVectors[4]);
     }
+    toc();
     
     /* adjust size of outputs */
     adjustSize(outVectors[0],plhs[0],nrows,ncols,qrsCount);

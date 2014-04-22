@@ -5,8 +5,8 @@ import ecgmath.*
 %close all;
 
 % load ecg
-[Fs,Bp,~,Leads] = interpret(EDB.e0119);
-Signal = Leads{2}.data(1:1000);
+[Fs,Bp,~,Leads] = interpret(EDB.e0103);
+Signal = Leads{2}.data;%(1:1000);
 Signal = (Signal - Signal(1));
 SignalInt = int16(Signal);
 

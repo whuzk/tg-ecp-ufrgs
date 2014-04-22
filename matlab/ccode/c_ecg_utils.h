@@ -5,7 +5,29 @@
 #define C_ECG_UTILS
 
 #include <math.h>
+#include <windows.h>
 #include "mex.h"
+
+/*=========================================================================
+ * TIME FUNCTIONS
+ *=======================================================================*/
+static __int64 start;
+static double pcfreq;
+void tic()
+{
+    LARGE_INTEGER li;
+    QueryPerformanceFrequency(&li);
+    pcfreq = (double)li.QuadPart;
+    QueryPerformanceCounter(&li);
+    start = li.QuadPart;
+}
+void toc()
+{
+    LARGE_INTEGER li;
+    QueryPerformanceCounter(&li);
+    double time = (li.QuadPart - start) / pcfreq;
+    printf("Processing time: %.3f ms\n", time*1000);
+}
 
 /*=========================================================================
  * FLOATING-POINT FUNCTIONS

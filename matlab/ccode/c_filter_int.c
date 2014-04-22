@@ -3,6 +3,7 @@
  *=======================================================================*/
 #include <math.h>
 #include "mex.h"
+#include "c_ecg_utils.h"
 
 #define MIN_INPUTS  2
 #define MAX_INPUTS  3
@@ -69,7 +70,8 @@ short lpf(short sample)
     
     // update filter memory
     lpfhVec[n] = sample;
-    n = (n + 1) % lpfhLen;
+    if (++n == lpfhLen)
+        n = 0;
     
     // compute result
     return y0 >> 2;
@@ -81,28 +83,37 @@ short wmf(short sample)
     static mwSize first = 0;
     static mwSize count = 0;
     static unsigned int i = 0;
-    mwSize j,idx;
+    mwSize j,k,idx;
     
     // search for the first element greater than the current sample
     j = count;
-    while (j > 0 && sample >= wmfVec[(first + j - 1) % wmfLen]) {
-        j = j - 1;
+    k = first + count - 1;
+    if (k == wmfLen) {
+        k = 0;
     }
-    // put the sample next to element found and adjust the length
-    idx = (first + j) % wmfLen;
+    while (j > 0 && sample >= wmfVec[k]) {
+        j--;
+        if (--k < 0) {
+            k = wmfLen - 1;
+        }
+    }
+    // get the index next to element found
+    idx = k + 1;
+    if (idx == wmfLen) {
+        idx = 0;
+    }
+    // put the sample there and adjust the length
     wmfVec[idx] = sample;
     wmfAux[idx] = i;
     count = j + 1;
-    
-    // check if the first in line has gone out of the windows length
+    // check if the first in line has gone out of the window length
     if (count > wmfLen || wmfAux[first] == i - wmfLen) {
-        first = (first + 1) % wmfLen;
+        if (++first == wmfLen)
+            first = 0;
         count--;
     }
-    
     // increment global index
     i++;
-    
     // return the max in the window
     return wmfVec[first];
 }
@@ -121,7 +132,8 @@ short agc(short sample, short gain)
     
     // update filter memory
     agcVec[n] = sample;
-    n = (n + 1) % agcLen;
+    if (++n == agcLen)
+        n = 0;
     
     // compute result
     return (short)min(y0, agcMax);
@@ -134,7 +146,8 @@ int modb(short sample)
     
     // update filter memory
     mobdVec[n] = sample;
-    n = (n + 1) % mobdLen;
+    if (++n == mobdLen)
+        n = 0;
     
     // compute result
     return prod(mobdVec, mobdLen);
@@ -151,7 +164,8 @@ int maf(int sample)
     
     // update filter memory
     mafhVec[n] = sample;
-    n = (n + 1) % mafhLen;
+    if (++n == mafhLen)
+        n = 0;
     
     // compute result
     //return (int)min(y0 / mafhLen, INT_MAX);
@@ -305,9 +319,11 @@ void mexFunction( int nlhs, mxArray *plhs[],
     initVariables(sampFreq, mFactor);
     
     /* process each sample of the input vector, and obtain an output sample */
+    tic();
     for (mwSize i = 0; i < inLen; i++) {
         outVector[i] = processSample(inVector[i]);
     }
+    toc();
     
     /* create the output scalar */
     if (nlhs > 1) {

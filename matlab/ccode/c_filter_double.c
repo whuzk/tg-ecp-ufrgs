@@ -197,7 +197,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
     outVector = mxGetPr(plhs[0]);
     
     /* process the input vector, and obtain the delay */
+    tic();
     delay = processInput(inVector, inLen, outVector, sampFreq, mFactor);
+    toc();
     
     /* create the output scalar */
     if (nlhs > 1) {
