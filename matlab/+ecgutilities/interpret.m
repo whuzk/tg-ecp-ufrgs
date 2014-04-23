@@ -19,7 +19,11 @@ for i = 1:Sc
     Leads{i}.name = Lead.Description;
     Leads{i}.res = sscanf(Lead.Resolution,'%d');
     Leads{i}.gain = sscanf(Lead.Gain,'%d');
-    Leads{i}.data = Lead.Data;
+    if max(Lead.Data) > 5
+        Leads{i}.data = Lead.Data;
+    else
+        Leads{i}.data = round(Lead.Data * Leads{i}.gain);
+    end
 end
 
 function Result = isqrs(type)

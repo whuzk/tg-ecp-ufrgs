@@ -22,7 +22,7 @@ Measures = {
 load('.\matfiles\dbnames.mat');
 
 % registros de ecg
-EDB = load('C:\ecg\edb.mat', 'e0305');
+EDB = load('C:\ecg\edb.mat', 'e0103');
 %MITDB = load('C:\ecg\mitdb.mat');
 %QTDB = load('C:\ecg\qtdb.mat');
 

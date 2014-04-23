@@ -1,5 +1,5 @@
 /*=========================================================================
- * c_detect_qrs_int.c
+ * c_detect_qrs_double.c
  *=======================================================================*/
 #include <math.h>
 #include "mex.h"
@@ -27,12 +27,12 @@
 #define MBD_BUFLEN      8       // 2^nextpow2(MAX_MBD_ORDER)
 #define MAF_BUFLEN      2048    // 2^nextpow2(MAX_MAINS_FREQ * LPF_BUFLEN * MAF_LEN_SEC)
 
-static short lpfBuf[LPF_BUFLEN] = {0};
-static short wmfBuf[WMF_BUFLEN];
+static double lpfBuf[LPF_BUFLEN] = {0};
+static double wmfBuf[WMF_BUFLEN];
 static unsigned int wmfAux[WMF_BUFLEN];
-static short agcBuf[ACG_BUFLEN] = {0};
-static int mbdBuf[MBD_BUFLEN] = {1};
-static int mafBuf[MAF_BUFLEN] = {0};
+static double agcBuf[ACG_BUFLEN] = {0};
+static double mbdBuf[MBD_BUFLEN] = {1};
+static double mafBuf[MAF_BUFLEN] = {0};
 
 #define lpfb(I) (lpfBuf[(I)&(LPF_BUFLEN-1)])
 #define wmfb(I) (wmfBuf[(I)&(WMF_BUFLEN-1)])
@@ -60,23 +60,23 @@ static mwSize mafWin;
 
 
 /* Low-pass filter and second-order backward difference */
-short lpf(short sample)
+double lpf(double sample)
 {
     static unsigned short n = 0;
-    int y0;
+    double y0;
     
     // update filter output: y[n] = x[n] - 2*x[n-M/2] + x[n-M+1]
-    y0 = sample - (lpfb(n - (lpfWin >> 1)) << 1) + lpfb(n - lpfWin + 1);
+    y0 = sample - 2 * lpfb(n - lpfWin/2) + lpfb(n - lpfWin + 1);
     
     // update filter memory
     lpfb(n++) = sample;
     
     // compute result
-    return y0 >> 2;
+    return y0 / 4.0;
 }
 
 /* Windowed-max filter */
-short wmf(short sample)
+double wmf(double sample)
 {
     static unsigned short first = 0;
     static unsigned short count = 0;
@@ -106,26 +106,26 @@ short wmf(short sample)
 }
 
 /* Automatic gain control */
-short agc(short sample, short gain)
+double agc(double sample, double gain)
 {
     static unsigned short n = 0;
-    int y0;
+    double y0;
     
-    // update filter output: y[n] = x[n-M+1] * maxG / max(G, minG)
-    y0 = (agcb(n - agcWin) * (int)agcMax) / (int)max(gain, agcMin);
+    // update filter output: y[n] = x[n-M] * maxG / max(G, minG)
+    y0 = (agcb(n - agcWin) * agcMax) / fmax(gain, agcMin);
     
     // update filter memory
     agcb(n++) = sample;
     
     // compute result
-    return (short)min(y0, agcMax);
+    return fmin(y0, agcMax);
 }
 
 /* Multiplication of absolute backward differences */
-int mdb(short sample)
+double mdb(double sample)
 {
     static unsigned short n = 0;
-    int y0 = sample;
+    double y0 = sample;
     
     // update filter output: y[n] = x[n] * ... * x[n-M+1]
     for (mwSize k = 1; k < mbdWin; k++) {
@@ -140,33 +140,32 @@ int mdb(short sample)
 }
 
 /* Moving-average filter of length 32 */
-int maf(int sample)
+double maf(double sample)
 {
     static unsigned short n = 0;
-    static long long y0 = 0;
+    static double y0 = 0;
     
-    // update filter output: y[n] = y[n-1] + x[n] - x[n-M+1]
+    // update filter output: y[n] = y[n-1] + x[n] - x[n-M]
     y0 += sample - mafb(n - mafWin);
     
     // update filter memory
     mafb(n++) = sample;
     
     // compute result
-    return (int)min(y0 / mafWin, INT_MAX);
+    return fmin(y0 / mafWin, INT_MAX);
 }
 
 /* Process one intput sample */
-int processSample(short sample)
+double processSample(double sample)
 {
-    short gain;
-    int sample2;
+    double gain;
     sample = lpf(sample);
-    sample = abs(sample);
+    sample = fabs(sample);
     gain = wmf(sample);
     sample = agc(sample, gain);
-    sample2 = mdb(sample);
-    sample2 = maf(sample2);
-    return sample2;
+    sample = mdb(sample);
+    sample = maf(sample);
+    return sample;
 }
 
 /* Initialize global variables */
@@ -180,14 +179,14 @@ void initVariables()
     //printf("lpd delay = %f\n", lpfDel);
     
     // windowed-max filter
-    wmfWin = sampFreq << 1;
+    wmfWin = 2 * sampFreq;
     wmfDel = 0;
     //printf("wmf delay = %f\n", wmfDel);
     
     // automatic gain control
     agcWin = (int)(sampFreq * (double)ACG_LEN_SEC);
     agcDel = (double)agcWin;
-    maxbits = (short)((sizeof(int) << 3) - 1) / mbdOrder;
+    maxbits = (short)((8 * sizeof(int)) - 1) / mbdOrder;
     agcMax = (1 << (short)min(15,maxbits)) - 1;
     agcMin = 1 << 3;
     //printf("agc delay = %f\n", agcDel);
@@ -208,36 +207,34 @@ void processArgs( int nlhs, mxArray *plhs[],
                   int nrhs, const mxArray *prhs[],
                   mwSize *nrows, mwSize *ncols)
 {
-    double i1,i2,i3;
-    
     /* check for proper number of arguments */
     if (nrhs < MIN_INPUTS || nrhs > MAX_INPUTS) {
         mexErrMsgIdAndTxt(
-                "EcgToolbox:c_detect_qrs_int:nrhs",
+                "EcgToolbox:c_detect_qrs_double:nrhs",
                 "Two inputs required.");
     }
     if (nlhs < MIN_OUTPUTS || nlhs > MAX_OUTPUTS) {
         mexErrMsgIdAndTxt(
-                "EcgToolbox:c_detect_qrs_int:nlhs",
+                "EcgToolbox:c_detect_qrs_double:nlhs",
                 "One output required.");
     }
     /* make sure the first input argument is a Vector */
     if (mxGetM(prhs[0]) != 1 && mxGetN(prhs[0]) != 1) {
         mexErrMsgIdAndTxt(
-                "EcgToolbox:c_detect_qrs_int:notVector",
+                "EcgToolbox:c_detect_qrs_double:notVector",
                 "First input must be a Vector.");
     }
     /* make sure the first input argument is of type Double */
     if (!mxIsDouble(prhs[0]) || mxIsComplex(prhs[0])) {
         mexErrMsgIdAndTxt(
-                "EcgToolbox:c_detect_qrs_int:notDouble",
+                "EcgToolbox:c_detect_qrs_double:notDouble",
                 "First input must be of type Double.");
     }
     /* make sure the remaining arguments are all scalars */
     for (mwSize i = 1; i < nrhs; i++) {
         if (mxGetNumberOfElements(prhs[i]) != 1) {
             mexErrMsgIdAndTxt(
-                    "EcgToolbox:c_detect_qrs_int:notScalar",
+                    "EcgToolbox:c_detect_qrs_double:notScalar",
                     "Input #%d must be a scalar.", i+1);
         }
     }
@@ -280,7 +277,7 @@ void processArgs( int nlhs, mxArray *plhs[],
     /* make sure the MBD filter order is within pre-defined limits */
     if (mbdOrder < MIN_MBD_ORDER || mbdOrder > MAX_MBD_ORDER) {
         mexErrMsgIdAndTxt(
-                "EcgToolbox:c_detect_qrs_int:badMbdOrder",
+                "EcgToolbox:c_detect_qrs_double:badMbdOrder",
                 "MBD filter order must be between %d and %d.", MIN_MBD_ORDER, MAX_MBD_ORDER);
     }
 }
@@ -316,7 +313,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     /* process each sample of the input Vector, and obtain an output sample */
     tic();
     for (mwSize i = 0; i < inLen; i++) {
-        outVector[i] = (double)processSample((short)inVector[i]);
+        outVector[i] = processSample(inVector[i]);
     }
     toc();
     
