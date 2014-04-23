@@ -12,21 +12,52 @@
  * TIME FUNCTIONS
  *=======================================================================*/
 static __int64 start;
-static double pcfreq;
+static double pcfreq = 0.0;
 void tic()
 {
     LARGE_INTEGER li;
-    QueryPerformanceFrequency(&li);
-    pcfreq = (double)li.QuadPart;
-    QueryPerformanceCounter(&li);
-    start = li.QuadPart;
+    if (QueryPerformanceFrequency(&li)) {
+        pcfreq = (double)li.QuadPart;
+        if (QueryPerformanceCounter(&li)) {
+            start = li.QuadPart;
+        }
+        else {
+            mexErrMsgIdAndTxt(
+                    "EcgToolbox:c_ecg_utils:pcCounterNotAccessible",
+                    "Could not read PC counter.");
+            start = -1;
+        }
+    }
+    else {
+        mexErrMsgIdAndTxt(
+                "EcgToolbox:c_ecg_utils:pcFreqNotAccessible",
+                "Could not read PC frequency.");
+        pcfreq = 0.0;
+    }
+    
 }
-void toc()
+double toc()
 {
     LARGE_INTEGER li;
-    QueryPerformanceCounter(&li);
-    double time = (li.QuadPart - start) / pcfreq;
-    printf("Processing time: %.3f ms\n", time*1000);
+    if (pcfreq == 0.0) {
+        mexErrMsgIdAndTxt(
+                "EcgToolbox:c_ecg_utils:pcFreqNotSet",
+                "PC frequency was not set.");
+        return -1.0;
+    }
+    else if (start < 0) {
+        mexErrMsgIdAndTxt(
+                "EcgToolbox:c_ecg_utils:startCountNotSet",
+                "Start count was not set.");
+        return -1.0;
+    }
+    else if (!QueryPerformanceCounter(&li)) {
+        mexErrMsgIdAndTxt(
+                "EcgToolbox:c_ecg_utils:pcCounterNotAccessible",
+                "Could not read PC counter.");
+        return -1.0;
+    }
+    else return (li.QuadPart - start) / pcfreq;
 }
 
 /*=========================================================================
@@ -147,46 +178,6 @@ void nlfir(const double *x, mwSize nx, int m, double *y)
     }
 }
 
-/* Absolute value */
-void absolute(const double *x, mwSize nx, double *y)
-{
-    for (mwSize i = 0; i < nx; i++) {
-        y[i] = fabs(x[i]);
-    }
-}
-
-/* Elementwise division */
-void division(const double *x, mwSize nx, double *d, double *y)
-{
-    for (mwSize i = 0; i < nx; i++) {
-        y[i] = x[i] / d[i];
-    }
-}
-
-/* Elementwise multiplication */
-void product(const double *x, mwSize nx, double *s, double *y)
-{
-    for (mwSize i = 0; i < nx; i++) {
-        y[i] = x[i] * s[i];
-    }
-}
-
-/* Division by scalar */
-void scalar_division(const double *x, mwSize nx, double d, double *y)
-{
-    for (mwSize i = 0; i < nx; i++) {
-        y[i] = x[i] / d;
-    }
-}
-
-/* Multiplication by scalar */
-void scalar_product(const double *x, mwSize nx, double s, double *y)
-{
-    for (mwSize i = 0; i < nx; i++) {
-        y[i] = x[i] * s;
-    }
-}
-
 /* Max-filter */
 void maxfilter(const double *x, mwSize nx, mwSize m, double *y, double ai)
 {
@@ -230,6 +221,18 @@ void maxfilter(const double *x, mwSize nx, mwSize m, double *y, double ai)
 /*=========================================================================
  * INTEGER FUNCTIONS
  *=======================================================================*/
+/* Iterative estimator */
+int iestimate(int x, int log2r, int v)
+{
+    return (((1 << log2r) - 1) * x + v) >> log2r;
+}
+
+/* Limit a value by lower and upper bounds */
+int ilimit(int x, int a, int b)
+{
+    return min(max(x, a), b);
+}
+
 /* Find the position of the maximum value */
 mwSize ifindmax(const int *x, mwSize nx)
 {

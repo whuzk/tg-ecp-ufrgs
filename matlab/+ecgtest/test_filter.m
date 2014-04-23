@@ -5,9 +5,9 @@ import ecgmath.*
 %close all;
 
 % load ecg
-%[Fs,Bp,~,Leads] = interpret(EDB.e0103);
-%Signal = Leads{1}.data;%(1:1000);
-%Signal = (Signal - Signal(1));
+[Fs,Bp,Leads] = interpret(EDB.e0116);
+Signal = Leads{1}.data - Leads{1}.zero - Leads{1}.iniv;
+SignalInt = int16(Signal);
 
 % apply filters
 %{
@@ -39,9 +39,25 @@ figure, plot(Y9);
 %noise = 50*sin(2*pi*60*t)';
 %Signal2 = Signal + noise;
 
-Y1 = detect_qrs_double(Signal,Fs,60,3);
-Y2 = detect_qrs_int(Signal,Fs,60,3);
+%[Y1,R,R2,TH1,TH2,RR,delay] = detect_qrs_double(Signal,Fs,50,3);
+%{
+[Y1,R,R2,TH1,TH2,RR,delay] = detect_qrs_int(SignalInt,Fs,50,3);
+Y1 = double(Y1);
+R = double(R);
+R2 = double(R2);
+TH1 = double(TH1);
+TH2 = double(TH2);
+RR = double(RR);
+%}
 
 %figure, plot(Signal);
-figure, plot([Y1 Y2]);
-norm(Y1-Y2)
+%figure, plot([Y1 Y2]);
+%norm(Y1-Y2)
+
+%plot_signal_r(Signal, R);
+%plot_signal_qrs(Y1,R,R2,TH1,TH2,RR);
+R = R - floor(delay) - floor(0.05*Fs);
+R2 = R2 - floor(delay) - floor(0.05*Fs);
+[A,B,R] = ecgutilities.merge_rpeaks(Leads{1}.qrsi, R, Fs);
+ecgutilities.plot_signal_rcomp(Signal,A,B,R);
+ecgmath.compute_statistics(A,B)
