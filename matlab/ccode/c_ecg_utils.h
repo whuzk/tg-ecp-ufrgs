@@ -218,6 +218,21 @@ void maxfilter(const double *x, mwSize nx, mwSize m, double *y, double ai)
     mxFree(val);
 }
 
+/* Adjust the size of an mxArray */
+void adjustSize( double *vector, mxArray *mxarray,
+                 mwSize nrows, mwSize ncols, mwSize newlen)
+{
+    if (vector != NULL && mxarray != NULL) {
+        if (ncols == 1) {
+            mxSetM(mxarray, newlen);
+        }
+        else {
+            mxSetN(mxarray, newlen);
+        }
+        mxSetPr(mxarray, mxRealloc(vector, newlen * sizeof(double)));
+    }
+}
+
 /*=========================================================================
  * INTEGER FUNCTIONS
  *=======================================================================*/
@@ -258,6 +273,21 @@ int imaxdiff(const int *x, mwSize nx)
         }
     }
     return d;
+}
+
+/* Adjust the size of an mxArray */
+void iadjustSize( int *vector, mxArray *mxarray,
+                 mwSize nrows, mwSize ncols, mwSize newlen)
+{
+    if (vector != NULL && mxarray != NULL) {
+        if (ncols == 1) {
+            mxSetM(mxarray, newlen);
+        }
+        else {
+            mxSetN(mxarray, newlen);
+        }
+        mxSetPr(mxarray, mxRealloc(vector, newlen * sizeof(int)));
+    }
 }
 
 #endif

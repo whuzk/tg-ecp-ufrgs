@@ -132,27 +132,27 @@ static int mafBuf[MAF_BUFLEN] = {0};        // MAF buffer
 static int sigThreshold;        // signal threshold
 static int signalLevel;         // signal level
 static int noiseLevel;          // noise level
-static mwSize qrsCount;         // count of QRS complex in main QRS buffer
-static mwSize qrsCount2;        // current position in second QRS buffer
 static int lastPeakAmp;         // amplitude of the last peak detected
 static int qrsAmpMean;          // running average qrs amplitude
-static int rrIntMean;           // running average of RR intervals
+static int peakAmp;             // currently detected peak amplitude
+static mwSize rrIntMean;        // running average of RR intervals
 static mwSize rrIntMiss;        // interval for qrs to be assumed as missed
-static int levelEstRatio;       // ratio of signal/noise level estimation
-static bool isSignalRising;     // flag to indicate a rise in the signal
+static mwSize rrIntLow;         // lower bound for acceptance of new RR
+static mwSize rrIntHigh;        // upper bound for acceptance of new RR
+static mwSize rrIntMin;         // lowest bound applied to estimated RR
+static mwSize rrIntMax;         // highest bound applied to estimated RR
+static mwSize estRatio;         // ratio of signal/noise level estimation
+static mwSize trainingPeriod;   // length of training period
+static mwSize qrsHalfLength;    // half the length of a QRS complex
+static mwSize twaveTolerance;   // tolerance for T-wave detection
+static mwSize refractoryPeriod; // length of refractory period for QRS detection
+static mwSize qrsCount;         // count of QRS complex in main QRS buffer
+static mwSize qrsCount2;        // current position in second QRS buffer
 static unsigned long long lastPeakIdx;      // index of the last peak detected
 static unsigned long long lastQrsIdx;       // index of last detected QRS complex
 static unsigned long long searchBackIdx;    // index of searchback starting point
 static unsigned long long peakIdx;          // currently detected peak index
-static int peakAmp;             // currently detected peak amplitude
-static int twaveTolerance;      // tolerance for T-wave detection
-static int refractoryPeriod;    // length of refractory period for QRS detection
-static int trainingPeriod;      // length of training period
-static int rrIntLow;            // lower bound for acceptance of new R-R intervals
-static int rrIntHigh;           // upper bound for acceptance of new R-R intervals
-static int rrintMin;            // lowest bound applied to estimated R-R intervals
-static int rrintMax;            // highest bound applied to estimated R-R intervals
-static int qrsLength;           // length of a QRS complex (fixed)
+static bool isSignalRising;     // flag to indicate a rise in the signal
 
 /*=========================================================================
  * Low-pass filter and second-order backward difference
@@ -265,7 +265,8 @@ int maf(int sample)
  *=======================================================================*/
 int preprocessSample(short sample)
 {
-    short gain; int sample2;
+    short gain;
+    int sample2;
     
     sample = lpf(sample);
     sample = abs(sample);
@@ -283,10 +284,10 @@ int preprocessSample(short sample)
 bool istwave(unsigned long long candQrs, unsigned long long lastQrs)
 {
     // check if the canditate QRS occurs near the previous one
-    if ((int)(candQrs - lastQrs) < qrsLength) {
+    if ((int)(candQrs - lastQrs) < twaveTolerance) {
         // max slope of waveforms
-        int slope1 = imaxdiff(filtSig + candQrs - qrsLength + 1, qrsLength);
-        int slope2 = imaxdiff(filtSig + lastQrs - qrsLength + 1, qrsLength);
+        int slope1 = imaxdiff(filtSig + candQrs - qrsHalfLength + 1, qrsHalfLength);
+        int slope2 = imaxdiff(filtSig + lastQrs - qrsHalfLength + 1, qrsHalfLength);
         
         // check condition for T wave
         return (slope1 < (slope2 >> 1));
@@ -336,15 +337,15 @@ bool evaluatePeak(unsigned long long i)
     if (lastQrsIdx == 0 || peakIdx - lastQrsIdx > refractoryPeriod) {
         // decrease estimation ratio for times beyond the training period
         if (i == trainingPeriod) {
-            levelEstRatio = levelEstRatio - 1;
+            estRatio = estRatio - 1;
         }
         
         // adjust levels
         if (peakAmp >= sigThreshold) {
-            signalLevel = iestimate(signalLevel, levelEstRatio, peakAmp);
+            signalLevel = iestimate(signalLevel, estRatio, peakAmp);
         }
         else {
-            noiseLevel = iestimate(noiseLevel, levelEstRatio, peakAmp);
+            noiseLevel = iestimate(noiseLevel, estRatio, peakAmp);
         }
         
         // assert qrs
@@ -399,7 +400,7 @@ void updateQrsInfo()
         mwSize newRR = (int)(peakIdx - lastQrsIdx);
         if (rrIntLow < newRR && newRR < rrIntHigh) {
             rrIntMean = iestimate(rrIntMean, 3, newRR);
-            rrIntMean = ilimit(rrIntMean, rrintMin, rrintMax);
+            rrIntMean = ilimit(rrIntMean, rrIntMin, rrIntMax);
         }
     }
     
@@ -524,7 +525,7 @@ void initDetectionVariables()
     sigThreshold = 0;
     signalLevel = 0;
     noiseLevel = 0;
-    levelEstRatio = 3;
+    estRatio = 3;
     
     // peak
     peakIdx = 0;
@@ -541,22 +542,20 @@ void initDetectionVariables()
     
     // RR interval
     rrIntMean = sampFreq;
+    rrIntLow = rrIntMean >> 1;
+    rrIntHigh = rrIntMean + rrIntLow;
+    rrIntMiss = rrIntHigh + (rrIntMean >> 2);
+    rrIntMin = sampFreq / 5;
+    rrIntMax = sampFreq << 1;
     
     // flags
     isSignalRising = false;
     
-    // limits
-    rrIntLow = rrIntMean >> 1;
-    rrIntHigh = rrIntMean + rrIntLow;
-    rrIntMiss = rrIntHigh + (rrIntMean >> 2);
-    rrintMin = (int)round(0.20 * sampFreq);
-    rrintMax = sampFreq << 1;
-    
     // periods
-    qrsLength = (int)round(0.05 * sampFreq);
-    twaveTolerance = (int)round(0.36 * sampFreq);
-    refractoryPeriod = (int)round(0.20 * sampFreq);
     trainingPeriod = sampFreq << 1;
+    qrsHalfLength = sampFreq / 20;
+    twaveTolerance = (sampFreq * 9) / 25;
+    refractoryPeriod = sampFreq / 5;
 }
 
 /*=========================================================================
@@ -678,23 +677,6 @@ void handleOutputs( int nlhs, mxArray *plhs[],
 }
 
 /*=========================================================================
- * Adjust the size of an mxArray
- *=======================================================================*/
-void adjustSize( int *vector, mxArray *mxarray,
-                 mwSize nrows, mwSize ncols, mwSize newlen)
-{
-    if (vector != NULL && mxarray != NULL) {
-        if (ncols == 1) {
-            mxSetM(mxarray, newlen);
-        }
-        else {
-            mxSetN(mxarray, newlen);
-        }
-        mxSetPr(mxarray, mxRealloc(vector, newlen * sizeof(int)));
-    }
-}
-
-/*=========================================================================
  * Finalization routine 
  *=======================================================================*/
 void finalize( int nlhs, mxArray *plhs[],
@@ -739,7 +721,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     /* calculate the length of the signal */
     inLen = max(nrows,ncols);
     
-    /* desgin the preprocessing filters */
+    /* design the preprocessing filters */
     designPreprocessingFilters();
     
     /* initialize detection variables */
