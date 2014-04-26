@@ -1,31 +1,19 @@
 function convert_all_databases
 % converte as bases de dados de ECGs
 import ecgutilities.*
-%{
-% converte a base European completa
-fprintf('Converting ST-T complete database...\n');
-db_dir = 'I:\AppData\physiobank\database\edb';
-save_file = 'C:\ecg\edb.mat';
-convert_physiobank_db(db_dir, save_file);
-pause(1);
 
-% converte a base LT-ST completa
-fprintf('Converting LT-ST complete database...\n');
-db_dir = 'I:\AppData\physiobank\database\ltstdb';
-save_file = 'C:\ecg\ltstdb.mat';
-convert_physiobank_db(db_dir, save_file);
-pause(1);
-%}
-% converte a base QT completa
-fprintf('Converting QT complete database...\n');
-db_dir = 'I:\AppData\physiobank\database\qtdb';
-save_file = 'C:\ecg\qtdb.mat';
-convert_physiobank_db(db_dir, save_file);
-pause(1);
-%{
-% converte a base MIT-BIH completa
-fprintf('Converting MIT-BIH complete database...\n');
-db_dir = 'I:\AppData\physiobank\database\mitdb\';
-save_file = 'C:\ecg\mitdb.mat';
-convert_physiobank_db(db_dir, save_file);
-%}
+source_dir = 'I:\AppData\physiobank\database';
+target_dir = 'C:\physiobank\database';
+selected = {'edb', 'mitdb', 'qtdb'};
+
+dirs = dir(source_dir);
+for i = 1:length(dirs)
+    file = dirs(i);
+    if file.isdir && ismember(file.name, selected)
+        fprintf('Converting %s database...\n', file.name);
+        source = [source_dir filesep file.name];
+        target = [target_dir filesep file.name];
+        convert_physiobank_db(source, target);
+        fprintf('Saved to %s\n', target);
+    end
+end

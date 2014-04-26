@@ -56,8 +56,8 @@ RR = double(RR);
 
 %plot_signal_r(Signal, R);
 %plot_signal_qrs(Y1,R,R2,TH1,TH2,RR);
-R = R - floor(delay) - floor(0.05*Fs);
-R2 = R2 - floor(delay) - floor(0.05*Fs);
-[A,B,R] = ecgutilities.merge_rpeaks(Leads{1}.qrsi, R, Fs);
-ecgutilities.plot_signal_rcomp(Signal,A,B,R);
-ecgmath.compute_statistics(A,B)
+%R = R - floor(delay) - floor(0.05*Fs);
+%R2 = R2 - floor(delay) - floor(0.05*Fs);
+%[A,B,R] = ecgutilities.merge_rpeaks(Leads{1}.qrsi, R, Fs);
+%ecgutilities.plot_signal_rcomp(Signal,A,B,R);
+%ecgmath.compute_statistics(A,B)

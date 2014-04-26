@@ -1,26 +1,32 @@
-function convert_physiobank_db(db_dir, save_filepath)
+function convert_physiobank_db(source_dir, target_dir)
 % carrega todos arquivos da base e converte para o formato MATLAB
 import ecgutilities.*
 
 tic;
-Database = struct();
 
-% obtem uma lista de arquivos '.hea'
-desc_files = dir([db_dir '*.hea']);
-
-% percorre a lista e carrega os arquivos
-for i = 1%1:length(desc_files)
-    file = desc_files(i);
-    [~,var_name,~] = fileparts(file.name);
-    fprintf('Converting %s...\n', var_name);
-    ECG = convert_physiobank_ecg(db_dir, var_name);
-    var_name = matlab.lang.makeValidName(var_name);
-    Database.(var_name) = ECG;
+% cria o diretorio destino, se necessario
+if ~exist(target_dir,'dir') && ~mkdir(target_dir)
+    error('could not create new directory: %s', target_dir);
 end
 
-% salva toda a base para o arquivo de saida
-fprintf('Saving data to file...\n');
-save(save_filepath, '-struct', 'Database');
-fprintf('Saved to ''%s''\n', save_filepath);
+% obtem uma lista de arquivos '.hea'
+desc_files = dir([source_dir filesep '*.hea']);
+
+% percorre a lista e carrega os arquivos
+for i = 1:length(desc_files)
+    file = desc_files(i);
+    [~,record,~] = fileparts(file.name);
+    
+    % converte o ecg
+    fprintf('Converting %s...\n', record);
+    var_name = matlab.lang.makeValidName(record);
+    dum.(var_name) = convert_physiobank_ecg(source_dir, record);
+    
+    % salva em arquivo
+    save_file = [target_dir filesep record '.mat'];
+    fprintf('Saving data to file...\n');
+    save(save_file,'-struct','dum');
+    fprintf('Saved to ''%s''\n', save_file);
+end
 
 toc;

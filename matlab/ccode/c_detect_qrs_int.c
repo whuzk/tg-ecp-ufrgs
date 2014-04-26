@@ -499,8 +499,9 @@ void designPreprocessingFilters()
     // automatic gain control
     agcWin = (int)(sampFreq * (double)ACG_LEN_SEC);
     maxbits = (int)((sizeof(int) << 3) - 1) / mbdOrder;
-    agcMax = (1 << (int)min(15,maxbits)) - 1;
-    agcMin = 1 << 3;
+    maxbits = (int)min((sizeof(int) << 2) - 1, maxbits);
+    agcMax = (1 << maxbits) - 1;
+    agcMin = 8;
     
     // multiplication of absolute backward differences
     mbdWin = mbdOrder;
