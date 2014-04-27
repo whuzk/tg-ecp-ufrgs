@@ -7,33 +7,36 @@ old_path = pwd;
 cd(dir);
 
 % extrai as informaçoes do registro
-Result.Leads = wfdbdesc([record '.hea']);
-M = length(Result.Leads);
-for i = 1:M
-    N = Result.Leads(i).LengthSamples;
-    k = Result.Leads(i).RecordIndex;
-    Result.Leads(i).Data = read_data(record,k,N);
-end
-Result.Notes = read_notes(record,M);
+Result.Info = wfdbdesc([record '.hea']);
+Result.Notes = read_notes(record);
 Result.Annotations = read_annotations(record);
+N = Result.Info(1).LengthSamples;
+Result.SignalCount = length(Result.Info);
+Result.SignalData = read_data(record,N,Result.SignalCount);
 
 % volta a pasta do usuario
 cd(old_path);
 
 
-function Result = read_notes(record,M)
+function Result = read_notes(record)
 fid = fopen([record '.hea']);
-lines = textscan(fid,'%s','Delimiter','\n','Headerlines',M+1);
-Result = char(lines{:});
+line = fgets(fid);
+Result = '';
+while ischar(line)
+    if strfind(line,'#') == 1
+        Result = [Result line(2:end)];
+    end
+    line = fgets(fid);
+end
 fclose(fid);
 
-function Result = read_data(record,si,N)
-Result = zeros(N,1);
+function Result = read_data(record,N,Sc)
+Result = zeros(N,Sc);
 step = 100000;
 i = 1;
 while i <= N
     last = min(N,i+step-1);
-    [~,amp] = rdsamp(record, si, last, i, 3);
+    [~,amp] = rdsamp(record, [], last, i, 3);
     Result(i:last,:) = amp;
     i = i + step;
 end
@@ -49,21 +52,17 @@ for j = 1:length(annotators)
     end
 end
 if exist([record '.stf'],'file')
-    Result.stf = importdata([record '.stf']);
+    Result.stf = read_stf([record '.stf']);
 end
 
 function Result = read_ann(record,annotator)
-[sample,type,subtype,channel,num,comment] = rdann(record, annotator);
-Result.Timestamp = read_time(record,sample);
-Result.Sample = sample;
-Result.Type = type;
-Result.Subtype = subtype;
-Result.Channel = channel;
-Result.Num = num;
-Result.Comment = cell(size(comment));
-for i = 1:size(comment,1)
-    Result.Comment{i} = char(comment{i});
+[Sample,Type,Subtype,Channel,Num,Aux] = rdann(record, annotator);
+Timestamp = read_time(record,Sample);
+Comment = cell(size(Aux));
+for i = 1:size(Aux,1)
+    Comment{i} = char(Aux{i});
 end
+Result = table(Timestamp,Sample,Type,Subtype,Channel,Num,Comment);
 
 function Result = read_time(record,samples)
 N = length(samples);
@@ -75,4 +74,17 @@ while i <= N
     [ts,~] = wfdbtime(record, samples(i:last));
     Result(i:last) = ts;
     i = i + step;
+end
+
+function Result = read_stf(filepath)
+data = importdata(filepath);
+Sample = data(:,1);
+M = (size(data,2)-1)/3;
+Result = cell(1,M);
+for i = 0:M-1
+    STLevelFunction = data(:,3*i+2);
+    STLevelReference = data(:,3*i+3);
+    STLevelDeviation = data(:,3*i+4);
+    Result{i+1} = table(Sample, ...
+        STLevelFunction, STLevelReference, STLevelDeviation);
 end

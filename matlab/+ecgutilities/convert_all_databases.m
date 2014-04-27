@@ -10,10 +10,12 @@ dirs = dir(source_dir);
 for i = 1:length(dirs)
     file = dirs(i);
     if file.isdir && ismember(file.name, selected)
+        tic;
         fprintf('Converting %s database...\n', file.name);
         source = [source_dir filesep file.name];
         target = [target_dir filesep file.name];
         convert_physiobank_db(source, target);
         fprintf('Saved to %s\n', target);
+        toc;
     end
 end

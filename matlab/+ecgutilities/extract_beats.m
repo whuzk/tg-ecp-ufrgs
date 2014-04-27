@@ -1,4 +1,4 @@
-function [Result] = extract_beats(Signal, Rpeaks, RR, FrameSize)
+function Result = extract_beats(Signal, Rpeaks, RR, FrameSize)
 
 N = length(Signal);
 m = length(Rpeaks);
@@ -18,6 +18,7 @@ for i = 1:m
         right = right-d;
     end
     Beat = Signal(left:right);
+    Beat = ecgfilter.suppress_baseline(Beat,5);
     Result(:,i) = frame_beat(Beat,FrameSize);
 end
 

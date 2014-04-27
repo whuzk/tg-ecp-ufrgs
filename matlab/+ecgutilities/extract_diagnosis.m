@@ -1,32 +1,37 @@
-function Result = extract_diagnosis(Annot, Rpeaks, Type, keyWord, signalID)
+function Result = extract_diagnosis(Rk, atr, type, keyWord, id)
 
-m = length(Rpeaks);
-l = length(keyWord);
-B = str2double(Annot.Sample);
-index = find(strcmp(Annot.Type, Type));
+isqtable = atr(atr.Type == type, {'Sample', 'Comment'});
 
-Result.elevation = false(m,1);
-Result.depression = false(m,1);
-Result.elevPeakValue = zeros(m,1);
-Result.depPeakValue = zeros(m,1);
+M = length(Rk);
+N = height(isqtable);
+L = length(keyWord);
+
+Result.elevation = false(M,1);
+Result.depression = false(M,1);
+Result.elevPeakValue = zeros(M,1);
+Result.depPeakValue = zeros(M,1);
 
 k = 1;
-while k <= length(index)
-    aux = Annot.Aux{index(k)};
-    if (~isempty(aux) && aux(1) == '(' && ...
-        strcmp(aux(1+(1:l)), keyWord) && aux(2+l) == signalID)
+while k <= N
+    aux = isqtable.Comment{k};
+    if (~isempty(aux) && ...
+            aux(1) == '(' && ...
+            strcmp(aux(1+(1:L)), keyWord) && ...
+            str2double(aux(2+L)) == id)
         % inicio de episodio
-        beginIndex = index(k);
-        ch = aux(3+l);
+        beginIndex = isqtable.Sample(k);
+        ch = aux(3+L);
         
         % procura a marcaçao de pico
         k = k + 1;
-        while k <= length(index)
-            aux = Annot.Aux{index(k)};
-            if (~isempty(aux) && upper(aux(1)) == 'A' && ...
-                strcmp(aux(1+(1:l)), keyWord) && aux(2+l) == signalID)
+        while k <= N
+            aux = isqtable.Comment{k};
+            if (~isempty(aux) && ...
+                    upper(aux(1)) == 'A' && ...
+                    strcmp(aux(1+(1:L)), keyWord) && ...
+                    str2double(aux(2+L)) == id)
                 % fim de episodio
-                peakDev = str2double(aux(4+l:end))/1000;
+                peakDev = str2double(aux(4+L:end));
                 break;
             else
                 k = k + 1;
@@ -35,12 +40,14 @@ while k <= length(index)
         
         % procura a marcaçao de termino
         k = k + 1;
-        while k <= length(index)
-            aux = Annot.Aux{index(k)};
-            if (~isempty(aux) && aux(end) == ')' && ...
-                strcmp(aux(1:l), keyWord) && aux(1+l) == signalID)
+        while k <= N
+            aux = isqtable.Comment{k};
+            if (~isempty(aux) && ...
+                    aux(end) == ')' && ...
+                    strcmp(aux(1:L), keyWord) && ...
+                    str2double(aux(1+L)) == id)
                 % fim de episodio
-                endIndex = index(k);
+                endIndex = isqtable.Sample(k);
                 break;
             else
                 k = k + 1;
@@ -48,13 +55,13 @@ while k <= length(index)
         end
         
         % verifica se é elevaçao ou depressao
-        if k <= length(index)
+        if k <= N
             if ch == '+'
-                j = B(beginIndex) <= Rpeaks & Rpeaks <= B(endIndex);
+                j = beginIndex <= Rk & Rk <= endIndex;
                 Result.elevation(j) = true;
                 Result.elevPeakValue(j) = peakDev;
             elseif ch == '-'
-                j = B(beginIndex) <= Rpeaks & Rpeaks <= B(endIndex);
+                j = beginIndex <= Rk & Rk <= endIndex;
                 Result.depression(j) = true;
                 Result.depPeakValue(j) = peakDev;
             end

@@ -616,8 +616,14 @@ void handleInputs( int nrhs, const mxArray *prhs[],
     if (nrhs > 2) {
         mainsFreq = (int)mxGetScalar(prhs[2]);
     }
+    else if (sampFreq % 50 == 0) {
+        mainsFreq = 50; // guess based on the multiplicity of Fs by 50 Hz
+    }
+    else if (sampFreq % 60 == 0) {
+        mainsFreq = 60; // guess based on the multiplicity of Fs by 60 Hz
+    }
     else {
-        mainsFreq = DEF_MAINS_FREQ;
+        mainsFreq = DEF_MAINS_FREQ;     // default mains frequency
     }
     
     /* get the MBD filter order  */

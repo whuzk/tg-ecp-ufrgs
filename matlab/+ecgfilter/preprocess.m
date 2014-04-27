@@ -1,23 +1,23 @@
-function [Beats,Rpeaks,RR,Template] = preprocess(Signal, Fs)
+function [Beats,Rd,RR,Template] = preprocess(Signal)
+
+% inicializacao
+data = Signal.data - Signal.inival;
 
 % detecção dos complexos QRS
-Rpeaks = ecgfeatures.detect_qrs(Signal,Fs);
+[~,Rd,~,~,~,~,delay1] = ecgfastcode.detect_qrs_double(data,Signal.fs);
 
 % remoçao de ruido
-Signal = ecgfilter.suppress_noise(Signal,Fs);
+[data,delay2] = ecgfilter.suppress_noise(data,Signal.fs);
 
-% ajuste dos picos
-Rpeaks = ecgmath.neighbour_max(Signal,Rpeaks,5);
-RR = diff([0; Rpeaks]);
-
-% extraçao das batidas
-FrameSize = 2*fix(Fs*0.6)+1;
-Beats = ecgutilities.extract_beats(Signal,Rpeaks,RR,FrameSize);
-%ecgutilities.plot_signal(Beats(:,1), 'Beat #1');
+% atraso do sinal e ajuste dos picos
+[data,Rd] = adjust(data,Rd,floor(delay1-delay2),Signal.lead);
+%ecgutilities.plot_signal_r(data, Rd);
 %pause;
 
-% remoçao da linha de base
-Beats = remove_baseline(Beats);
+% extraçao das batidas e remoçao da linha de base
+RR = diff([0; Rd]);
+FrameSize = 2*fix(Signal.fs*0.6)+1;
+Beats = ecgutilities.extract_beats(data,Rd,RR,FrameSize);
 %ecgutilities.plot_signal(Beats(:,1), 'Beat #1');
 %pause;
 
@@ -28,22 +28,32 @@ Template = mean(Beats(:,1:TemplateCount),2);
 %pause;
 
 % remoçao de batidas anomalas
-Threshold = 4;
-index = detect_artifact_beats(Beats,Template,Threshold);
-Beats = Beats(:,index);
-Rpeaks = Rpeaks(index);
-%ecgutilities.plot_signal_r(Signal, Rpeaks);
+index = detect_artifact_beats(Beats,Template,20);
+%ecgutilities.plot_signal_r(data, Rd(~index));
 %pause;
 
+% salva o resultado
+Beats = Beats(:,~index);
+Rd = Rd(~index)-floor(delay1);
 
-function Beats = remove_baseline(Beats)
-for i = 1:size(Beats,2)
-    Beats(:,i) = ecgfilter.suppress_baseline(Beats(:,i),5);
-end
 
 function Result = detect_artifact_beats(Beats,Template,Threshold)
 m = size(Beats,2);
 Result = false(1,m);
+%figure;
 for i = 1:m
-    Result(i) = norm(Beats(:,i) - Template) <= Threshold;
+    Result(i) = rms(Beats(:,i) - Template) > Threshold;
+    %if Result(i)
+    %    plot(Beats(:,i));
+    %    rms(Beats(:,i) - Template)
+    %    pause;
+    %end
+end
+
+function [data,Rd] = adjust(data,Rd,delay,lead)
+data = [zeros(delay,1); data(1:end-delay)];
+if ismember(lead,{'MLIII'})
+    Rd = ecgmath.neighbour_max(-data,Rd,5);
+else
+    Rd = ecgmath.neighbour_max(data,Rd,5);
 end
