@@ -5,9 +5,9 @@ import ecgmath.*
 %close all;
 
 % load ecg
-Signal = interpret(EDB.e0116,2);
-data = Signal.data - Signal.inival;
-dataInt = int16(data);
+%Signal = interpret(EDB.e0103,2);
+%data = Signal.data - Signal.inival;
+%dataInt = int16(data);
 
 % apply filters
 %{
@@ -39,16 +39,28 @@ figure, plot(Y9);
 %noise = 50*sin(2*pi*60*t)';
 %Signal2 = Signal + noise;
 
-%[Y1,Rd,R2,TH1,TH2,RR,delay] = rt_detect_qrs_double(data,Signal.fs,50,4);
-%[Y2,Rd2,R22,TH12,TH22,RR2,delay2] = detect_qrs_double(data,Signal.fs,50,4);
+%[Rd0,Rint] = prod_detect_qrs_double(data,Signal.fs,50,3);
+%[Y1,Rd,R2,TH1,TH2,RR,delay] = rt_detect_qrs_double(data,Signal.fs,50,3);
+%[Y2,Rd2,R22,TH12,TH22,RR2,delay2] = detect_qrs_double(data,Signal.fs,50,3);
+
 %{
-[Y1,R,R2,TH1,TH2,RR,delay] = detect_qrs_int(dataInt,Signal.fs);
+[Rd0,RR0] = prod_detect_qrs_int(dataInt,Signal.fs,50,3);
+Rd0 = double(Rd0);
+RR0 = double(RR0);
+[Y1,Rd1,R21,TH11,TH21,RR1,delay1] = rt_detect_qrs_int(dataInt,Signal.fs,50,3);
 Y1 = double(Y1);
-R = double(R);
-R2 = double(R2);
-TH1 = double(TH1);
-TH2 = double(TH2);
-RR = double(RR);
+Rd1 = double(Rd1);
+R21 = double(R21);
+TH11 = double(TH11);
+TH21 = double(TH21);
+RR1 = double(RR1);
+[Y2,Rd2,R22,TH12,TH22,RR2,delay2] = detect_qrs_int(dataInt,Signal.fs,50,3);
+Y2 = double(Y2);
+Rd2 = double(Rd2);
+R22 = double(R22);
+TH12 = double(TH12);
+TH22 = double(TH22);
+RR2 = double(RR2);
 %}
 
 %figure, plot(Signal);
@@ -58,6 +70,6 @@ RR = double(RR);
 %plot_signal_qrs(Y1,Rd,R2,TH1,TH2,RR);
 %Rd = Rd - floor(delay);
 %plot_signal_r(data, R);
-%[A,B,R] = ecgutilities.merge_qrs(Signal.qrs, Rd, Signal.fs);
-%ecgutilities.plot_signal_rcomp(data,A,B,R);
+%[A,B,R] = merge_qrs(Signal.qrs, Rd2, Signal.fs);
+%plot_signal_rcomp(data,A,B,R);
 %ecgmath.compute_statistics(A,B)

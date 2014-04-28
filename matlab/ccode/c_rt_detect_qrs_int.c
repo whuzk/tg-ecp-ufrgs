@@ -117,17 +117,18 @@ static int mbdBuf[MBD_BUFLEN] = {1};        // MBD buffer
 static int mafBuf[MAF_BUFLEN] = {0};        // MAF buffer
 static int *detBuf;                         // detection buffer
 static mwSize detBufLen;                    // detection buffer length
+static unsigned int ci;                     // current sample index
 
 /*=========================================================================
  * Fast lookup for filter buffers
  *=======================================================================*/
-#define lpfb(I) (lpfBuf[(I)&(LPF_BUFLEN-1)])
+#define lpfb(I) (lpfBuf[(ci+(I))&(LPF_BUFLEN-1)])
 #define wmfb(I) (wmfBuf[(I)&(WMF_BUFLEN-1)])
 #define wmfa(I) (wmfAux[(I)&(WMF_BUFLEN-1)])
-#define agcb(I) (agcBuf[(I)&(ACG_BUFLEN-1)])
-#define mbdb(I) (mbdBuf[(I)&(MBD_BUFLEN-1)])
-#define mafb(I) (mafBuf[(I)&(MAF_BUFLEN-1)])
-#define detb(I) (detBuf[(I)&(detBufLen-1)])
+#define agcb(I) (agcBuf[(ci+(I))&(ACG_BUFLEN-1)])
+#define mbdb(I) (mbdBuf[(ci+(I))&(MBD_BUFLEN-1)])
+#define mafb(I) (mafBuf[(ci+(I))&(MAF_BUFLEN-1)])
+#define detb(I) (detBuf[(ci+(I))&(detBufLen-1)])
 
 /*=========================================================================
  * QRS Detection variables
@@ -135,14 +136,13 @@ static mwSize detBufLen;                    // detection buffer length
 static int sigThreshold;        // signal threshold
 static int signalLevel;         // signal level
 static int noiseLevel;          // noise level
+static int estRatio;            // ratio of signal/noise level estimation
 static int peakAmp;             // currently detected peak amplitude
 static mwSize rrIntMean;        // running average of RR intervals
 static mwSize rrIntMiss;        // interval for qrs to be assumed as missed
 static mwSize rrIntLow;         // lower bound for acceptance of new RR
 static mwSize rrIntHigh;        // upper bound for acceptance of new RR
 static mwSize rrIntMin;         // lowest bound applied to estimated RR
-static mwSize rrIntMax;         // highest bound applied to estimated RR
-static mwSize estRatio;         // ratio of signal/noise level estimation
 static mwSize trainCountDown;   // training period countdown
 static mwSize qrsHalfLength;    // half the length of a QRS complex
 static mwSize twaveTolerance;   // tolerance for T-wave detection
@@ -152,7 +152,6 @@ static mwSize qrsCount2;        // current position in second QRS buffer
 static mwSize lastQrsIdx;       // index of last detected QRS complex
 static mwSize searchBackIdx;    // index of searchback starting point
 static mwSize peakIdx;          // currently detected peak index
-static mwSize ci;               // index of the current filtered sample
 static bool isSignalRising;     // flag to indicate a rise in the signal
 
 /*=========================================================================
@@ -160,14 +159,11 @@ static bool isSignalRising;     // flag to indicate a rise in the signal
  *=======================================================================*/
 short lpf(short sample)
 {
-    static unsigned short n = 0;
-    int y0;
-    
     // update filter output: y[n] = x[n] - 2*x[n-M/2] + x[n-M+1]
-    y0 = sample - (lpfb(n - (lpfWin >> 1)) << 1) + lpfb(n - lpfWin + 1);
+    short y0 = sample - (lpfb(-(lpfWin >> 1)) << 1) + lpfb(-lpfWin + 1);
     
     // update filter memory
-    lpfb(n++) = sample;
+    lpfb(0) = sample;
     
     // compute result: y[n]/4
     return y0 >> 2;
@@ -178,10 +174,9 @@ short lpf(short sample)
  *=======================================================================*/
 short wmf(short sample)
 {
-    static unsigned short first = 0;
-    static unsigned short count = 0;
-    static unsigned int i = 0;
-    unsigned short j,k;
+    static mwSize first = 0;
+    static mwSize count = 0;
+    mwSize j,k;
     
     // search for the first element greater than the current sample
     j = count;
@@ -192,15 +187,13 @@ short wmf(short sample)
     }
     // put the sample next to the element found and adjust the length
     wmfb(k + 1) = sample;
-    wmfa(k + 1) = i;
+    wmfa(k + 1) = ci;
     count = j + 1;
     // check if the first in line has gone out of the window length
-    if (count > wmfWin || wmfa(first) == i - wmfWin) {
+    if (count > wmfWin || wmfa(first) == ci - wmfWin) {
         first++;
         count--;
     }
-    // increment global index
-    i++;
     // return the max in the window
     return wmfb(first);
 }
@@ -210,17 +203,14 @@ short wmf(short sample)
  *=======================================================================*/
 short agc(short sample, short gain)
 {
-    static unsigned short n = 0;
-    int y0;
-    
     // update filter output: y[n] = x[n-M] * maxG / max(G, minG)
-    y0 = (agcb(n - agcWin) * (int)agcMax) / (int)max(gain, agcMin);
+    short y0 = (agcb(-agcWin) * (int)agcMax) / (int)max(gain, agcMin);
     
     // update filter memory
-    agcb(n++) = sample;
+    agcb(0) = sample;
     
     // compute result
-    return (short)min(y0, agcMax);
+    return min(y0, agcMax);
 }
 
 /*=========================================================================
@@ -228,16 +218,15 @@ short agc(short sample, short gain)
  *=======================================================================*/
 int mdb(short sample)
 {
-    static unsigned short n = 0;
     int y0 = sample;
     
     // update filter output: y[n] = x[n] * ... * x[n-M+1]
     for (mwSize k = 1; k < mbdWin; k++) {
-        y0 *= mbdb(n-k);
+        y0 *= mbdb(-k);
     }
     
     // update filter memory
-    mbdb(n++) = sample;
+    mbdb(0) = sample;
     
     // compute result
     return y0;
@@ -248,14 +237,13 @@ int mdb(short sample)
  *=======================================================================*/
 int maf(int sample)
 {
-    static unsigned short n = 0;
     static long long y0 = 0;
     
     // update filter output: y[n] = y[n-1] + x[n] - x[n-M]
-    y0 += sample - mafb(n - mafWin);
+    y0 += sample - mafb(-mafWin);
     
     // update filter memory
-    mafb(n++) = sample;
+    mafb(0) = sample;
     
     // compute result: y[n]/M
     return (int)min(y0 >> mafWinLog2, INT_MAX);
@@ -296,14 +284,6 @@ int estimate(int x, int log2r, int v)
 }
 
 /*=========================================================================
- * Limit a value by lower and upper bounds 
- *=======================================================================*/
-int limit(int x, int a, int b)
-{
-    return min(max(x, a), b);
-}
-
-/*=========================================================================
  * Get the maximum slope on the detection signal 
  *=======================================================================*/
 int maxdiff(mwSize start, mwSize len)
@@ -326,9 +306,9 @@ int maxdiff(mwSize start, mwSize len)
 mwSize findmax(mwSize start, mwSize len)
 {
     mwSize pos = 0;
-    int y = detb(start);
-    int newy;
+    int y, newy;
     
+    y = detb(start);
     for (mwSize i = 1; i < len; i++) {
         newy = detb(start+i);
         if (newy > y) {
@@ -353,8 +333,8 @@ bool istwave(mwSize candQrs, mwSize lastQrs)
         // check index validity
         if (isvalidindex(start1) && isvalidindex(start2)) {
             // max slope of waveforms
-            int slope1 = maxdiff(ci + start1, qrsHalfLength);
-            int slope2 = maxdiff(ci + start2, qrsHalfLength);
+            int slope1 = maxdiff(start1, qrsHalfLength);
+            int slope2 = maxdiff(start2, qrsHalfLength);
 
             // check condition for T wave
             return (slope1 < (slope2 >> 1));
@@ -367,11 +347,10 @@ bool istwave(mwSize candQrs, mwSize lastQrs)
 /*=========================================================================
  * Peak detection 
  *=======================================================================*/
-bool detectPeak()
+bool detectPeak(int newAmp)
 {
     static mwSize lastPeakIdx = 0;      // index of the last peak
-    static int lastPeakAmp = 0.0;       // amplitude of the last peak
-    int newAmp = detb(ci);              // current signal amplitude
+    static int lastPeakAmp = 0;         // amplitude of the last peak
     
     // check if the new amplitude is greater than that of the last peak
     if (newAmp > lastPeakAmp) {
@@ -411,20 +390,23 @@ bool detectPeak()
  *=======================================================================*/
 bool evaluatePeak()
 {
-    if (lastQrsIdx == 0 || peakIdx - lastQrsIdx > refractoryPeriod) {
-        // adjust levels
-        if (peakAmp >= sigThreshold) {
-            signalLevel = estimate(signalLevel, estRatio, peakAmp);
-        }
-        else {
-            noiseLevel = estimate(noiseLevel, estRatio, peakAmp);
-        }
+    if (peakAmp >= sigThreshold) {
+        signalLevel = estimate(signalLevel, estRatio, peakAmp);
         
-        // assert qrs
-        return (trainCountDown == 0 && peakAmp >= sigThreshold &&
-                (lastQrsIdx == 0 || !istwave(peakIdx, lastQrsIdx)));
+        if (trainCountDown > 0) {
+            lastQrsIdx = peakIdx;
+            searchBackIdx = peakIdx;
+            return false;
+        }
+        else if (peakIdx - lastQrsIdx > refractoryPeriod) {
+            return !istwave(peakIdx, lastQrsIdx);
+        }
+        else return false;
     }
-    else return false;
+    else {
+        noiseLevel = estimate(noiseLevel, estRatio, peakAmp);
+        return false;
+    }
 }
 
 /*=========================================================================
@@ -432,30 +414,34 @@ bool evaluatePeak()
  *=======================================================================*/
 bool searchBack()
 {
-    if ((!isSignalRising) && searchBackIdx != 0 &&
+    if ((!isSignalRising) && trainCountDown == 0 &&
             0 >= searchBackIdx + rrIntMiss) {
-        // search back and locate the max in this interval
-        mwSize len = min(detBufLen,rrIntMean);
-        peakIdx = findmax(ci - len + 1, len) - len + 1;
-        peakAmp = detb(ci + peakIdx);
+        mwSize begin = 0 - rrIntMean + 1;
         
-        // check if candidate peak is from qrs
-        if (peakAmp < sigThreshold &&
-                peakAmp >= (sigThreshold >> 1) &&
-                !istwave(peakIdx, lastQrsIdx)) {
-            // adjust signal level
-            signalLevel = estimate(signalLevel, 2, peakAmp);
-            // signalize qrs detection
-            return true;
+        if (isvalidindex(begin)) {
+            // search back and locate the max in this interval
+            peakIdx = begin + findmax(begin, rrIntMean);
+            peakAmp = detb(peakIdx);
+
+            // check if candidate peak is from qrs
+            if (peakAmp < sigThreshold &&
+                    peakAmp >= (sigThreshold >> 1) &&
+                    !istwave(peakIdx, lastQrsIdx)) {
+                // adjust signal level
+                signalLevel = estimate(signalLevel, 2, peakAmp);
+                // signalize qrs detection
+                return true;
+            }
+            else {
+                // reduce levels by half
+                //signalLevel = 0.5*signalLevel;
+                //noiseLevel = 0.5*noiseLevel;
+                // postpone searchback
+                searchBackIdx += rrIntMean;
+                return false;
+            }
         }
-        else {
-            // reduce levels by half
-            //signalLevel = 0.5*signalLevel;
-            //noiseLevel = 0.5*noiseLevel;
-            // postpone searchback
-            searchBackIdx += len;
-            return false;
-        }
+        else return false;
     }
     else return false;
 }
@@ -466,12 +452,9 @@ bool searchBack()
 void updateQrsInfo()
 {
     // update RR interval
-    if (lastQrsIdx != 0) {
-        mwSize newRR = peakIdx - lastQrsIdx;
-        if (rrIntLow < newRR && newRR < rrIntHigh) {
-            rrIntMean = estimate(rrIntMean, 3, newRR);
-            rrIntMean = limit(rrIntMean, rrIntMin, rrIntMax);
-        }
+    mwSize newRR = peakIdx - lastQrsIdx;
+    if (rrIntLow < newRR && newRR < rrIntHigh) {
+        rrIntMean = max(rrIntMin, estimate(rrIntMean, 3, newRR));
     }
     
     // calculate RR missed limit
@@ -493,7 +476,7 @@ bool detectQrs(bool *detectedBySearchback)
     bool wasQrsDetected;    // flag to indicate that a qrs was detected
     
     // detect peak
-    wasPeakDetected = detectPeak();
+    wasPeakDetected = detectPeak(detb(0));
     
     // detect qrs
     wasQrsDetected = wasPeakDetected && evaluatePeak();
@@ -519,12 +502,8 @@ bool detectQrs(bool *detectedBySearchback)
     }
     
     // update indices
-    if (lastQrsIdx != 0) {
-        lastQrsIdx--;
-    }
-    if (searchBackIdx != 0) {
-        searchBackIdx--;
-    }
+    lastQrsIdx--;
+    searchBackIdx--;
     
     return wasQrsDetected || *detectedBySearchback;
 }
@@ -540,9 +519,9 @@ void onNewSample(short sample)
     filtSig[ci] = preprocessSample(sample);
     
     // update detection buffer
-    detb(ci) = filtSig[ci];
+    detb(0) = filtSig[ci];
     
-    // detect qrs and
+    // detect qrs history
     if (detectQrs(&detectedBySearchback) && qrsHist != NULL) {
         qrsHist[qrsCount++] = ci + peakIdx + 1;
     }
@@ -557,12 +536,12 @@ void onNewSample(short sample)
         thr1Hist[ci] = sigThreshold;
     }
     
-    // update main threshold history
+    // update secondary threshold history
     if (thr2Hist != NULL) {
         thr2Hist[ci] = sigThreshold >> 1;
     }
     
-    // update secondary threshold history
+    // update RR interval history
     if (rrintHist != NULL) {
         rrintHist[ci] = rrIntMean;
     }
@@ -635,7 +614,6 @@ void initDetectionVariables()
     rrIntHigh = rrIntMean + rrIntLow;
     rrIntMiss = rrIntHigh + (rrIntMean >> 2);
     rrIntMin = sampFreq / 5;
-    rrIntMax = sampFreq << 1;
     
     // flags
     isSignalRising = false;
@@ -647,7 +625,7 @@ void initDetectionVariables()
     refractoryPeriod = sampFreq / 5;
     
     // create buffer for the filtered signal
-    detBufLen = 1 << (int)ceil(log2(2 * sampFreq));
+    detBufLen = 1 << (int)ceil(log2(sampFreq << 1));
     detBuf = (int *)mxMalloc(detBufLen * sizeof(int));
 }
 

@@ -1,8 +1,8 @@
 /*=========================================================================
- * c_rt_detect_qrs_double.c
+ * c_prod_detect_qrs_double.c
  * 
  *  Title: real-time detection of QRS complex using floating-point
- *         arithmetic
+ *         arithmetic (production code)
  *  Author: Diego Sogari
  *  Last modification:  27/Apr/2014
  *
@@ -13,20 +13,15 @@
  *      4. MBD filter order (defaults to 3)
  *
  *  Outputs:
- *      1. filtered signal*
- *      2. location of detected R peak (in samples)*
- *      3. location of R peaks detected by search back (in samples)
- *      4. history of main signal threshold
- *      5. history of secondary signal threshold
- *      6. history of estimated R-R intervals (in samples)
- *      7. overall preprocessing delay (in samples)
+ *      1. location of detected QRS (in samples)
+ *      2. history of R-R intervals (in samples)
+ *      3. overall preprocessing delay (in samples)
  *
  *  *required
  *
  *=======================================================================*/
 #include <math.h>
 #include "mex.h"
-#include "c_time_utils.h"
 
 /*=========================================================================
  * Abbreviations
@@ -60,8 +55,8 @@
  *=======================================================================*/
 #define MIN_INPUTS      2
 #define MAX_INPUTS      4
-#define MIN_OUTPUTS     1
-#define MAX_OUTPUTS     7
+#define MIN_OUTPUTS     0
+#define MAX_OUTPUTS     3
 
 #define MIN_MAINS_FREQ  50
 #define MAX_MAINS_FREQ  60
@@ -91,12 +86,8 @@ static int mbdOrder;        // MBD filter order
 /*=========================================================================
  * Output variables
  *=======================================================================*/
-static double *filtSig;     // filtered signal
 static double *qrsHist;     // indices of detected QRS complex
-static double *qrs2Hist;    // indices of QRS detected by searchback
-static double *thr1Hist;    // history of signal threshold
-static double *thr2Hist;    // history of secondary signal threshold
-static double *rrintHist;   // history of average RR interval
+static double *rrintHist;   // history of RR intervals
 static double delay;        // overall preprocessing delay
 
 /*=========================================================================
@@ -148,7 +139,6 @@ static mwSize qrsHalfLength;    // half the length of a QRS complex
 static mwSize twaveTolerance;   // tolerance for T-wave detection
 static mwSize refractoryPeriod; // length of refractory period for QRS detection
 static mwSize qrsCount;         // count of QRS complex in main QRS buffer
-static mwSize qrsCount2;        // current position in second QRS buffer
 static mwSize lastQrsIdx;       // index of last detected QRS complex
 static mwSize searchBackIdx;    // index of searchback starting point
 static mwSize peakIdx;          // currently detected peak index
@@ -457,7 +447,7 @@ void updateQrsInfo()
         rrIntMean = fmax(rrIntMin, estimate(rrIntMean, 0.2, newRR));
     }
     
-    // calculate RR missed limit
+    // calculate RR limits
     rrIntLow = 0.5 * rrIntMean;
     rrIntHigh = 1.5 * rrIntMean;
     rrIntMiss = 1.75 * rrIntMean;
@@ -470,25 +460,28 @@ void updateQrsInfo()
 /*=========================================================================
  * Detect QRS complex 
  *=======================================================================*/
-bool detectQrs(bool *detectedBySearchback)
+bool detectQrs(double sample)
 {
     bool wasPeakDetected;   // flag to indicate that a peak was detected
     bool wasQrsDetected;    // flag to indicate that a qrs was detected
     
+    // update detection buffer
+    detb(0) = sample;
+    
     // detect peak
-    wasPeakDetected = detectPeak(detb(0));
+    wasPeakDetected = detectPeak(sample);
     
     // detect qrs
     wasQrsDetected = wasPeakDetected && evaluatePeak();
     
     // search back
-    *detectedBySearchback = (!wasQrsDetected) && searchBack();
+    wasQrsDetected = wasQrsDetected || searchBack();
     
     // update threshold
     sigThreshold = noiseLevel + 0.25*fabs(signalLevel - noiseLevel);
     
     // update qrs info
-    if (wasQrsDetected || *detectedBySearchback) {
+    if (wasQrsDetected) {
         updateQrsInfo();
     }
     
@@ -505,7 +498,7 @@ bool detectQrs(bool *detectedBySearchback)
     lastQrsIdx--;
     searchBackIdx--;
     
-    return wasQrsDetected || *detectedBySearchback;
+    return wasQrsDetected;
 }
 
 /*=========================================================================
@@ -513,40 +506,21 @@ bool detectQrs(bool *detectedBySearchback)
  *=======================================================================*/
 void onNewSample(double sample)
 {
-    bool detectedBySearchback;
-    
     // preprocess sample
-    filtSig[ci] = preprocessSample(sample);
+    sample = preprocessSample(sample);
     
-    // update detection buffer
-    detb(0) = filtSig[ci];
-    
-    // detect qrs history
-    if (detectQrs(&detectedBySearchback) && qrsHist != NULL) {
-        qrsHist[qrsCount++] = ci + peakIdx + 1;
+    // detect qrs and update outputs
+    if (detectQrs(sample)) {
+        if (qrsHist != NULL) {
+            qrsHist[qrsCount] = ci + peakIdx + 1;
+        }
+        if (rrintHist != NULL) {
+            rrintHist[qrsCount] = rrIntMean;
+        }
+        qrsCount++;
     }
     
-    // update qrs2 history
-    if (detectedBySearchback && qrs2Hist != NULL) {
-        qrs2Hist[qrsCount2++] = ci + peakIdx + 1;
-    }
-    
-    // update main threshold history
-    if (thr1Hist != NULL) {
-        thr1Hist[ci] = sigThreshold;
-    }
-    
-    // update secondary threshold history
-    if (thr2Hist != NULL) {
-        thr2Hist[ci] = 0.5*sigThreshold;
-    }
-    
-    // update RR interval history
-    if (rrintHist != NULL) {
-        rrintHist[ci] = rrIntMean;
-    }
-    
-    // increment global index
+    // increment sample index
     ci++;
 }
 
@@ -602,7 +576,6 @@ void initDetectionVariables()
     
     // QRS
     qrsCount = 0;
-    qrsCount2 = 0;
     lastQrsIdx = 0;
     searchBackIdx = 0;
     
@@ -734,21 +707,17 @@ void handleInputs( int nrhs, const mxArray *prhs[],
 void handleOutputs( int nlhs, mxArray *plhs[],
                     mwSize nrows, mwSize ncols)
 {
-    double *outVectors[MAX_OUTPUTS-1] = {NULL};
-    
-    /* create the output vectors */
-    for (mwSize i = 0; i < min(nlhs,MAX_OUTPUTS-1); i++) {
-        plhs[i] = mxCreateDoubleMatrix(nrows,ncols,mxREAL);
-        outVectors[i] = mxGetPr(plhs[i]);
+    /* create output for the QRS history */
+    if (nlhs > 0) {
+        plhs[0] = mxCreateDoubleMatrix(nrows,ncols,mxREAL);
+        qrsHist = mxGetPr(plhs[0]);
     }
     
-    /* get pointers to the output vectors */
-    filtSig = outVectors[0];
-    qrsHist = outVectors[1];
-    qrs2Hist = outVectors[2];
-    thr1Hist = outVectors[3];
-    thr2Hist = outVectors[4];
-    rrintHist = outVectors[5];
+    /* create output for the RR interval history */
+    if (nlhs > 1) {
+        plhs[1] = mxCreateDoubleMatrix(nrows,ncols,mxREAL);
+        rrintHist = mxGetPr(plhs[1]);
+    }
 }
 
 /*=========================================================================
@@ -774,19 +743,19 @@ void adjustSize( double *vector, mxArray *mxarray,
 void finalize( int nlhs, mxArray *plhs[],
                mwSize nrows, mwSize ncols)
 {
-    /* adjust the size of qrs history output */
-    if (nlhs > 1) {
-        adjustSize(qrsHist,plhs[1],nrows,ncols,qrsCount);
+    /* adjust the size of QRS history output */
+    if (nlhs > 0) {
+        adjustSize(qrsHist,plhs[0],nrows,ncols,qrsCount);
     }
     
-    /* adjust the size of qrs2 history output */
-    if (nlhs > 2) {
-        adjustSize(qrs2Hist,plhs[2],nrows,ncols,qrsCount2);
+    /* adjust the size of RR interval history output */
+    if (nlhs > 1) {
+        adjustSize(rrintHist,plhs[1],nrows,ncols,qrsCount);
     }
     
     /* create the last output (preprocessing delay) */
-    if (nlhs > 6) {
-        plhs[6] = mxCreateDoubleScalar(delay);
+    if (nlhs > 2) {
+        plhs[2] = mxCreateDoubleScalar(delay);
     }
     
     /* deallocate memory */
@@ -823,13 +792,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
     initDetectionVariables();
     
     /* process one input sample at a time */
-    tic();
     for (mwSize i = 0; i < inLen; i++) {
         onNewSample(inputSig[i]);
     }
-    time = toc();
-    mexPrintf("Total processing time: %.2f ms\n", 1000*time);
-    mexPrintf("Average time per sample: %.2f ns\n", 1000000000*time/inLen);
     
     /* perform some final adjustments */
     finalize(nlhs, plhs, nrows, ncols);

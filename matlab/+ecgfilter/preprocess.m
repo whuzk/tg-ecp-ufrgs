@@ -10,14 +10,16 @@ data = Signal.data - Signal.inival;
 [data,delay2] = ecgfilter.suppress_noise(data,Signal.fs);
 
 % atraso do sinal e ajuste dos picos
-[data,Rd] = adjust(data,Rd,floor(delay1-delay2),Signal.lead);
+Rd = adjust_qrs(data,Rd,delay1-delay2,Signal.lead);
 %ecgutilities.plot_signal_r(data, Rd);
 %pause;
 
+% calculo dos intervalos RR
+RR = diff(Rd);
+
 % extraçao das batidas e remoçao da linha de base
-RR = diff([0; Rd]);
 FrameSize = 2*fix(Signal.fs*0.6)+1;
-Beats = ecgutilities.extract_beats(data,Rd,RR,FrameSize);
+Beats = ecgutilities.extract_beats(data,Rd,FrameSize);
 %ecgutilities.plot_signal(Beats(:,1), 'Beat #1');
 %pause;
 
@@ -33,8 +35,9 @@ index = detect_artifact_beats(Beats,Template,20);
 %pause;
 
 % salva o resultado
+RR = RR(~index);
 Beats = Beats(:,~index);
-Rd = Rd(~index)-floor(delay1);
+Rd = Rd(~index)-floor(delay2);
 
 
 function Result = detect_artifact_beats(Beats,Template,Threshold)
@@ -50,8 +53,8 @@ for i = 1:m
     %end
 end
 
-function [data,Rd] = adjust(data,Rd,delay,lead)
-data = [zeros(delay,1); data(1:end-delay)];
+function Rd = adjust_qrs(data,Rd,delay,lead)
+Rd = Rd - floor(delay);
 if ismember(lead,{'MLIII'})
     Rd = ecgmath.neighbour_max(-data,Rd,5);
 else
