@@ -3,13 +3,13 @@
  * 
  *  Title: detect QRS complex using floating-point arithmetic
  *  Author: Diego Sogari
- *  Last modification:  23/Apr/2014
+ *  Last modification:  27/Apr/2014
  *
  *  Outputs:
  *      1. ECG signal*
  *      2. sampling frequency*
- *      3. mains frequency (default to 60 Hz)
- *      4. MBD filter order (default to 3)
+ *      3. mains frequency (is guessed based on sampling frequency)
+ *      4. MBD filter order (defaults to 3)
  *
  *  Outputs:
  *      1. filtered signal*
@@ -26,6 +26,7 @@
 #include <math.h>
 #include "mex.h"
 #include "c_ecg_utils.h"
+#include "c_time_utils.h"
 
 /*=========================================================================
  * Abbreviations
@@ -59,7 +60,7 @@
  *=======================================================================*/
 #define MIN_INPUTS      2
 #define MAX_INPUTS      4
-#define MIN_OUTPUTS     2
+#define MIN_OUTPUTS     1
 #define MAX_OUTPUTS     7
 
 #define MIN_MAINS_FREQ  50
@@ -131,8 +132,6 @@ static double mafBuf[MAF_BUFLEN] = {0};     // MAF buffer
 static double sigThreshold;     // signal threshold
 static double signalLevel;      // signal level
 static double noiseLevel;       // noise level
-static double lastPeakAmp;      // amplitude of the last peak detected
-static double qrsAmpMean;       // running average qrs amplitude
 static double peakAmp;          // currently detected peak amplitude
 static double rrIntMean;        // running average of RR intervals
 static double rrIntMiss;        // interval for qrs to be assumed as missed
@@ -147,7 +146,6 @@ static mwSize twaveTolerance;   // tolerance for T-wave detection
 static mwSize refractoryPeriod; // length of refractory period for QRS detection
 static mwSize qrsCount;         // count of QRS complex in main QRS buffer
 static mwSize qrsCount2;        // current position in second QRS buffer
-static unsigned long long lastPeakIdx;      // index of the last peak detected
 static unsigned long long lastQrsIdx;       // index of last detected QRS complex
 static unsigned long long searchBackIdx;    // index of searchback starting point
 static unsigned long long peakIdx;          // currently detected peak index
@@ -283,9 +281,13 @@ bool istwave(unsigned long long candQrs, unsigned long long lastQrs)
 {
     // check if the canditate QRS occurs near the previous one
     if ((int)(candQrs - lastQrs) < twaveTolerance) {
+        // calculate starting indices
+        unsigned long long start1 = candQrs - qrsHalfLength + 1;
+        unsigned long long start2 = lastQrs - qrsHalfLength + 1;
+        
         // max slope of waveforms
-        double slope1 = maxdiff(filtSig + candQrs - qrsHalfLength + 1, qrsHalfLength);
-        double slope2 = maxdiff(filtSig + lastQrs - qrsHalfLength + 1, qrsHalfLength);
+        double slope1 = maxdiff(filtSig + start1, qrsHalfLength);
+        double slope2 = maxdiff(filtSig + start2, qrsHalfLength);
         
         // check condition for T wave
         return (slope1 < 0.5 * slope2);
@@ -298,6 +300,8 @@ bool istwave(unsigned long long candQrs, unsigned long long lastQrs)
  *=======================================================================*/
 bool detectPeak(unsigned long long i)
 {
+    static unsigned long long lastPeakIdx = 0;  // index of the last peak
+    static double lastPeakAmp = 0.0;            // amplitude of the last peak
     double newAmp = filtSig[i];
     
     // check if the new amplitude is greater than that of the last peak
@@ -333,11 +337,6 @@ bool detectPeak(unsigned long long i)
 bool evaluatePeak(unsigned long long i)
 {
     if (lastQrsIdx == 0 || peakIdx - lastQrsIdx > refractoryPeriod) {
-        // decrease estimation ratio for times beyond the training period
-        if (i == trainingPeriod) {
-            estRatio = estRatio / 2.0;
-        }
-        
         // adjust levels
         if (peakAmp >= sigThreshold) {
             signalLevel = estimate(signalLevel, estRatio, peakAmp);
@@ -347,9 +346,8 @@ bool evaluatePeak(unsigned long long i)
         }
         
         // assert qrs
-        return (i > trainingPeriod &&
-                peakAmp >= sigThreshold &&
-                !istwave(peakIdx, lastQrsIdx));
+        return (i > trainingPeriod && peakAmp >= sigThreshold &&
+                (lastQrsIdx == 0 || !istwave(peakIdx, lastQrsIdx)));
     }
     else return false;
 }
@@ -359,16 +357,18 @@ bool evaluatePeak(unsigned long long i)
  *=======================================================================*/
 bool searchBack(unsigned long long i)
 {
-    if (((!isSignalRising) || filtSig[i] < sigThreshold) &&
-            searchBackIdx > 0 && i - searchBackIdx >= rrIntMiss) {
+    if ((!isSignalRising) && searchBackIdx > 0 &&
+            i - searchBackIdx >= (int)rrIntMiss) {
         // search back and locate the max in this interval
-        mwSize len = (int)round(rrIntMean);
-        unsigned long long begin = searchBackIdx + len/2;
+        mwSize len = (int)rrIntMean;
+        unsigned long long begin = i - len + 1;
         peakIdx = begin + findmax(filtSig + begin, len);
         peakAmp = filtSig[peakIdx];
         
         // check if candidate peak is from qrs
-        if (peakAmp >= 0.5 * sigThreshold && !istwave(peakIdx, lastQrsIdx)) {
+        if (peakAmp < sigThreshold &&
+                peakAmp >= 0.5 * sigThreshold &&
+                !istwave(peakIdx, lastQrsIdx)) {
             // adjust signal level
             signalLevel = estimate(signalLevel, 0.25, peakAmp);
             // signalize qrs detection
@@ -391,9 +391,6 @@ bool searchBack(unsigned long long i)
  *=======================================================================*/
 void updateQrsInfo()
 {
-    // update QRS amplitude estimation
-    qrsAmpMean = estimate(qrsAmpMean, 0.2, peakAmp);
-    
     // update RR interval
     if (lastQrsIdx > 0) {
         mwSize newRR = (int)(peakIdx - lastQrsIdx);
@@ -433,6 +430,11 @@ bool detectQrs(unsigned long long i, bool *wasDetectedBySearchback)
     // update threshold
     sigThreshold = noiseLevel + 0.25*fabs(signalLevel - noiseLevel);
     
+    // decrease estimation ratio for times beyond the training period
+    if (i == trainingPeriod) {
+        estRatio = estRatio / 2.0;
+    }
+    
     // update qrs info
     if (wasQrsDetected || *wasDetectedBySearchback) {
         updateQrsInfo();
@@ -454,12 +456,12 @@ void onNewSample(double sample)
     
     // detect qrs and update qrs history
     if (detectQrs(i, &detectedBySearchback) && qrsHist != NULL) {
-        qrsHist[qrsCount++] = (double)(peakIdx + 1);
+        qrsHist[qrsCount++] = peakIdx + 1;
     }
     
     // update qrs2 history
     if (detectedBySearchback && qrs2Hist != NULL) {
-        qrs2Hist[qrsCount2++] = (double)(peakIdx + 1);
+        qrs2Hist[qrsCount2++] = peakIdx + 1;
     }
     
     // update main threshold history
@@ -528,15 +530,12 @@ void initDetectionVariables()
     // peak
     peakIdx = 0;
     peakAmp = 0.0;
-    lastPeakIdx = 0;
-    lastPeakAmp = 0.0;
     
     // QRS
     qrsCount = 0;
     qrsCount2 = 0;
     lastQrsIdx = 0;
     searchBackIdx = 0;
-    qrsAmpMean = 0.0;
     
     // RR interval
     rrIntMean = sampFreq;
