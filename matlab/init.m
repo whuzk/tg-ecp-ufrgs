@@ -22,7 +22,7 @@ Measures = {
 load('.\matfiles\dbnames.mat');
 
 % registros de ecg
-EDB = load('C:\physiobank\database\edb.mat', 'e0103');
+EDB = load('C:\physiobank\database\edb.mat', 'e0116');
 %MITDB = load('C:\physiobank\database\mitdb.mat');
 %QTDB = load('C:\physiobank\database\qtdb.mat');
 

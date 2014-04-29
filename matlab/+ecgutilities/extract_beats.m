@@ -1,21 +1,30 @@
-function Result = extract_beats(data,lead,Fs,R,RR,FrameSize)
+function [Beats,R,RR] = extract_beats(data,lead,Fs,FrameSize)
 import ecgutilities.*
+import ecgfastcode.*
 import ecgfilter.*
 
-N = length(data);
-L = floor(min(RR,FrameSize)/2);
-if L(1) > R(1)-1
-    L(1) = R(1)-1;
-end
-if L(end) > N-R(end)
-    L(end) = N-R(end);
-end
+[R,RR,delay1] = c_prod_detect_qrs_double(data,Fs);
+R = adjust_qrs(data,lead,R-floor(delay1),Fs);
 
-M = length(R);
-Result = zeros(FrameSize,M);
-for i = 1:1000%M
-    Temp = data(R(i)-L(i):R(i)+L(i));
-    F = fiducial_marks(Temp,lead,L(i)+1,Fs);
-    Temp = suppress_baseline(Temp(F.P(1):F.T(3)),5);
-    Result(:,i) = frame_beat(Temp,FrameSize);
+[mmd,lap,delay2] = sogari_filter2(data,Fs,50);
+R = R + floor(delay2);
+F = fiducial_marks(mmd,lap,lead,R,Fs);
+
+data = [zeros(floor(delay2),1); data(1:end-floor(delay2))];
+plot_fiducial_marks(data,F);
+plot_fiducial_marks(mmd,F);
+
+M = length(F);
+Beats = zeros(FrameSize,M);
+for i = 1:M
+    Beat = data(F(i).P(1):F(i).T(3));
+    %figure, plot(Beat);
+    Beat = suppress_baseline(Beat,5);
+    %figure, plot(Beat);
+    r = F(i).R(2) - F(i).P(1) + 1;
+    Beat = frame_beat(Beat,r,FrameSize);
+    %figure, plot(Beat);
+    Beats(:,i) = Beat;
+    %pause;
 end
+R = R - floor(delay2);

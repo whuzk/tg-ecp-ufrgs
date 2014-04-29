@@ -140,7 +140,6 @@ static double rrIntMiss;        // interval for qrs to be assumed as missed
 static double rrIntLow;         // lower bound for acceptance of new RR
 static double rrIntHigh;        // upper bound for acceptance of new RR
 static double rrIntMin;         // lowest bound applied to estimated RR
-static double rrIntMax;         // highest bound applied to estimated RR
 static mwSize trainingPeriod;   // length of training period
 static mwSize qrsHalfLength;    // half the length of a QRS complex
 static mwSize twaveTolerance;   // tolerance for T-wave detection
@@ -199,10 +198,10 @@ double wmf(double sample)
 /*=========================================================================
  * Automatic gain control
  *=======================================================================*/
-double agc(double sample, double gain)
+double agc(double sample)
 {
     // update filter output: y[n] = x[n-M] * maxG / max(G, minG)
-    double y0 = (agcb(-agcWin) * agcMax) / fmax(gain, agcMin);
+    double y0 = (agcb(-agcWin) * agcMax) / fmax(wmf(sample), agcMin);
     
     // update filter memory
     agcb(0) = sample;
@@ -252,16 +251,11 @@ double maf(double sample)
  *=======================================================================*/
 double preprocessSample(double sample)
 {
-    double gain;
-    
     sample = lpf(sample);
     sample = fabs(sample);
-    gain = wmf(sample);
-    sample = agc(sample, gain);
+    sample = agc(sample);
     sample = mdb(sample);
-    sample = maf(sample);
-    
-    return sample;
+    return maf(sample);
 }
 
 /*=========================================================================
@@ -386,7 +380,7 @@ void updateQrsInfo()
     // update RR interval
     mwSize newRR = peakIdx - lastQrsIdx;
     if (rrIntLow < newRR && newRR < rrIntHigh) {
-        rrIntMean = fmax(rrIntMin, estimate(rrIntMean, 0.2, newRR));
+        rrIntMean = fmax(rrIntMin, estimate(rrIntMean, 0.125, newRR));
     }
     
     // calculate RR missed limit
@@ -476,10 +470,11 @@ void onNewSample(double sample)
  *=======================================================================*/
 void designPreprocessingFilters()
 {
-    int maxbits;
+    int n,maxbits;
     
     // low-pass and second-order backward difference
-    lpfWin = ((int)round(sampFreq / mainsFreq) << 1) + 1;
+    n = (int)round(sampFreq / mainsFreq);
+    lpfWin = (n << 1) + 1;
     
     // windowed-maximum
     wmfWin = 2 * sampFreq;
@@ -496,12 +491,8 @@ void designPreprocessingFilters()
     // moving-average
     mafWin = (int)(sampFreq * (double)MAF_LEN_SEC);
     
-    // calculate overall preprocessing delay
-    delay = (lpfWin - 1) / 2.0 +    // LPF
-            0 +                     // WMF
-            agcWin +                // AGC
-            (mbdWin - 1) / 2.0 +    // MBD
-            (mafWin - 1) / 2.0;     // MAF
+    // calculate overall preprocessing delay (LPF + WMF + AGC + MBD + MAF)
+    delay = n + 0 + agcWin + (mbdWin - 1) / 2.0 + (mafWin - 1) / 2.0;
 }
 
 /*=========================================================================

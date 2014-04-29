@@ -3,13 +3,13 @@ import ecgutilities.*
 %close all;
 
 % load ecg
-Signal = interpret(EDB.e0103,2);
+Signal = interpret(EDB.e0116,2);
 data = Signal.data - Signal.inival;
 
 % detect qrs
-[Rd0,Rint,delay0] = prod_detect_qrs_double(data,Signal.fs,50,3);
-[Y1,Rd1,R21,TH11,TH21,RR1,delay1] = rt_detect_qrs_double(data,Signal.fs,50,3);
-[Y2,Rd2,R22,TH12,TH22,RR2,delay2] = detect_qrs_double(data,Signal.fs,50,3);
+[Rd0,RR0,delay0] = prod_detect_qrs_double(data,Signal.fs,50,4);
+[Y1,Rd1,R21,TH11,TH21,RR1,delay1] = rt_detect_qrs_double(data,Signal.fs,50,4);
+[Y2,Rd2,R22,TH12,TH22,RR2,delay2] = detect_qrs_double(data,Signal.fs,50,4);
 
 %{
 dataInt = int16(data);

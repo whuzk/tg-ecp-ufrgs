@@ -192,10 +192,10 @@ double wmf(double sample)
 /*=========================================================================
  * Automatic gain control
  *=======================================================================*/
-double agc(double sample, double gain)
+double agc(double sample)
 {
     // update filter output: y[n] = x[n-M] * maxG / max(G, minG)
-    double y0 = (agcb(-agcWin) * agcMax) / fmax(gain, agcMin);
+    double y0 = (agcb(-agcWin) * agcMax) / fmax(wmf(sample), agcMin);
     
     // update filter memory
     agcb(0) = sample;
@@ -245,16 +245,11 @@ double maf(double sample)
  *=======================================================================*/
 double preprocessSample(double sample)
 {
-    double gain;
-    
     sample = lpf(sample);
     sample = fabs(sample);
-    gain = wmf(sample);
-    sample = agc(sample, gain);
+    sample = agc(sample);
     sample = mdb(sample);
-    sample = maf(sample);
-    
-    return sample;
+    return maf(sample);
 }
 
 /*=========================================================================
@@ -352,9 +347,8 @@ bool detectPeak(double newAmp)
         return false;
     }
     else if (!isSignalRising) {
-        // update peak info
+        // update current amplitude
         lastPeakAmp = newAmp;
-        lastPeakIdx = 0;
         return false;
     }
     else if (newAmp < 0.5 * lastPeakAmp) {
@@ -531,10 +525,11 @@ void onNewSample(double sample)
  *=======================================================================*/
 void designPreprocessingFilters()
 {
-    int maxbits;
+    int n,maxbits;
     
     // low-pass and second-order backward difference
-    lpfWin = ((int)round(sampFreq / mainsFreq) << 1) + 1;
+    n = (int)round(sampFreq / mainsFreq);
+    lpfWin = (n << 1) + 1;
     
     // windowed-maximum
     wmfWin = 2 * sampFreq;
@@ -551,12 +546,8 @@ void designPreprocessingFilters()
     // moving-average
     mafWin = (int)(sampFreq * (double)MAF_LEN_SEC);
     
-    // calculate overall preprocessing delay
-    delay = (lpfWin - 1) / 2.0 +    // LPF
-            0 +                     // WMF
-            agcWin +                // AGC
-            (mbdWin - 1) / 2.0 +    // MBD
-            (mafWin - 1) / 2.0;     // MAF
+    // calculate overall preprocessing delay (LPF + WMF + AGC + MBD + MAF)
+    delay = n + 0 + agcWin + (mbdWin - 1) / 2.0 + (mafWin - 1) / 2.0;
 }
 
 /*=========================================================================
@@ -757,8 +748,8 @@ void finalize( int nlhs, mxArray *plhs[],
     }
     
     /* create the last output (preprocessing delay) */
-    if (nlhs > 2) {
-        plhs[2] = mxCreateDoubleScalar(delay);
+    if (nlhs > MAX_OUTPUTS-1) {
+        plhs[MAX_OUTPUTS-1] = mxCreateDoubleScalar(delay);
     }
     
     /* deallocate memory */
