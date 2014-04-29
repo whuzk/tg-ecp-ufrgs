@@ -1,62 +1,34 @@
 function [Beats,Rd,RR,Template] = preprocess(Signal)
+import ecgutilities.*
+import ecgfastcode.*
+import ecgfilter.*
 
 % inicializacao
 data = Signal.data - Signal.inival;
 
 % detecção dos complexos QRS
-[~,Rd,~,~,~,~,delay1] = ecgfastcode.detect_qrs_double(data,Signal.fs);
+[Rd,RR,delay1] = prod_detect_qrs_double(data,Signal.fs);
 
 % remoçao de ruido
-[data,delay2] = ecgfilter.suppress_noise(data,Signal.fs);
+[data,delay2] = suppress_noise(data,Signal.fs);
 
-% atraso do sinal e ajuste dos picos
-Rd = adjust_qrs(data,Rd,delay1-delay2,Signal.lead);
-%ecgutilities.plot_signal_r(data, Rd);
-%pause;
-
-% calculo dos intervalos RR
-RR = diff(Rd);
+% ajuste dos picos
+Rd = Rd - floor(delay1 - delay2);
+Rd = adjust_qrs(data,Signal.lead,Rd,Signal.fs);
 
 % extraçao das batidas e remoçao da linha de base
-FrameSize = 2*fix(Signal.fs*0.6)+1;
-Beats = ecgutilities.extract_beats(data,Rd,FrameSize);
-%ecgutilities.plot_signal(Beats(:,1), 'Beat #1');
-%pause;
+FrameSize = 2*floor(Signal.fs*0.6)+1;
+Beats = extract_beats(data,Signal.lead,Signal.fs,Rd,RR,FrameSize);
 
-% construçao do template
-TemplateCount = 30;
-Template = mean(Beats(:,1:TemplateCount),2);
-%ecgutilities.plot_signal(Template, 'Template');
-%pause;
-
-% remoçao de batidas anomalas
-index = detect_artifact_beats(Beats,Template,20);
-%ecgutilities.plot_signal_r(data, Rd(~index));
-%pause;
-
+% construçao de template e remoçao de batidas anomalas
+[Template,index] = detect_artifacs(Beats,30,30);
+%{
+ecgutilities.plot_signal_r(data, Rd);
+ecgutilities.plot_signal(Beats(:,1), 'Beat #1');
+ecgutilities.plot_signal(Template, 'Template');
+ecgutilities.plot_signal_r(data, Rd(~index));
+%}
 % salva o resultado
 RR = RR(~index);
 Beats = Beats(:,~index);
 Rd = Rd(~index)-floor(delay2);
-
-
-function Result = detect_artifact_beats(Beats,Template,Threshold)
-m = size(Beats,2);
-Result = false(1,m);
-%figure;
-for i = 1:m
-    Result(i) = rms(Beats(:,i) - Template) > Threshold;
-    %if Result(i)
-    %    plot(Beats(:,i));
-    %    rms(Beats(:,i) - Template)
-    %    pause;
-    %end
-end
-
-function Rd = adjust_qrs(data,Rd,delay,lead)
-Rd = Rd - floor(delay);
-if ismember(lead,{'MLIII'})
-    Rd = ecgmath.neighbour_max(-data,Rd,5);
-else
-    Rd = ecgmath.neighbour_max(data,Rd,5);
-end

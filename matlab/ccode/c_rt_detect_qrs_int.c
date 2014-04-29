@@ -13,7 +13,7 @@
  *
  *  Outputs:
  *      1. filtered signal*
- *      2. location of detected R peak (in samples)*
+ *      2. location of detected R peak (in samples)
  *      3. location of R peaks detected by search back (in samples)
  *      4. history of main signal threshold
  *      5. history of secondary signal threshold

@@ -130,6 +130,7 @@ static double noiseLevel;       // noise level
 static double estRatio;         // ratio of signal/noise level estimation
 static double peakAmp;          // currently detected peak amplitude
 static double rrIntMean;        // running average of RR intervals
+static double rrIntMean2;       // secondary running average of RR intervals
 static double rrIntMiss;        // interval for qrs to be assumed as missed
 static double rrIntLow;         // lower bound for acceptance of new RR
 static double rrIntHigh;        // upper bound for acceptance of new RR
@@ -444,8 +445,9 @@ void updateQrsInfo()
     // update RR interval
     mwSize newRR = peakIdx - lastQrsIdx;
     if (rrIntLow < newRR && newRR < rrIntHigh) {
-        rrIntMean = fmax(rrIntMin, estimate(rrIntMean, 0.2, newRR));
+        rrIntMean = fmax(rrIntMin, estimate(rrIntMean, 0.125, newRR));
     }
+    rrIntMean2 = estimate(rrIntMean2, 0.125, newRR);
     
     // calculate RR limits
     rrIntLow = 0.5 * rrIntMean;
@@ -515,7 +517,7 @@ void onNewSample(double sample)
             qrsHist[qrsCount] = ci + peakIdx + 1;
         }
         if (rrintHist != NULL) {
-            rrintHist[qrsCount] = rrIntMean;
+            rrintHist[qrsCount] = rrIntMean2;
         }
         qrsCount++;
     }
@@ -581,6 +583,7 @@ void initDetectionVariables()
     
     // RR interval
     rrIntMean = sampFreq;
+    rrIntMean2 = sampFreq;
     rrIntLow = 0.5 * rrIntMean;
     rrIntHigh = 1.5 * rrIntMean;
     rrIntMiss = 1.75 * rrIntMean;
