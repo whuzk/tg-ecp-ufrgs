@@ -5,6 +5,7 @@ import ecgutilities.*
 % load ecg
 Signal = interpret(EDB.e0116,2);
 data = Signal.data - Signal.inival;
+dataInt = int16(data);
 
 % detect qrs
 [Rd0,RR0,delay0] = prod_detect_qrs_double(data,Signal.fs,50,4);
@@ -12,7 +13,6 @@ data = Signal.data - Signal.inival;
 [Y2,Rd2,R22,TH12,TH22,RR2,delay2] = detect_qrs_double(data,Signal.fs,50,4);
 
 %{
-dataInt = int16(data);
 [Rd0,RR0] = prod_detect_qrs_int(dataInt,Signal.fs,50,3);
 Rd0 = double(Rd0);
 RR0 = double(RR0);

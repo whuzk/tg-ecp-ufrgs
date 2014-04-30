@@ -1,16 +1,21 @@
 Signal = ecgutilities.interpret(EDB.e0116,2);
 data = Signal.data - Signal.inival;
-%data = data(1:10000);
-%data = resample(data, 15360, Signal.fs);
-%Fs = 15360;
+data = data(1:50000);
+data = resample(data, 7680, Signal.fs);
+Fs = 7680;
+%data = linspace(0,1000,1000000);
+%data = linspace(1000,0,1000000);
+%{
 Fs = Signal.fs;
-
 N = round(Fs/60);
 h = triangularPulse(-N,N,-N+1:N-1);
 a = [1 -2 1];
 b = conv(h,a)/N;
 Y = filter(b,a,data);
-
+[G,mem,cmp] = ecgmath.running_max(Y,2*s+1,-Inf);
+%[G,mem,cmp] = ecgmath.running_max(-Y,2*s+1,-Inf);
+%}
+%{
 s = floor(0.06*Fs);
 G1 = ecgmath.running_max(Y,2*s+1,-Inf);
 G2 = -ecgmath.running_max(-Y,2*s+1,-Inf);
@@ -20,19 +25,22 @@ B = ones(2*s+1,1);
 temp2 = (imerode(Y,B)+imdilate(Y,B)-2*Y)./s;
 temp2 = [zeros(s,1); temp2(1:end-s)];
 figure, plot([temp1 temp2]);
+%}
+%
+N = round(Fs/60);
+h1 = N*triangularPulse(-N,N,-N+1:N-1);
+h = conv(h1,[1 -2 1])/4;
+Y = abs(filter(h,1,data));
+[G,mem,cmp] = ecgmath.running_max(Y,2*Fs,-Inf);
+%
 
-%data = linspace(0,1000,1000000);
-%data = linspace(1000,0,1000000);
-%{
-w = floor(0.06*Fs)*2+1;
-[G,mem,cmp] = ecgmath.running_max(-Y,w,-Inf);
 max(mem)
 max(cmp)
 mean(mem)
 mean(cmp)
 figure, plot(data);
-figure, plot([Y -G]);
-%}
+figure, plot([Y abs(G)]);
+%
 %{
 total = 2*15360;
 Smax = zeros(total,1);

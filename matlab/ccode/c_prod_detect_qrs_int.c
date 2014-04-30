@@ -63,17 +63,17 @@
 #define DEF_MAINS_FREQ  60
 
 #define MIN_MBD_ORDER   1
-#define MAX_MBD_ORDER   8
+#define MAX_MBD_ORDER   4
 #define DEF_MBD_ORDER   3
 
 #define ACG_LEN_SEC     0.05
 #define MAF_LEN_SEC     0.10
 
-#define LPF_BUFLEN      256     // supports sampling frequencies of up to (256*mainsFreq) Hz
-#define WMF_BUFLEN      1024    // 2^nextpow2(MAX_WMF_LIST_SIZE) [determined experimentaly]
-#define ACG_BUFLEN      1024    // 2^nextpow2(MAX_MAINS_FREQ * LPF_BUFLEN * ACG_LEN_SEC)
+#define LPF_BUFLEN      256     // supports sampling frequencies of up to (LPF_BUFLEN/2*mainsFreq) Hz
+#define WMF_BUFLEN      512     // 2^nextpow2(MAX_WMF_LIST_SIZE) [determined experimentaly]
+#define ACG_BUFLEN      512     // 2^nextpow2(LPF_BUFLEN/2 * MAX_MAINS_FREQ * ACG_LEN_SEC)
 #define MBD_BUFLEN      8       // 2^nextpow2(MAX_MBD_ORDER)
-#define MAF_BUFLEN      2048    // 2^nextpow2(MAX_MAINS_FREQ * LPF_BUFLEN * MAF_LEN_SEC)
+#define MAF_BUFLEN      1024    // 2^nextpow2(LPF_BUFLEN/2 * MAX_MAINS_FREQ * MAF_LEN_SEC)
 
 /*=========================================================================
  * Input variables
@@ -96,15 +96,15 @@ static double delay;        // overall preprocessing delay
 static mwSize lpfWin;                       // LPF window length
 static mwSize wmfWin;                       // WMF window length
 static mwSize agcWin;                       // AGC window length
-static short agcMin;                        // AGC lower limit
-static short agcMax;                        // AGC upper limit
 static mwSize mbdWin;                       // MBD window length
 static mwSize mafWin;                       // MAF window length
-static mwSize mafWinLog2;                   // log2 of MAF window length
+static int agcMin;                          // AGC lower limit
+static int agcMax;                          // AGC upper limit
+static int mbdGainLog2;                     // log2 of MDB gain
 static short lpfBuf[LPF_BUFLEN] = {0};      // LPF buffer
-static short wmfBuf[WMF_BUFLEN] = {0};      // WMF buffer
+static int wmfBuf[WMF_BUFLEN] = {0};        // WMF buffer
 static unsigned int wmfAux[WMF_BUFLEN];     // WMF aux buffer
-static short agcBuf[ACG_BUFLEN] = {0};      // AGC buffer
+static int agcBuf[ACG_BUFLEN] = {0};        // AGC buffer
 static int mbdBuf[MBD_BUFLEN] = {1};        // MBD buffer
 static int mafBuf[MAF_BUFLEN] = {0};        // MAF buffer
 static int *detBuf;                         // detection buffer
@@ -149,22 +149,22 @@ static bool isSignalRising;     // flag to indicate a rise in the signal
 /*=========================================================================
  * Low-pass filter and second-order backward difference
  *=======================================================================*/
-short lpf(short sample)
+int lpf(short sample)
 {
-    // update filter output: y[n] = x[n] - 2*x[n-M/2] + x[n-M+1]
-    short y0 = sample - (lpfb(-(lpfWin >> 1)) << 1) + lpfb(-lpfWin + 1);
+    // update filter output: y[n] = x[n] - 2*x[n-M/2] + x[n-M]
+    int y0 = sample - (lpfb(-(lpfWin >> 1)) << 1) + lpfb(-lpfWin);
     
     // update filter memory
     lpfb(0) = sample;
     
-    // compute result: y[n]/4
-    return y0 >> 2;
+    // compute result
+    return y0;// >> 2;
 }
 
 /*=========================================================================
  * Windowed-maximum
  *=======================================================================*/
-short wmf(short sample)
+int wmf(int sample)
 {
     static mwSize first = 0;
     static mwSize count = 0;
@@ -193,24 +193,29 @@ short wmf(short sample)
 /*=========================================================================
  * Automatic gain control
  *=======================================================================*/
-short agc(short sample)
+int agc(int sample)
 {
-    // update filter output: y[n] = x[n-M] * maxG / max(G, minG)
-    short y0 = (agcb(-agcWin) * (int)agcMax) / (int)max(wmf(sample), agcMin);
+    int gain = wmf(sample);
+    int y0 = agcb(-agcWin);
+    
+    if (gain >= agcMin) {
+        // update filter output: y[n] = x[n-M] * maxGain / gain
+        y0 *= agcMax / gain;
+    }
     
     // update filter memory
     agcb(0) = sample;
     
     // compute result
-    return min(y0, agcMax);
+    return min(y0, agcMax-1);
 }
 
 /*=========================================================================
  * Multiplication of absolute backward differences
  *=======================================================================*/
-int mdb(short sample)
+int mdb(int sample)
 {
-    int y0 = sample;
+    long long y0 = sample;
     
     // update filter output: y[n] = x[n] * ... * x[n-M+1]
     for (mwSize k = 1; k < mbdWin; k++) {
@@ -221,7 +226,7 @@ int mdb(short sample)
     mbdb(0) = sample;
     
     // compute result
-    return y0;
+    return (int)(y0 >> mbdGainLog2);
 }
 
 /*=========================================================================
@@ -229,7 +234,7 @@ int mdb(short sample)
  *=======================================================================*/
 int maf(int sample)
 {
-    static long long y0 = 0;
+    static int y0 = 0;
     
     // update filter output: y[n] = y[n-1] + x[n] - x[n-M]
     y0 += sample - mafb(-mafWin);
@@ -237,8 +242,8 @@ int maf(int sample)
     // update filter memory
     mafb(0) = sample;
     
-    // compute result: y[n]/M
-    return (int)min(y0 >> mafWinLog2, INT_MAX);
+    // compute result
+    return y0;// / mafWin;
 }
 
 /*=========================================================================
@@ -246,11 +251,10 @@ int maf(int sample)
  *=======================================================================*/
 int preprocessSample(short sample)
 {
-    int sample2;
-    sample = lpf(sample);
-    sample = abs(sample);
-    sample = agc(sample);
-    sample2 = mdb(sample);
+    int sample2 = lpf(sample);
+    sample2 = abs(sample2);
+    sample2 = agc(sample2);
+    sample2 = mdb(sample2);
     return maf(sample2);
 }
 
@@ -527,25 +531,23 @@ void onNewSample(short sample)
  *=======================================================================*/
 void designPreprocessingFilters()
 {
-    int n,maxbits;
+    int n;
     
     // low-pass and second-order backward difference
     n = (int)round(sampFreq / mainsFreq);
-    lpfWin = (n << 1) + 1;
+    lpfWin = n << 1;
     
     // windowed-maximum
     wmfWin = sampFreq << 1;
-    mafWinLog2 = (int)ceil(log2(wmfWin));
     
     // automatic gain control
     agcWin = (int)(sampFreq * (double)ACG_LEN_SEC);
-    maxbits = (int)((sizeof(int) << 3) - 1) / mbdOrder;
-    maxbits = (int)min((sizeof(int) << 2) - 1, maxbits);
-    agcMax = (1 << maxbits) - 1;
-    agcMin = 8;
+    agcMax = 1 << 15;
+    agcMin = 1 << 3;
     
     // multiplication of absolute backward differences
     mbdWin = mbdOrder;
+    mbdGainLog2 = (mbdOrder - 1) * 15;
     
     // moving-average
     mafWin = (int)(sampFreq * (double)MAF_LEN_SEC);
@@ -684,11 +686,11 @@ void handleInputs( int nrhs, const mxArray *prhs[],
                 MIN_MAINS_FREQ, MAX_MAINS_FREQ);
     }
     /* make sure the sampling frequency is within pre-defined limits */
-    if (sampFreq < mainsFreq || sampFreq > mainsFreq * LPF_BUFLEN) {
+    if (sampFreq < mainsFreq || sampFreq > mainsFreq * LPF_BUFLEN/2) {
         mexErrMsgIdAndTxt(
                 "EcgToolbox:c_detect_qrs_int:badSampFreq",
                 "Sampling frequency must be between %d and %d.",
-                mainsFreq, mainsFreq * LPF_BUFLEN);
+                mainsFreq, mainsFreq * LPF_BUFLEN/2);
     }
     /* make sure the MBD filter order is within pre-defined limits */
     if (mbdOrder < MIN_MBD_ORDER || mbdOrder > MAX_MBD_ORDER) {

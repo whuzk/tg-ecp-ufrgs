@@ -60,9 +60,9 @@
 
 #define MMD_LEN_SEC     0.06
 
-#define LPF_BUFLEN      256     // supports sampling frequencies of up to (256*mainsFreq) Hz
-#define WMF_BUFLEN      2048    // 2^nextpow2(MAX_MAINS_FREQ * LPF_BUFLEN * MMD_LEN_SEC * 2 + 1)
-#define MMD_BUFLEN      1024    // 2^nextpow2(MAX_MAINS_FREQ * LPF_BUFLEN * MMD_LEN_SEC)
+#define LPF_BUFLEN      256     // supports sampling frequencies of up to (LPF_BUFLEN/2*mainsFreq) Hz
+#define WMF_BUFLEN      1024    // 2^nextpow2(LPF_BUFLEN/2 * MAX_MAINS_FREQ * MMD_LEN_SEC * 2 + 1)
+#define MMD_BUFLEN      512     // 2^nextpow2(LPF_BUFLEN/2 * MAX_MAINS_FREQ * MMD_LEN_SEC)
 #define LAP_BUFLEN      4       // 2^nextpow2(3)
 
 /*=========================================================================
@@ -84,16 +84,15 @@ static double delay;        // overall preprocessing delay
  * Preprocessing variables
  *=======================================================================*/
 static mwSize lpfWin;                       // LPF window length
-static int lpfGain;                         // LPF filter gain
 static mwSize wmfWin;                       // WMI window length
 static mwSize mmdWin;                       // MMD window length
 static short lpfBuf[LPF_BUFLEN] = {0};      // LPF buffer
-static short wmaBuf[WMF_BUFLEN] = {0};      // WMaxF buffer
+static int wmaBuf[WMF_BUFLEN] = {0};        // WMaxF buffer
 static unsigned int wmaAux[WMF_BUFLEN];     // WMaxF aux buffer
-static short wmiBuf[WMF_BUFLEN] = {0};      // WMinF buffer
+static int wmiBuf[WMF_BUFLEN] = {0};        // WMinF buffer
 static unsigned int wmiAux[WMF_BUFLEN];     // WMinF aux buffer
-static short mmdBuf[MMD_BUFLEN] = {0};      // MMD buffer
-static short lapBuf[LAP_BUFLEN] = {0};      // LAP buffer
+static int mmdBuf[MMD_BUFLEN] = {0};        // MMD buffer
+static int lapBuf[LAP_BUFLEN] = {0};        // LAP buffer
 static unsigned int ci;                     // current sample index
 
 /*=========================================================================
@@ -110,13 +109,13 @@ static unsigned int ci;                     // current sample index
 /*=========================================================================
  * Low-pass filter
  *=======================================================================*/
-short lpf(short sample)
+int lpf(short sample)
 {
     static int y1 = 0;
     static int y2 = 0;
     
-    // update filter output: y[n] = x[n] - 2*x[n-M/2] + x[n-M+1] + 2*y[n-1] - y[n-2]
-    int y0 = sample - 2 * lpfb(-lpfWin/2) + lpfb(-lpfWin + 1) + 2 * y1 - y2;
+    // update filter output: y[n] = x[n] - 2*x[n-M/2] + x[n-M] + 2*y[n-1] - y[n-2]
+    int y0 = sample - (lpfb(-(lpfWin >> 1)) << 1) + lpfb(-lpfWin) + (y1 << 1) - y2;
     
     // update filter memory
     lpfb(0) = sample;
@@ -124,13 +123,13 @@ short lpf(short sample)
     y1 = y0;
     
     // compute result
-    return min(y0 / lpfGain, SHRT_MAX);
+    return y0;// / lpfGain;
 }
 
 /*=========================================================================
  * Windowed-maximum
  *=======================================================================*/
-short wma(short sample)
+int wma(int sample)
 {
     static mwSize first = 0;
     static mwSize count = 0;
@@ -159,7 +158,7 @@ short wma(short sample)
 /*=========================================================================
  * Windowed-minimum
  *=======================================================================*/
-short wmi(short sample)
+int wmi(int sample)
 {
     static mwSize first = 0;
     static mwSize count = 0;
@@ -188,10 +187,10 @@ short wmi(short sample)
 /*=========================================================================
  * Multiscale morphological derivative
  *=======================================================================*/
-short mmd(short sample)
+int mmd(int sample)
 {
     // update filter output: y[n] = max{x[n],..,x[n-2*s]} + min{x[n],..,x[n-2*s]} - 2*x[n-s]
-    int y0 = wma(sample) + wmi(sample) - 2 * mmdb(-mmdWin);
+    int y0 = wma(sample) + wmi(sample) - (mmdb(-mmdWin) << 1);
     
     // update filter memory
     mmdb(0) = sample;
@@ -203,10 +202,10 @@ short mmd(short sample)
 /*=========================================================================
  * Discrete laplacian 
  *=======================================================================*/
-short lap(short sample)
+int lap(int sample)
 {
     // update filter output: y[n] = x[n] - 2*x[n-1] + x[n-2]
-    short y0 = sample - 2 * lapb(-1) + lapb(-2);
+    int y0 = sample - (lapb(-1) << 1) + lapb(-2);
     
     // update filter memory
     lapb(0) = sample;
@@ -248,8 +247,8 @@ void designPreprocessingFilters()
     
     // low-pass filter
     n = (int)round(sampFreq / mainsFreq);
-    lpfWin = (n << 1) + 1;
-    lpfGain = n * n;
+    lpfWin = n << 1;
+    //lpfGain = n * n;
     
     // windowed-maximum/minimum
     wmfWin = (int)(sampFreq * (double)MMD_LEN_SEC) * 2 + 1;
@@ -362,11 +361,11 @@ void handleInputs( int nrhs, const mxArray *prhs[],
                 MIN_MAINS_FREQ, MAX_MAINS_FREQ);
     }
     /* make sure the sampling frequency is within pre-defined limits */
-    if (sampFreq < mainsFreq || sampFreq > mainsFreq * LPF_BUFLEN) {
+    if (sampFreq < mainsFreq || sampFreq > mainsFreq * LPF_BUFLEN/2) {
         mexErrMsgIdAndTxt(
                 "EcgToolbox:c_detect_fiducial_marks_int:badSampFreq",
                 "Sampling frequency must be between %d and %d.",
-                mainsFreq, mainsFreq * LPF_BUFLEN);
+                mainsFreq, mainsFreq * LPF_BUFLEN/2);
     }
 }
 

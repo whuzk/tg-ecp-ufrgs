@@ -60,9 +60,9 @@
 
 #define MMD_LEN_SEC     0.06
 
-#define LPF_BUFLEN      256     // supports sampling frequencies of up to (256*mainsFreq) Hz
-#define WMF_BUFLEN      2048    // 2^nextpow2(MAX_MAINS_FREQ * LPF_BUFLEN * MMD_LEN_SEC * 2 + 1)
-#define MMD_BUFLEN      1024    // 2^nextpow2(MAX_MAINS_FREQ * LPF_BUFLEN * MMD_LEN_SEC)
+#define LPF_BUFLEN      256     // supports sampling frequencies of up to (LPF_BUFLEN/2*mainsFreq) Hz
+#define WMF_BUFLEN      1024    // 2^nextpow2(LPF_BUFLEN/2 * MAX_MAINS_FREQ * MMD_LEN_SEC * 2 + 1)
+#define MMD_BUFLEN      512     // 2^nextpow2(LPF_BUFLEN/2 * MAX_MAINS_FREQ * MMD_LEN_SEC)
 #define LAP_BUFLEN      4       // 2^nextpow2(3)
 
 /*=========================================================================
@@ -84,7 +84,6 @@ static double delay;        // overall preprocessing delay
  * Preprocessing variables
  *=======================================================================*/
 static mwSize lpfWin;                       // LPF window length
-static int lpfGain;                         // LPF filter gain
 static mwSize wmfWin;                       // WMI window length
 static mwSize mmdWin;                       // MMD window length
 static double lpfBuf[LPF_BUFLEN] = {0};     // LPF buffer
@@ -115,8 +114,8 @@ double lpf(double sample)
     static double y1 = 0.0;
     static double y2 = 0.0;
     
-    // update filter output: y[n] = x[n] - 2*x[n-M/2] + x[n-M+1] + 2*y[n-1] - y[n-2]
-    double y0 = sample - 2 * lpfb(-lpfWin/2) + lpfb(-lpfWin + 1) + 2 * y1 - y2;
+    // update filter output: y[n] = x[n] - 2*x[n-M/2] + x[n-M] + 2*y[n-1] - y[n-2]
+    double y0 = sample - 2 * lpfb(-lpfWin/2) + lpfb(-lpfWin) + 2 * y1 - y2;
     
     // update filter memory
     lpfb(0) = sample;
@@ -124,7 +123,7 @@ double lpf(double sample)
     y1 = y0;
     
     // compute result
-    return y0 / lpfGain;
+    return y0;// / lpfGain;
 }
 
 /*=========================================================================
@@ -197,7 +196,7 @@ double mmd(double sample)
     mmdb(0) = sample;
     
     // compute result
-    return y0 / mmdWin;
+    return y0;// / mmdWin;
 }
 
 /*=========================================================================
@@ -212,7 +211,7 @@ double lap(double sample)
     lapb(0) = sample;
     
     // compute result
-    return y0 / 4;
+    return y0;// / 4;
 }
 
 /*=========================================================================
@@ -248,8 +247,8 @@ void designPreprocessingFilters()
     
     // low-pass filter
     n = (int)round(sampFreq / mainsFreq);
-    lpfWin = (n << 1) + 1;
-    lpfGain = n * n;
+    lpfWin = n << 1;
+    //lpfGain = n * n;
     
     // windowed-maximum/minimum
     wmfWin = (int)(sampFreq * (double)MMD_LEN_SEC) * 2 + 1;
@@ -362,11 +361,11 @@ void handleInputs( int nrhs, const mxArray *prhs[],
                 MIN_MAINS_FREQ, MAX_MAINS_FREQ);
     }
     /* make sure the sampling frequency is within pre-defined limits */
-    if (sampFreq < mainsFreq || sampFreq > mainsFreq * LPF_BUFLEN) {
+    if (sampFreq < mainsFreq || sampFreq > mainsFreq * LPF_BUFLEN/2) {
         mexErrMsgIdAndTxt(
                 "EcgToolbox:c_detect_fiducial_marks_double:badSampFreq",
                 "Sampling frequency must be between %d and %d.",
-                mainsFreq, mainsFreq * LPF_BUFLEN);
+                mainsFreq, mainsFreq * LPF_BUFLEN/2);
     }
 }
 
