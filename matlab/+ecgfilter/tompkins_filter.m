@@ -1,24 +1,25 @@
-function [SignalF,SignalI] = tompkins_filter(Signal, Fs)
+function [sigI,delay] = tompkins_filter(x, Fs)
+% Funçao para transformar o sinal de ECG num sinal que possa ser utilizado
+% pelo algoritmo de detecçao de batimentos
 
-%% filter design
+% filtro passa-baixas com frequencia de corte ~11 Hz
+[bl,al,gl,dl] = intfdesign.lowpass('N,F3db',2,11,Fs);
 
-% bandpass filter
-fbp = fdesign.bandpass('Fst1,Fp1,Fp2,Fst2,Ast1,Ap,Ast2',1,8,12,20,30,1,30,Fs);
-Hd1 = design(fbp,'equiripple');
-h_b = Hd1.Numerator;
-%d_b = (length(h_f)-1)/2; ~[0.0817*Fs-0.0263]
+% filtro passa-altas com frequencia de corte ~5 Hz
+[bh,ah,gh,dh] = intfdesign.highpass('N,F3db',1,5,Fs);
 
-% derivative filter
-h_d = 1/8*[-1 -2 0 2 1];
-%d_d = (length(h_d)-1)/2; =[2]
+% filtro derivativo de 5 pontos
+[bd,ad,gd,dd] = intfdesign.derivative('N,M',1,3);
 
-% integration filter
-Ws = floor(0.07*Fs)*2+1;
-h_i = ones(1,Ws)/Ws;
-%d_i = (Ws-1)/2; ~[0.075*Fs-0.5]
+% filtro de media-movel com largura de ~150 ms
+[bi,ai,gi,di] = intfdesign.maverage('Width',0.15,Fs);
 
-%% filtering
-Signal = Signal(:) - Signal(1);
-SignalF = conv2(Signal, h_b(:), 'same');
-SignalD = conv2(SignalF, h_d(:), 'same');
-SignalI = conv2(SignalD.^2, h_i(:), 'same');
+% aplica os filtros
+sigL = filter(bl, al, x)    ./ (2^nextpow2(gl));%./gl;
+sigF = filter(bh, ah, sigL) ./ (2^nextpow2(gh));%./gh;
+sigD = filter(bd, ad, sigF);%./(2^nextpow2(gd));%./gd;
+sigS = min(sigD.^2 ./ 2^3, 2^15-1);
+sigI = filter(bi, ai, sigS);%./(2^nextpow2(gi))%./gi;
+
+% calcula o atraso total
+delay = dl + dh + dd + di;

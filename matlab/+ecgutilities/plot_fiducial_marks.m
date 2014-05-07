@@ -1,16 +1,16 @@
-function plot_fiducial_marks(data,F)
+function plot_fiducial_marks(data,R,F)
 
 figure, plot(data);
 hold on; grid on;
 
-for i = 1:length(F)
-    plot(F(i).P(1),data(F(i).P(1)),'sk');
-    plot(F(i).P(2),data(F(i).P(2)),'sk');
-    plot(F(i).P(3),data(F(i).P(3)),'sk');
-    plot(F(i).R(1),data(F(i).R(1)),'ok');
-    plot(F(i).R(2),data(F(i).R(2)),'ok');
-    plot(F(i).R(3),data(F(i).R(3)),'ok');
-    plot(F(i).T(1),data(F(i).T(1)),'^k');
-    plot(F(i).T(2),data(F(i).T(2)),'^k');
-    plot(F(i).T(3),data(F(i).T(3)),'^k');
-end
+plot(R,data(R),'ok');
+plot(F.P(:,1),data(F.P(:,1)),'sk');
+plot(F.P(:,2),data(F.P(:,2)),'sk');
+plot(F.R(:,1),data(F.R(:,1)),'ok');
+plot(F.R(:,2),data(F.R(:,2)),'ok');
+plot(F.T(:,1),data(F.T(:,1)),'^k');
+plot(F.T(:,2),data(F.T(:,2)),'^k');
+plot(F.IJ(:,1),data(F.IJ(:,1)),'xk');
+plot(F.IJ(:,2),data(F.IJ(:,2)),'xk');
+
+title('Fiducial marks');

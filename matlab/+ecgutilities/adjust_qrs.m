@@ -1,8 +1,7 @@
 function R = adjust_qrs(data,lead,R,Fs)
+% Funçao para ajustar a localizaçao dos picos de onda R, de acordo com a
+% derivaçao
+global rwavepolarity
 
-if ismember(lead,{'MLIII'})
-    data = -data;
-end
-
-L = floor(0.05*Fs);
-R = ecgmath.neighbour_max(data,R,L);
+data = rwavepolarity(lead) * data;
+R = utils.neighbour_max(data,R,floor(0.05*Fs));

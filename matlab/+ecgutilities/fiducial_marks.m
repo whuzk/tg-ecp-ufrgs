@@ -1,86 +1,103 @@
-function Result = fiducial_marks(mmd,lap,lead,Rpeaks,Fs)
+function Result = fiducial_marks(sigD,thrD,sigI,lead,Rpeaks,RR,Fs)
+% Funçao para detectar os pontos caracteristicos das ondas de ECG, com
+% base na localizaçao dos picos de onda R. Os pontos detectados sao:
+%   [Pon Ppk]   - inicio e pico da onda P
+%   [Ron Rof]   - inicio e fim da onda R
+%   [Tpk Tof]   - pico e fim da onda T
+%   [Ipt Jpt]   - pontos isoeletrico e J
+global pwavepolarity rwavepolarity twavepolarity
 
-% decide which signals to use
-if ismember(lead,{'MLIII'})
-    TempL = -lap;
-    TempR = -mmd;
-    TempP = mmd;
-    TempT = -mmd;
-else
-    TempL = lap;
-    TempR = mmd;
-    TempP = mmd;
-    TempT = mmd;
-end
+% decide which signals to use for R and T waves
+TempP = pwavepolarity(lead) * sigI;
+TempR = rwavepolarity(lead) * sigI;
+TempT = twavepolarity(lead) * sigI;
 
-%
-N = length(mmd);
+% initializations
+N = length(sigI);
 M = length(Rpeaks);
 
-%
-L1 = floor(0.08*Fs);
-L2 = floor(0.1*Fs);
-L3 = floor(0.3*Fs);
-L4 = floor(0.4*Fs);
+% limits
+L0 = round(0.04*Fs);
+L1 = round(0.10*Fs);
+L2 = round(0.20*Fs);
+T1 = round(0.12*Fs);
+T2 = round(0.04*Fs);
+T3 = round(0.02*Fs);
+T4 = round(0.12*Fs);
 
-P = cell(M,1);
-R = cell(M,1);
-T = cell(M,1);
+% outputs
+P = zeros(M,2);
+R = zeros(M,2);
+T = zeros(M,2);
+IJ = zeros(M,2);
+
+% algorithm
 for i = 1:M
-    Rpeak = Rpeaks(i);
+    % get new R peak
+    Rpk = Rpeaks(i);
     
-    % first half
-    Ron = search_first_mark(TempR,Rpeak-1,-1,max(1,Rpeak-L4),0);
-    k = search_best_mark(TempL,Ron-1,-1,max(1,Ron-L1));
-    Ppeak = search_best_mark(-TempP,k-5,-1,max(1,k-L3));
-    Pon = search_best_mark(TempP,Ppeak-1,-1,max(1,Ppeak-L1));
-    Poff = search_best_mark(TempP,Ppeak+1,1,min(k,Ppeak+L1));
-
-    % second half
-    Roff = search_first_mark(TempR,Rpeak+1,1,min(N,Rpeak+L4),0);
-    k = search_best_mark(TempL,Roff+1,1,min(N,Roff+L1));
-    Tpeak = search_best_mark(-TempT,k+5,1,min(N,k+L4));
-    Ton = search_best_mark(TempT,Tpeak-1,-1,max(k,Tpeak-L2));
-    Toff = search_best_mark(TempT,Tpeak+1,1,min(N,Tpeak+L2));
+    % calculate RR related limits
+    L3 = round(0.25*RR(i));
+    L4 = round(0.35*RR(i));
     
-    P{i} = [Pon Ppeak Poff];
-    R{i} = [Ron Rpeak Roff];
-    T{i} = [Ton Tpeak Toff];
+    % first half of the beat
+    Ron = search_first_mark(TempR,Rpk-5,-1,max(1,Rpk-L1),Rpk);
+    Ppk = search_best_mark(-TempP,Ron-L0,-1,max(1,Ron-L3),Ron);
+    Pon = search_best_mark(TempP,Ppk-L0,-1,max(1,Ppk-L2),Ppk);
+    
+    % second half of the beat
+    Roff = search_first_mark(TempR,Rpk+5,1,min(N,Rpk+L1),NaN);
+    Tpk = search_best_mark(-TempT,Roff+L0,1,min(N,Roff+L4),Roff);
+    Toff = search_best_mark(TempT,Tpk+L0,1,min(N,Tpk+L2),Tpk);
+    
+    % isoeletric and J points
+    Ipt = search_mark(sigD,Rpk-T2,-1,max(1,Rpk-T1),thrD,Ron);
+    Jpt = search_mark(sigD,Rpk+T3,1,min(N,Rpk+T4),thrD,Roff);
+    
+    % save result
+    P(i,:) = [Pon Ppk];
+    R(i,:) = [Ron Roff];
+    T(i,:) = [Tpk Toff];
+    IJ(i,:) = [Ipt Jpt];
 end
-Result = struct('P',P,'R',R,'T',T);
+Result = struct('P',P,'R',R,'T',T,'IJ',IJ);
 
 
-function pos = search_first_mark(data,istart,inc,iend,thr)
-if abs(iend-istart)+1 >= 3
+function pos = search_first_mark(data,istart,inc,iend,default)
+if inc*(iend-istart) > 1
     win = data(istart:inc:iend);
-    [~,x] = findpeaks(win,'NPeaks',1,'MinPeakHeight',thr);
+    [~,x] = findpeaks(win,'NPeaks',1);
     if isempty(x)
-        [y,x] = max(win);
-        if y < thr
-            x = 1;
-        end
+        [~,x] = max(win);
     end
     pos = istart + inc*(x-1);
 else
-    pos = istart;
+    pos = default;
 end
 
-function pos = search_best_mark(data,istart,inc,iend)
-if abs(iend-istart)+1 >= 3
+function pos = search_best_mark(data,istart,inc,iend,default)
+if inc*(iend-istart) > 1
     win = data(istart:inc:iend);
-    [y1,x1] = findpeaks(win);
-    if ~isempty(y1)
-        [~,i] = max(y1);
-        y1 = y1(i);
-        x1 = x1(i);
-    end
-    [y2,x2] = max(win);
-    if isempty(y1) || y1 < y2
-        x = x2;
+    [y,x] = findpeaks(win);
+    if ~isempty(y)
+        [~,i] = max(y);
+        x = x(i);
     else
-        x = x1;
+        [~,x] = max(win);
     end
     pos = istart + inc*(x-1);
 else
-    pos = istart;
+    pos = default;
+end
+
+function pos = search_mark(data,istart,inc,iend,thr,default)
+if inc*(iend-istart) >= 0
+    win = data(istart:inc:iend);
+    x = find(abs(win) < thr, 1, 'first');
+    if isempty(x)
+        [~,x] = min(abs(win));
+    end
+    pos = istart + inc*(x-1);
+else
+    pos = default;
 end

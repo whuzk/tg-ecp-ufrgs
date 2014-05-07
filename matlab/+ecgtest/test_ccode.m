@@ -3,7 +3,7 @@ import ecgutilities.*
 %close all;
 
 % load ecg
-Signal = interpret(EDB.e0116,2);
+Signal = interpret(EDB.e0116,1);
 data = Signal.data - Signal.inival;
 dataInt = int16(data);
 
