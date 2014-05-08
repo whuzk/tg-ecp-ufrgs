@@ -5,9 +5,9 @@
  *  Author:     Diego Sogari
  *  Modified:   07/May/2014
  *
- *  Outputs:
+ *  Intputs:
  *      1. ECG signal*
- *      2. sampling frequency*
+ *      2. sampling frequency (in Hz)*
  *
  *  Outputs:
  *      1. location of detected R peaks (in samples)*
@@ -74,7 +74,7 @@ static double *rr1Hist;         // history of averaged RR
 static double *rr2Hist;         // history of secondary averaged RR
 
 /*=========================================================================
- * Preprocessing variables
+ * Buffer variables
  *=======================================================================*/
 static unsigned int ci;             // current sample index
 static mwSize rr1Buf[RRI_BUFLEN];   // primary RR buffer
@@ -83,14 +83,14 @@ static int *detBuf;                 // detection buffer
 static mwSize detBufLen;            // detection buffer length
 
 /*=========================================================================
- * Fast lookup for filter buffers
+ * Fast lookup for detection buffers
  *=======================================================================*/
 #define rr1b(I) (rr1Buf[(I)&(RRI_BUFLEN-1)])
 #define rr2b(I) (rr2Buf[(I)&(RRI_BUFLEN-1)])
 #define detb(I) (detBuf[(ci+(I))&(detBufLen-1)])
 
 /*=========================================================================
- * QRS Detection variables
+ * Detection variables
  *=======================================================================*/
 static int sigThreshold;        // signal threshold
 static int signalLevel;         // signal level
@@ -490,7 +490,7 @@ void handleInputs( int nrhs, const mxArray *prhs[],
     // make sure the sampling frequency is within pre-defined limits
     if (sampFreq < MIN_SAMP_FREQ || sampFreq > MAX_SAMP_FREQ) {
         mexErrMsgIdAndTxt(
-            "EcgToolbox:c_tompkins_filter:badSampFreq",
+            "EcgToolbox:c_detect_qrs:badSampFreq",
             "Sampling frequency must be between %d and %d.",
             MIN_SAMP_FREQ, MAX_SAMP_FREQ);
     }

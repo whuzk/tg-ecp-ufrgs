@@ -6,15 +6,14 @@
  *  Modified:   07/May/2014
  *
  *  Inputs:
- *      1. input signal*
- *      2. sampling frequency*
+ *      1. input signal
+ *      2. sampling frequency (in Hz)
+ *      3. delay required for outputs (in samples)
  *  Outputs:
- *      1. filtered signal*
- *      2. second filtered signal*
- *      3. overall gain of the filtered signal
- *      4. overall preprocessing delay (in samples)
+ *      1. filtered signal
+ *      2. second filtered signal
  *
- *  *required arguments
+ *  *all inputs and outputs required
  *
  *=======================================================================*/
 #include <math.h>
@@ -49,9 +48,9 @@
  * Constants
  *=======================================================================*/
 #define MIN_INPUTS      2       // minimum number of input arguments
-#define MAX_INPUTS      2       // maximum number of input arguments
+#define MAX_INPUTS      3       // maximum number of input arguments
 #define MIN_OUTPUTS     2       // minimum number of output arguments
-#define MAX_OUTPUTS     4       // maximum number of output arguments
+#define MAX_OUTPUTS     2       // maximum number of output arguments
 
 #define MIN_SAMP_FREQ   50*2    // minimum sampling frequency
 #define MAX_SAMP_FREQ   60*40   // maximum sampling frequency
@@ -69,10 +68,9 @@
 static double *inputSig;        // input signal vector
 static mwSize inputLen;         // input signal length
 static double sampFreq;         // sampling frequency
-static double *filtSig;         // filtered signal
+static double delay;            // delay required for outputs
+static double *filtSig1;        // first filtered signal
 static double *filtSig2;        // second filtered signal
-static double gain;             // overall gain of the filtered signal
-static double delay;            // overall delay
 
 /*=========================================================================
  * Filter variables
@@ -81,10 +79,11 @@ static unsigned int ci;         // current sample index
 static intfobject lpFilter;     // low-pass filter object
 static intfobject maFilter;     // moving-average filter object
 static intfobject deFilter;     // derivative filter object
-static intfobject pdFilter;     // pure delay filter object
+static intfobject pdFilter1;    // pure delay filter object 1
 static maxfobject maxFilter;    // maximum filter object
 static maxfobject minFilter;    // minimum filter object
 static intfobject mdFilter;     // morphological derivative filter object
+static intfobject pdFilter2;    // pure delay filter object 2
 static int lpGainLog2;          // log2 of low-pass filter gain
 static int maGainLog2;          // log2 of moving-average filter gain
 static int deGainLog2;          // log2 of derivative filter gain
@@ -114,11 +113,11 @@ int def(int sample)
 }
 
 /*=========================================================================
- * Pure delay filter
+ * Pure delay filter 1
  *=======================================================================*/
-int pdf(int sample)
+int pdf1(int sample)
 {
-    return intfnewx(&pdFilter, ci, sample);
+    return intfnewx(&pdFilter1, ci, sample);
 }
 
 /*=========================================================================
@@ -147,15 +146,25 @@ int mdf(int sample)
 }
 
 /*=========================================================================
+ * Pure delay filter 2
+ *=======================================================================*/
+int pdf2(int sample)
+{
+    return intfnewx(&pdFilter2, ci, sample);
+}
+
+/*=========================================================================
  * Process one input sample, and return an output sample
  *=======================================================================*/
 int processSample(int sample, int *mdsamp)
 {
     sample = lpf(sample);       // low-pass
     *mdsamp = mdf(sample);      // morphological derivative
+    *mdsamp = pdf2(*mdsamp);    // delay of morphological derivative
+    
     sample = maf(sample);       // moving-average
     sample = def(sample);       // derivative
-    return pdf(sample);         // pure delay
+    return pdf1(sample);        // delay of derivative
 }
 
 /*=========================================================================
@@ -169,7 +178,7 @@ void onNewSample(double sample)
     sample = (double)processSample((int)sample, &mdsamp);
     
     // save result
-    filtSig[ci] = sample;
+    filtSig1[ci] = sample;
     filtSig2[ci] = (double)mdsamp;
     
     // increment global lindex
@@ -185,34 +194,34 @@ void checkArgs( int nlhs, mxArray *plhs[],
     // check for proper number of input arguments
     if (nrhs < MIN_INPUTS || nrhs > MAX_INPUTS) {
         mexErrMsgIdAndTxt(
-            "EcgToolbox:c_tompkins_filter:nrhs",
+            "EcgToolbox:c_yansun_filter:nrhs",
             "%d input(s) required and %d optional",
             MIN_INPUTS, MAX_INPUTS - MIN_INPUTS);
     }
     // check for proper number of output arguments
     if (nlhs < MIN_OUTPUTS || nlhs > MAX_OUTPUTS) {
         mexErrMsgIdAndTxt(
-            "EcgToolbox:c_tompkins_filter:nlhs",
+            "EcgToolbox:c_yansun_filter:nlhs",
             "%d output(s) required and %d optional",
             MIN_OUTPUTS, MAX_OUTPUTS - MIN_OUTPUTS);
     }
     // make sure the first input argument is a vector
     if (mxGetM(prhs[0]) != 1 && mxGetN(prhs[0]) != 1) {
         mexErrMsgIdAndTxt(
-            "EcgToolbox:c_tompkins_filter:notVector",
+            "EcgToolbox:c_yansun_filter:notVector",
             "First input must be a vector.");
     }
     // make sure the first input argument is of type double
     if (!mxIsDouble(prhs[0]) || mxIsComplex(prhs[0])) {
         mexErrMsgIdAndTxt(
-            "EcgToolbox:c_tompkins_filter:notDouble",
+            "EcgToolbox:c_yansun_filter:notDouble",
             "First input must be of type double.");
     }
     // make sure the remaining arguments are all scalars
     for (mwSize i = 1; i < nrhs; i++) {
         if (mxGetNumberOfElements(prhs[i]) != 1) {
             mexErrMsgIdAndTxt(
-                "EcgToolbox:c_tompkins_filter:notScalar",
+                "EcgToolbox:c_yansun_filter:notScalar",
                 "Input #%d must be a scalar.", i + 1);
         }
     }
@@ -237,10 +246,13 @@ void handleInputs( int nrhs, const mxArray *prhs[],
     // make sure the sampling frequency is within pre-defined limits
     if (sampFreq < MIN_SAMP_FREQ || sampFreq > MAX_SAMP_FREQ) {
         mexErrMsgIdAndTxt(
-            "EcgToolbox:c_tompkins_filter:badSampFreq",
+            "EcgToolbox:c_yansun_filter:badSampFreq",
             "Sampling frequency must be between %d and %d.",
             MIN_SAMP_FREQ, MAX_SAMP_FREQ);
     }
+    
+    // get the required delay
+    delay = mxGetScalar(prhs[2]);
 }
 
 /*=========================================================================
@@ -251,7 +263,7 @@ void handleOutputs( int nlhs, mxArray *plhs[],
 {
     // get a pointer to the first output vector
     plhs[0] = mxCreateDoubleMatrix(nrows, ncols, mxREAL);
-    filtSig = mxGetPr(plhs[0]);
+    filtSig1 = mxGetPr(plhs[0]);
     
     // get a pointer to the second output vector
     plhs[1] = mxCreateDoubleMatrix(nrows, ncols, mxREAL);
@@ -272,14 +284,25 @@ void init()
     initintfilter(lpFilter);
     initintfilter(maFilter);
     initintfilter(deFilter);
-    initintfilter(pdFilter);
+    initintfilter(pdFilter1);
     initmaxfilter(maxFilter);
     initmaxfilter(minFilter);
     initintfilter(mdFilter);
+    initintfilter(pdFilter2);
     
     // design low-pass filter
     design_lowpass(&lpFilter, sampFreq, "N,Fc,3db", LPF_ORDER,
             (double)LPF_CUTOFF);
+    
+    // make sure the required delay is sufficiently large
+    if (delay < lpFilter.delay + width) {
+        mexErrMsgIdAndTxt(
+            "EcgToolbox:c_yansun_filter:badDelay",
+            "Required delay must be at least equal to %.2f.",
+            lpFilter.delay + width);
+        void finalize();
+        finalize();
+    }
     
     // design moving-average filter
     design_maverage(&maFilter, sampFreq, MAF_WIDTH);
@@ -287,9 +310,9 @@ void init()
     // design derivative filter
     design_derivative(&deFilter, DER_ORDERN, DER_ORDERM);
     
-    // create a pure delay filter
-    design_allpass(&pdFilter, 1,
-            width - (int)ceil(maFilter.delay + deFilter.delay));
+    // create an all-pass filter for delay of the derivative signal
+    design_allpass(&pdFilter1, 1, (int)ceil(delay -
+            (lpFilter.delay + maFilter.delay + deFilter.delay)));
     
     // create maximum filter
     create_maxfilter(&maxFilter, width * 2 + 1);
@@ -300,16 +323,14 @@ void init()
     // create a pure delay filter for the morphological derivative
     design_allpass(&mdFilter, 1, width);
     
+    // create an all-pass filter for delay of the morphological derivative
+    design_allpass(&pdFilter2, 1, (int)ceil(delay -
+            (lpFilter.delay + width)));
+    
     // calculate log2 of filter gains (to speedup division)
     lpGainLog2 = 1 + ilogb(lpFilter.gain - 1);
     maGainLog2 = 1 + ilogb(maFilter.gain - 1);
     deGainLog2 = 1 + ilogb(deFilter.gain - 1);
-
-    // calculate overall gain
-    gain = lpFilter.gain * maFilter.gain;
-    
-    // calculate overall delay
-    delay = lpFilter.delay + width;
 }
 
 /*=========================================================================
@@ -339,27 +360,17 @@ void doTheJob()
 /*=========================================================================
  * The finalization routine 
  *=======================================================================*/
-void finalize( int nlhs, mxArray *plhs[],
-               mwSize nrows, mwSize ncols)
+void finalize()
 {
-    // assign overall gain to the corresponding output
-    if (nlhs > 2) {
-        plhs[2] = mxCreateDoubleScalar(gain);
-    }
-    
-    // assign the overall delay to the corresponding output
-    if (nlhs > 3) {
-        plhs[3] = mxCreateDoubleScalar(delay);
-    }
-    
     // deallocate memory of the filter objects
     endintfilter(lpFilter);
     endintfilter(maFilter);
     endintfilter(deFilter);
-    endintfilter(pdFilter);
+    endintfilter(pdFilter1);
     endmaxfilter(maxFilter);
     endmaxfilter(minFilter);
     endintfilter(mdFilter);
+    endintfilter(pdFilter2);
 }
 
 /*=========================================================================
@@ -390,5 +401,5 @@ void mexFunction( int nlhs, mxArray *plhs[],
     doTheJob();
     
     // perform final adjustments
-    finalize(nlhs, plhs, nrows, ncols);
+    finalize();
 }

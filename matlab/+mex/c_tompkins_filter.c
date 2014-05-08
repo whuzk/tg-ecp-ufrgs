@@ -7,7 +7,7 @@
  *
  *  Inputs:
  *      1. input signal*
- *      2. sampling frequency*
+ *      2. sampling frequency (in Hz)*
  *  Outputs:
  *      1. filtered signal*
  *      2. overall preprocessing delay (in samples)

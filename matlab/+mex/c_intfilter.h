@@ -512,7 +512,7 @@ bool design_allpass(intfobject *filter, int gain, int delay)
     int *b;
     
     // check argument correctness
-    if (delay <= 0) {
+    if (delay < 0) {
         mexErrMsgIdAndTxt(
             "EcgToolbox:c_intfilter:design_allpass:noSolution",
             "could not design an all-pass for this specfication");
