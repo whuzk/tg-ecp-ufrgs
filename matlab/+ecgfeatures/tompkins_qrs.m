@@ -171,7 +171,7 @@ elseif rr > floor(0.5*rrMean)
     Result = false;
 else
     % half the length of a QRS
-    len = round(0.05*Fs);
+    len = round(0.1*Fs);
     % find max slopes
     slope1 = maxdiff(sigI,candQrs-len+1,len);
     slope2 = maxdiff(sigI,lastQrs-len+1,len);
@@ -186,8 +186,8 @@ if isempty(init)
     rr_idx2 = 1;
     rr_last(1:8) = new_rr;
     rr_last2(1:8) = new_rr;
-    rr_low = 0.85*new_rr;
-    rr_high = 1.15*new_rr;
+    rr_low = 0.92*new_rr;
+    rr_high = 1.16*new_rr;
     rr1 = new_rr;
     rr2 = new_rr;
     init = true;
@@ -199,8 +199,8 @@ else
         rr_idx2 = mod(rr_idx2,8) + 1;
         rr2 = rr2 + 0.125*(new_rr - rr_last2(rr_idx2));
         rr_last2(rr_idx2) = new_rr;
-        rr_low = 0.85*rr2;
-        rr_high = 1.15*rr2;
+        rr_low = 0.92*rr2;
+        rr_high = 1.16*rr2;
     end
 end
 rr_mean = rr1;

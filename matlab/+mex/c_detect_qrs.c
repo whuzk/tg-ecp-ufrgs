@@ -325,9 +325,9 @@ void updateRRInfo(mwSize newRR)
     // update RR averages
     rrIntMean1 = y1 >> 3;
     rrIntMean2 = y2 >> 3;
-    rrIntLow = rrIntMean2 - ((rrIntMean2 + y2) >> 6);   // 0.86*RRmean
-    rrIntHigh = rrIntMean2 + ((rrIntMean2 + y2) >> 6);  // 1.14*RRmean
-    rrIntMiss = (y2 >> 2) - ((rrIntMean2 + y2) >> 5);   // 1.72*RRmean
+    rrIntLow = rrIntMean2 - ((y2 - rrIntMean2) >> 6);   // 0.89*RRmean
+    rrIntHigh = rrIntLow + ((y2 + rrIntMean2) >> 5);    // 1.17*RRmean
+    rrIntMiss = rrIntHigh + (rrIntMean2 >> 2);          // 1.67*RRmean
 }
 
 /*=========================================================================
@@ -542,7 +542,7 @@ void init()
     
     // predefined limits
     trainCountDown = (mwSize)(2 * sampFreq);
-    qrsHalfLength = (mwSize)round(0.05 * sampFreq);
+    qrsHalfLength = (mwSize)round(0.10 * sampFreq);
     twaveTolerance = (mwSize)round(0.36 * sampFreq);
     refractoryPeriod = (mwSize)round(0.20 * sampFreq);
     

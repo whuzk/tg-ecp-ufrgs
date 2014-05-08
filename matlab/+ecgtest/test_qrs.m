@@ -1,17 +1,24 @@
-dbpath = 'I:\AppData\physiobank\database\edb';
-record = 'e0103';
-old_path = pwd;
-cd(dbpath);
+import ecgutilities.*
 
-gqrs(record,[],[],1,[]);
-%sqrs(record,[],[],1,[]);
-%wqrs(record,[],[],1,[]);
-ann = rdann(record,'qrs',1,[],[]);
-[tm,sig] = rdsamp(record,1,[],[]);
+% le uma das derivaçoes do ecg
+signal = interpret(EDB.e0119,2);
+data = signal.data - signal.inival;
 
-cd(old_path);
+% detecta os picos de onda R
+[sigI,delay] = mex.tompkins_filter(data, signal.fs);
+[qrs1,qrs2,th1,th2,rr1,rr2] = mex.detect_qrs(sigI, signal.fs);
 
-ecgutilities.plot_signal_r(Signal,ann);
-[A,B,R] = ecgutilities.merge_rpeaks(Bp, ann, Fs);
-ecgutilities.plot_signal_rcomp(Signal,A,B,R);
-ecgmath.compute_statistics(A,B)
+% compara com as anotaçoes
+Radj = adjust_qrs(data,signal.lead,qrs1-floor(delay),signal.fs);
+[a,b,c] = merge_qrs(signal.qrs, Radj, signal.fs);
+stats = ecgmath.compute_statistics(a,b);
+
+% plota os graficos
+plot_rpeaks(data, Radj);
+plot_thresholds(sigI,qrs1,qrs2,th1,th2,rr1,rr2);
+plot_comparison(data,a,b,c);
+
+% mostra o resultado da comparaçao
+ds = dataset([{stats'} measures{:}]);
+ds.RecordName = signal.name;
+disp(ds);
