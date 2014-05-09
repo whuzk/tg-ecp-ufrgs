@@ -188,8 +188,8 @@ mwSize search_rpeak_abs(mwSize start, mwSize end, mwSize def)
  *=======================================================================*/
 mwSize search_first_mark_max1(mwSize start, mwSize inc, mwSize end, mwSize def)
 {
-    mwSize i, imax;
-    int y, ymax;
+    mwSize i;
+    int y;
     bool found;
     
     if (!isvalidindex(start) || !isvalidindex(end) ||
@@ -197,8 +197,6 @@ mwSize search_first_mark_max1(mwSize start, mwSize inc, mwSize end, mwSize def)
         return def;
     }
     
-    ymax = 0;
-    imax = start;
     found = false;
     i = start + inc;
     while (!found && i != end - inc) {
@@ -206,17 +204,11 @@ mwSize search_first_mark_max1(mwSize start, mwSize inc, mwSize end, mwSize def)
         if (deb(i - 1) < y && y >= deb(i + 1)) {
             found = true;
         }
-        else {
-            if (y > ymax) {
-                ymax = y;
-                imax = i;
-            }
-            i += inc;
-        }
+        else i += inc;
     }
 
     if (!found) {
-        return imax;
+        return def;
     }
     else return i;
 }
@@ -226,8 +218,8 @@ mwSize search_first_mark_max1(mwSize start, mwSize inc, mwSize end, mwSize def)
  *=======================================================================*/
 mwSize search_first_mark_min1(mwSize start, mwSize inc, mwSize end, mwSize def)
 {
-    mwSize i, imin;
-    int y, ymin;
+    mwSize i;
+    int y;
     bool found;
     
     if (!isvalidindex(start) || !isvalidindex(end) ||
@@ -235,8 +227,6 @@ mwSize search_first_mark_min1(mwSize start, mwSize inc, mwSize end, mwSize def)
         return def;
     }
     
-    ymin = 0;
-    imin = start;
     found = false;
     i = start + inc;
     while (!found && i != end - inc) {
@@ -244,17 +234,11 @@ mwSize search_first_mark_min1(mwSize start, mwSize inc, mwSize end, mwSize def)
         if (deb(i - 1) > y && y <= deb(i + 1)) {
             found = true;
         }
-        else {
-            if (y < ymin) {
-                ymin = y;
-                imin = i;
-            }
-            i += inc;
-        }
+        else i += inc;
     }
     
     if (!found) {
-        return imin;
+        return def;
     }
     else return i;
 }
@@ -511,7 +495,7 @@ void onNewSample(double sample1, double sample2)
     if (bi < qrsLen) {
         mwSize qrs = (mwSize)qrsHist[bi];
         mwSize rr = (mwSize)rrHist[bi];
-        if (ci == qrs + rr || ci == inputLen - 1) {
+        if (ci > qrs + rr || ci == inputLen - 1) {
             // perform fiducial mark detection
             detectFiducialMarks(-rr, rr);
             // update the outputs
