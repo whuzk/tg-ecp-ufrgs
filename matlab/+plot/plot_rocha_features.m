@@ -1,4 +1,4 @@
-function plot_rocha(C, S1, S2)
+function plot_rocha_features(C, S1, S2)
 
 M = size(C,2);
 H1 = math.hermite_matrix(64,6,5);

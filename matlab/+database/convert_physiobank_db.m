@@ -1,6 +1,5 @@
 function convert_physiobank_db(source_dir, target_dir)
 % carrega todos arquivos da base e converte para o formato MATLAB
-import ecgutilities.*
 
 % cria o diretorio destino, se necessario
 if ~exist(target_dir,'dir') && ~mkdir(target_dir)
@@ -17,7 +16,7 @@ for i = 1:length(desc_files)
     
     % converte o ecg
     fprintf('Converting %s...\n', record);
-    ECG = convert_physiobank_ecg(source_dir, record);
+    ECG = database.convert_physiobank_ecg(source_dir, record);
     
     % salva em arquivo
     save_file = [target_dir filesep record '.mat'];

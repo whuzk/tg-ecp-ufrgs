@@ -1,4 +1,4 @@
-function plot_comparison(data,a,b,r)
+function plot_rpeak_comparison(data,a,b,r)
 % Funçao para plotar o grafico de um sinal de ECG com os picos de onda R
 % conhecidos e os picos detectados pelo algoritmo de detecçao
 

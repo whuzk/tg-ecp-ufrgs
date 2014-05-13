@@ -1,4 +1,4 @@
-function plot_thresholds(sigI,qrs1,qrs2,th1,th2,rr1,rr2)
+function plot_qrs_detection(sigI,qrs1,qrs2,th1,th2,rr1,rr2)
 % Funçao para plotar a evoluçao do algoritmo de detecçao de batimentos
 
 figure;

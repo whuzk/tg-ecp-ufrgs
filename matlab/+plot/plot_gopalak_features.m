@@ -1,4 +1,4 @@
-function plot_gopalak(C, S)
+function plot_gopalak_features(C, S)
 
 M = size(C,2);
 H = math.hermite(250,50,1);

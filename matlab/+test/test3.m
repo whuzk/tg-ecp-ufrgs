@@ -1,5 +1,5 @@
 % le uma das derivaçoes do ecg
-signal = utils.interpret(e0103,1);
+signal = utils.interpret_ecg(e0103,1);
 data = signal.data - signal.inival;
 
 % detecta os picos de onda R usando codigo c
@@ -16,5 +16,5 @@ sigN = mex.noise_filter(data, signal.fs, delay);
 
 % visualizaçao
 for i = 1:5
-    utils.plot_fiducial_marks(Beats(:,i), F(i,:));
+    plot.plot_fiducial_marks(Beats(:,i), F(i,:));
 end

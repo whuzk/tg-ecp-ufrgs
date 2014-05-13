@@ -1,5 +1,5 @@
 % leitura do ecg
-signal = utils.interpret(e0103,1);
+signal = utils.interpret_ecg(e0103,1);
 
 % preprocessamento
 tic
@@ -22,6 +22,6 @@ tic;
 toc;
 
 % visualizaçao
-%utils.plot_rocha(Rocha, RochaS1, RochaS2);
-%utils.plot_mohebbi(Mohebbi, MohebbiS);
-%utils.plot_gopalak(Gopalak, GopalakS);
+%plot.plot_rocha_features(Rocha, RochaS1, RochaS2);
+%plot.plot_mohebbi_features(Mohebbi, MohebbiS);
+%plot.plot_gopalak_features(Gopalak, GopalakS);

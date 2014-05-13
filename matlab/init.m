@@ -20,7 +20,5 @@ measures = {
 };
 
 % registros de ecg
-x100 = load('matfiles\x100.mat');
-x105 = load('matfiles\x105.mat');
-e0103 = load('matfiles\e0103.mat');
-e0116 = load('matfiles\e0116.mat');
+x100 = load('C:\physiobank\database\mitdb\100.mat');
+e0103 = load('C:\physiobank\database\edb\e0103.mat');

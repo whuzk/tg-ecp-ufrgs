@@ -1,4 +1,4 @@
-function Result = interpret(Record,RecordIndex)
+function Result = interpret_ecg(Record,RecordIndex)
 
 idx = ismember(Record.Annotations.atr.Type, 'NLRBAaJSVFejnE/fQ?');
 

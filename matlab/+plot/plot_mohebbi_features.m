@@ -1,4 +1,4 @@
-function plot_mohebbi(C, S)
+function plot_mohebbi_features(C, S)
 
 M = size(C,2);
 figure;
