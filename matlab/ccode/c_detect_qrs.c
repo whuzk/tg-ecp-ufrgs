@@ -377,7 +377,7 @@ bool detectQrs(bool *detectedBySearchback)
  *=======================================================================*/
 void updateOutputs(bool qrsDetected, bool qrsDetectedBySearchback)
 {
-    // detect qrs history
+    // update qrs history
     if (qrsDetected && qrs1Hist != NULL) {
         qrs1Hist[qrsCount1++] = ci + peakIdx + 1;
     }

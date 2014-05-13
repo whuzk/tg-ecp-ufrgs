@@ -367,20 +367,18 @@ bool detectQrs()
 /*=========================================================================
  * Update output buffers
  *=======================================================================*/
-void updateOutputs(bool qrsDetected)
+void updateOutputs()
 {
-    if (qrsDetected) {
-        // detect qrs history
-        if (qrsHist != NULL) {
-            qrsHist[qrsCount] = ci + peakIdx + 1;
-        }
-        // update RR interval history
-        if (rrHist != NULL) {
-            rrHist[qrsCount] = rrIntMean1;
-        }
-        // increment qrs count
-        qrsCount++;
+    // update qrs history
+    if (qrsHist != NULL) {
+        qrsHist[qrsCount] = ci + peakIdx + 1;
     }
+    // update RR interval history
+    if (rrHist != NULL) {
+        rrHist[qrsCount] = rrIntMean1;
+    }
+    // increment qrs count
+    qrsCount++;
 }
 
 /*=========================================================================
@@ -392,7 +390,9 @@ void onNewSample(double sample)
     detb(0) = (int)sample;
     
     // detect qrs and update outputs
-    updateOutputs(detectQrs());
+    if (detectQrs()) {
+        updateOutputs();
+    }
     
     // increment global index
     ci++;
