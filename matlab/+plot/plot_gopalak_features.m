@@ -1,7 +1,7 @@
 function plot_gopalak_features(C, S)
 
 M = size(C,2);
-H = math.hermite(250,50,1);
+H = math.hermite(250,50,1.5);
 for i = 1:M
     Shat = H * C(:,i);
     figure(1);
