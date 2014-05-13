@@ -135,7 +135,7 @@ int intfnewx(intfobject *filter, unsigned int ci, int sample)
  * of the last non-zero coefficient is returned, or zero if no such
  * coefficient exists.
  *=======================================================================*/
-mwSize construct_coeff(intfcoeffs *coeffObj, const int *a, mwSize na)
+mwSize int_construct_coeff(intfcoeffs *coeffObj, const int *a, mwSize na)
 {
     mwSize count = na - count_zeros(a, na);
     
@@ -158,11 +158,11 @@ mwSize construct_coeff(intfcoeffs *coeffObj, const int *a, mwSize na)
 
 /*=========================================================================
  * Reconstruct a coefficient array from a coefficient object. This is the
- * inverse of the function construct_coeff. It is assumed that the value
+ * inverse of the function int_construct_coeff. It is assumed that the value
  * of the last element in coeffObj->idx is less than the length of the
  * resulting array.
  *=======================================================================*/
-void reconstruct_coeff(intfcoeffs *coeffObj, int *result)
+void int_reconstruct_coeff(intfcoeffs *coeffObj, int *result)
 {
     for (mwSize i = 0; i < coeffObj->size; i++) {
         result[coeffObj->idx[i]] = coeffObj->val[i];
@@ -172,7 +172,7 @@ void reconstruct_coeff(intfcoeffs *coeffObj, int *result)
 /*=========================================================================
  * Initialize a filter object and allocate memory for its properties
  *=======================================================================*/
-void create_filter(intfobject *filter, double gain, double delay,
+void int_create_filter(intfobject *filter, double gain, double delay,
         const int *b, mwSize nb, const int *a, mwSize na)
 {
     mwSize xsize, ysize;
@@ -182,8 +182,8 @@ void create_filter(intfobject *filter, double gain, double delay,
     filter->delay = delay;
     
     // initialize the coefficient objects
-    xsize = construct_coeff(&filter->b, b, nb) + 1;
-    ysize = construct_coeff(&filter->a, a, na) + 1;
+    xsize = int_construct_coeff(&filter->b, b, nb) + 1;
+    ysize = int_construct_coeff(&filter->a, a, na) + 1;
     
     // initialize the X buffer
     if (xsize > 2) {
@@ -321,8 +321,8 @@ void subtract_allpass(intfobject *filter)
     asize = filter->a.idx[filter->a.size - 1] + 1;
     btemp = (int *)mxCalloc(bsize, sizeof(int));
     atemp = (int *)mxCalloc(asize, sizeof(int));
-    reconstruct_coeff(&filter->b, btemp);
-    reconstruct_coeff(&filter->a, atemp);
+    int_reconstruct_coeff(&filter->b, btemp);
+    int_reconstruct_coeff(&filter->a, atemp);
     
     // create temporary arrays
     tempsize = bsize - asize + 1;
@@ -334,7 +334,7 @@ void subtract_allpass(intfobject *filter)
     temp1[(int)filter->delay] = filter->gain;
     conv(temp1, tempsize, atemp, asize, temp2);
     subtract(temp2, btemp, btemp, bsize);
-    construct_coeff(&filter->b, btemp, bsize);
+    int_construct_coeff(&filter->b, btemp, bsize);
     
     // deallocate memory
     mxFree(btemp);
@@ -374,7 +374,7 @@ void design_basic_lp(intfobject *filter, int N, int m)
     delay = N * (m - 1) / 2.0;
     
     // initialize the filter object
-    create_filter(filter, gain, delay, btemp, bsize, atemp, asize);
+    int_create_filter(filter, gain, delay, btemp, bsize, atemp, asize);
     
     // deallocate memory
     mxFree(bbase);
@@ -416,7 +416,7 @@ void design_basic_hp(intfobject *filter, int N, int m)
     delay = N * (m - 1) / 2.0;
     
     // initialize the filter object
-    create_filter(filter, gain, delay, btemp, bsize, atemp, asize);
+    int_create_filter(filter, gain, delay, btemp, bsize, atemp, asize);
     
     // deallocate memory
     mxFree(bbase);
@@ -456,7 +456,7 @@ void design_basic_bp(intfobject *filter, int N, int m, double theta)
     delay = N * (m / 2.0 - 1);
     
     // initialize the filter object
-    create_filter(filter, gain, delay, btemp, bsize, atemp, asize);
+    int_create_filter(filter, gain, delay, btemp, bsize, atemp, asize);
     
     // deallocate memory
     mxFree(bbase);
@@ -496,7 +496,7 @@ void design_basic_de(intfobject *filter, int N, int M)
     delay = (N + M) / 2.0;
     
     // initialize the filter object
-    create_filter(filter, gain, delay, btemp, bsize, NULL, 0);
+    int_create_filter(filter, gain, delay, btemp, bsize, NULL, 0);
     
     // deallocate memory
     mxFree(ntemp);
@@ -524,7 +524,7 @@ bool design_allpass(intfobject *filter, int gain, int delay)
     b[delay] = gain;
     
     // initialize the filter object
-    create_filter(filter, gain, delay, b, delay + 1, NULL, 0);
+    int_create_filter(filter, gain, delay, b, delay + 1, NULL, 0);
     
     // deallocate memory
     mxFree(b);

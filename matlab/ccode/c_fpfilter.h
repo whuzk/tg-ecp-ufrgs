@@ -92,7 +92,7 @@ double fpfnewx(fpfobject *filter, unsigned int ci, double sample)
  * of the last non-zero coefficient is returned, or zero if no such
  * coefficient exists.
  *=======================================================================*/
-mwSize construct_coeff(fpfcoeffs *coeffObj, const double *a, mwSize na)
+mwSize fp_construct_coeff(fpfcoeffs *coeffObj, const double *a, mwSize na)
 {
     mwSize count = na - double_count_zeros(a, na);
     
@@ -116,14 +116,14 @@ mwSize construct_coeff(fpfcoeffs *coeffObj, const double *a, mwSize na)
 /*=========================================================================
  * Initialize a filter object and allocate memory for its properties
  *=======================================================================*/
-void create_filter(fpfobject *filter, const double *b, mwSize nb,
+void fp_create_filter(fpfobject *filter, const double *b, mwSize nb,
         const double *a, mwSize na)
 {
     mwSize xsize, ysize;
     
     // initialize the coefficient objects
-    xsize = construct_coeff(&filter->b, b, nb) + 1;
-    ysize = construct_coeff(&filter->a, a, na) + 1;
+    xsize = fp_construct_coeff(&filter->b, b, nb) + 1;
+    ysize = fp_construct_coeff(&filter->a, a, na) + 1;
     
     // initialize the X buffer
     if (xsize > 2) {
@@ -145,7 +145,7 @@ void create_filter(fpfobject *filter, const double *b, mwSize nb,
 /*=========================================================================
  * Create an all-pass filter with the delay given in samples (gain = 1)
  *=======================================================================*/
-bool create_allpass(fpfobject *filter, int delay)
+bool fp_create_allpass(fpfobject *filter, int delay)
 {
     double *b;
     
@@ -162,7 +162,7 @@ bool create_allpass(fpfobject *filter, int delay)
     b[delay] = 1.0;
     
     // initialize the filter object
-    create_filter(filter, b, delay + 1, NULL, 0);
+    fp_create_filter(filter, b, delay + 1, NULL, 0);
     
     // deallocate memory
     mxFree(b);

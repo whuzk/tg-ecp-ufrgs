@@ -56,7 +56,7 @@
 static double *inputSig;        // input signal vector
 static mwSize inputLen;         // input signal length
 static double sampFreq;         // sampling frequency
-static double mainsFreq;        // sampling frequency
+static double mainsFreq;        // mains frequency
 static double *filtSig;         // filtered signal
 static double delay;            // required output delay
 
@@ -229,28 +229,28 @@ void init()
     
     if ((int)mainsFreq == 50) {
         // create band-stop filter
-        create_filter(&bsFilter, chebb50[i], COEFF_COUNT,
+        fp_create_filter(&bsFilter, chebb50[i], COEFF_COUNT,
                 cheba50[i], COEFF_COUNT);
 
         // design high-pass filter
-        create_filter(&lpFilter, buttb50[i], COEFF_COUNT,
+        fp_create_filter(&lpFilter, buttb50[i], COEFF_COUNT,
                 butta50[i], COEFF_COUNT);
 
         // design derivative filter
-        create_allpass(&pdFilter,
+        fp_create_allpass(&pdFilter,
                 (int)ceil(delay - chebd50[i] - buttd50[i]));
     }
     else {
         // create band-stop filter
-        create_filter(&bsFilter, chebb60[i], COEFF_COUNT,
+        fp_create_filter(&bsFilter, chebb60[i], COEFF_COUNT,
                 cheba60[i], COEFF_COUNT);
 
         // design high-pass filter
-        create_filter(&lpFilter, buttb60[i], COEFF_COUNT,
+        fp_create_filter(&lpFilter, buttb60[i], COEFF_COUNT,
                 butta60[i], COEFF_COUNT);
 
         // design derivative filter
-        create_allpass(&pdFilter,
+        fp_create_allpass(&pdFilter,
                 (int)ceil(delay - chebd60[i] - buttd60[i]));
     }
 }
