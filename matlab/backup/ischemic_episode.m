@@ -1,4 +1,4 @@
-function Result = ecg_ischemic_episode_detection(IschemicBeats, Ws)
+function Result = ischemic_episode(IschemicBeats, Ws)
 %   Detecta episodios isquemicos com base nas batidas classificadas como
 %   isquemicas e numa janela deslizante de largura especificada.
 %
