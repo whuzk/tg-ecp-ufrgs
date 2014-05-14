@@ -394,9 +394,9 @@ mwSize search_best_mark_min(mwSize start, mwSize end, mwSize def)
 /*=========================================================================
  * Perform the detection of fiducial marks
  *=======================================================================*/
-void detectFiducialMarks(mwSize r, mwSize rr)
+void detectFiducialMarks(mwSize r, mwSize rr1, mwSize rr2)
 {
-    mwSize len, temp;
+    mwSize len;
     
     // R-wave
     Rpeak = search_peak_abs(r - searchL1, r + searchL1, r);
@@ -412,7 +412,7 @@ void detectFiducialMarks(mwSize r, mwSize rr)
     }
     
     // P-wave
-    len = (rr + (rr << 1)) >> 3;
+    len = (rr1 + (rr1 << 1)) >> 3;
     Ppeak = search_peak_abs(Ronset - 1, Ronset - len, Ronset);
     if (mdb(Ppeak) > 0) {
         // inverted
@@ -424,7 +424,7 @@ void detectFiducialMarks(mwSize r, mwSize rr)
     }
     
     // T-wave
-    len = (-r) >> 1;
+    len = rr2 >> 1;
     Tpeak = search_peak_abs(Roffset + 1, Roffset + len, Roffset);
     if (mdb(Tpeak) > 0) {
         // inverted
@@ -451,8 +451,9 @@ void onNewSample(double sample1, double sample2, bool newQrs)
     
     // simulate QRS detection
     if ((newQrs && countDown > 0) || countDown == 0 || ci == inputLen - 1) {
+        
         // perform fiducial mark detection
-        detectFiducialMarks(qrs - ci, rr);
+        detectFiducialMarks(qrs, rr, 0 - qrs);
         // update the outputs
         updateOutputs();
     }
@@ -462,9 +463,9 @@ void onNewSample(double sample1, double sample2, bool newQrs)
         if (rr == -1) {
             rr = (mwSize)round(sampFreq);
         }
-        else rr = ci - qrs;
+        else rr = 0 - qrs;
         // update qrs
-        qrs = ci;
+        qrs = 0;
         // update countdown
         countDown = rr;
     }
@@ -472,6 +473,9 @@ void onNewSample(double sample1, double sample2, bool newQrs)
         // update countdown
         countDown--;
     }
+    
+    // decrement qrs index
+    qrs--;
     
     // increment sample index
     ci++;

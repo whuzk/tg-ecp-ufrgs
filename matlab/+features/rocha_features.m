@@ -4,7 +4,7 @@ center = floor(size(Beats,1)/2)+1;
 Fs = signal.fs;
 
 % extraçao do ponto J de acordo com Pang
-Jp = features.pang_jpoints(F(:,4), RR, Fs);
+Jp = features.pang_jpoints(F(4,:)', RR, Fs);
 
 % extraçao dos pontos isoeletrico e J de acordo com Rocha (demorado)
 tic;
@@ -13,7 +13,7 @@ toc;
 
 % extraçao dos segmentos de batida (demorado)
 tic;
-[S1,S2] = features.rocha_segments(Beats, Ir, Jr, F(:,end));
+[S1,S2] = features.rocha_segments(Beats, Ir, Jr, F(end,:)');
 toc;
 
 % extraçao dos desvios de segmento ST

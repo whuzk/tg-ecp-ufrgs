@@ -23,7 +23,7 @@ L2 = round(0.02*Fs);
 L3 = round(0.15*Fs);
 
 % outputs
-Result = zeros(M,7);
+Result = zeros(7,M);
 
 % algorithm
 for i = 1:M
@@ -64,7 +64,7 @@ for i = 1:M
     end
     
     % save result
-    Result(i,:) = [Pon Ppk Ron Rpk Roff Tpk Toff];
+    Result(:,i) = [Pon Ppk Ron Rpk Roff Tpk Toff]';
 end
 
 

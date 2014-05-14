@@ -67,9 +67,6 @@ static mwSize bi;                   // current beat index
 static double *buffer;              // buffer for the signal
 static mwSize bufLen;               // length of the buffer
 static mwSize frameSize;            // length of beat frame
-static mwSize startIdx;             // starting index of a new beat
-static mwSize endIdx;               // starting index of a new beat
-static mwSize rpeakIdx;             // R peak index of a new beat
 
 /*=========================================================================
  * Fast lookup for buffers
@@ -92,7 +89,12 @@ bool isvalidindex(mwSize idx)
  *=======================================================================*/
 void copyBuffer()
 {
-    mwSize absIdx1, absIdx2, len1, len2, r, half, beatsize, pad, cut1, cut2;
+    mwSize startIdx, endIdx, rpeakIdx, absIdx1, absIdx2;
+    mwSize len1, len2, r, half, beatsize, pad, cut1, cut2;
+    
+    startIdx = (mwSize)fdp(bi, 0) - 1 - ci;
+    rpeakIdx = (mwSize)fdp(bi, 3) - 1 - ci;
+    endIdx = (mwSize)fdp(bi, FDP_NUM_COL-1) - 1 - ci;
     
     half = frameSize >> 1;
     beatsize = endIdx - startIdx + 1;
@@ -104,7 +106,6 @@ void copyBuffer()
     
     startIdx += cut1;
     endIdx -= cut2;
-    
     if (startIdx > endIdx || !isvalidindex(startIdx) ||
             !isvalidindex(endIdx)) {
         return;
@@ -130,20 +131,19 @@ void copyBuffer()
  *=======================================================================*/
 void updateOutputs()
 {
-    mwSize r, center;
+    mwSize center;
     
     if (bi < qrsLen) {
         copyBuffer();
         
-        r = ci + rpeakIdx + 1;
         center = (frameSize >> 1) + 1;
-        fdpout(bi,0) = max(1, center - (r - fdp(bi,0)));
-        fdpout(bi,1) = max(1, center - (r - fdp(bi,1)));
-        fdpout(bi,2) = max(1, center - (r - fdp(bi,2)));
+        fdpout(bi,0) = max(1, center - (fdp(bi, 3) - fdp(bi,0)));
+        fdpout(bi,1) = max(1, center - (fdp(bi, 3) - fdp(bi,1)));
+        fdpout(bi,2) = max(1, center - (fdp(bi, 3) - fdp(bi,2)));
         fdpout(bi,3) = center;
-        fdpout(bi,4) = min(frameSize, center + (fdp(bi,4) - r));
-        fdpout(bi,5) = min(frameSize, center + (fdp(bi,5) - r));
-        fdpout(bi,6) = min(frameSize, center + (fdp(bi,6) - r));
+        fdpout(bi,4) = min(frameSize, center + (fdp(bi,4) - fdp(bi, 3)));
+        fdpout(bi,5) = min(frameSize, center + (fdp(bi,5) - fdp(bi, 3)));
+        fdpout(bi,6) = min(frameSize, center + (fdp(bi,6) - fdp(bi, 3)));
         
         bi++;
     }
@@ -155,6 +155,11 @@ void updateOutputs()
 void removeBaseline()
 {
     double x[2], y[2], p[2], mean;
+    mwSize startIdx, endIdx;
+    
+    // calculate start and end points
+    startIdx = (mwSize)fdp(bi, 0) - 1 - (BL_NUM_PTS >> 1) - ci;
+    endIdx = (mwSize)fdp(bi, FDP_NUM_COL - 1) - 1 + (BL_NUM_PTS >> 1) - ci;
     
     if (!isvalidindex(startIdx) || !isvalidindex(endIdx)) {
         return;
@@ -195,10 +200,6 @@ void onNewSample(double sample, bool newBeat)
     
     // simulate beat event
     if (newBeat) {
-        // calculate statt and end points
-        startIdx = ((mwSize)fdp(bi, 0) - 1 - BL_NUM_PTS) - ci;
-        rpeakIdx = ((mwSize)fdp(bi, 3) - 1) - ci;
-        endIdx = ((mwSize)fdp(bi, FDP_NUM_COL - 1) - 1 + BL_NUM_PTS) - ci;
         // perform baseline removal
         removeBaseline();
         // update the outputs

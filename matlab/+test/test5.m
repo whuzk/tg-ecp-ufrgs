@@ -3,7 +3,7 @@ signal = utils.interpret_ecg(e0103,1);
 
 % preprocessamento
 tic
-[R,RR,F,Beats,Templates,delay] = preprocess.preprocess(signal);
+[R,RR,F,Beats,Template,delay] = preprocess.preprocess(signal);
 toc;
 
 % extraçao de caracteristicas do Rocha
@@ -13,7 +13,7 @@ toc;
 
 % extraçao de caracteristicas do Mohebbi
 tic;
-[Mohebbi,MohebbiS] = features.mohebbi_features(signal, F, Beats, Templates(:,30));
+[Mohebbi,MohebbiS] = features.mohebbi_features(signal, F, Beats, Template);
 toc;
 
 % extraçao de caracteristicas do Gopalakrishnan

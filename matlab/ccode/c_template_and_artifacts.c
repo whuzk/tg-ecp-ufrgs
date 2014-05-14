@@ -224,8 +224,8 @@ void init()
     
     // create the buffers
     tempBuf = (double *)mxCalloc(frameSize, sizeof(double));
-    auxBuf1 = (double *)mxCalloc(frameSize, sizeof(double));
-    auxBuf2 = (double *)mxCalloc(frameSize, sizeof(double));
+    auxBuf1 = (double *)mxMalloc(frameSize * sizeof(double));
+    auxBuf2 = (double *)mxMalloc(frameSize * sizeof(double));
 }
 
 /*=========================================================================
