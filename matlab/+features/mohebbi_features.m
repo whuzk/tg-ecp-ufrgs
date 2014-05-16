@@ -10,8 +10,8 @@ gain = signal.gain;
 [~,Jb] = mex.mohebbi_ijpoints(Beats, F(3,:)', F(5,:)', Fs, gain);
 
 % extraçao dos segmentos ST (demorado)
-STt = features.mohebbi_segments(Template, Jt, Fs);
-STb = features.mohebbi_segments(Beats, Jb, Fs);
+STt = mex.mohebbi_segments(Template, Jt, Fs);
+STb = mex.mohebbi_segments(Beats, Jb, Fs);
 
 % extraçao das diferenças entre os segmentos e o do template
 C = mex.mohebbi_stdiff(STt, STb);

@@ -115,7 +115,7 @@ void filterBeat()
 }
 
 /*=========================================================================
- * Event triggered for a new beat
+ * Search a point where the signal is below the threshold
  *=======================================================================*/
 mwSize get_point(mwSize istart, mwSize iend, mwSize len, int thr,
         mwSize def)
