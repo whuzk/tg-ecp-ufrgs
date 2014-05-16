@@ -4,4 +4,4 @@ function [C,S] = gopalak_features(RR, Beats)
 S = features.gopalak_segments(Beats, RR);
 
 % extraçao dos coefficientes de hermite
-C = features.gopalak_hermite(S);
+C = mex.gopalak_hermite(S);

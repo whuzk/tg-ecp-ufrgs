@@ -242,4 +242,41 @@ void first_order_fit(const double *x, const double *y, double *p)
     p[1] = y[0] - x[0]*p[1];
 }
 
+/*=========================================================================
+ * Rational approximation of x by p/q, with the specified tolerance
+ *=======================================================================*/
+void rational(double x, int *p, int *q, double tol)
+{
+    int nh[2] = {1, 0};    // [n(k) n(k-1)]
+    int dh[2] = {0, 1};    // [d(k) d(k-1)]
+    double savex, diff;
+    int k, d, saven, saved;
+    
+    k = 0;
+    savex = x;
+    while (true) {
+        k++;
+        d = (int)round(x);
+        x = x - d;
+        
+        saven = nh[0];
+        saved = dh[0];
+        nh[0] = nh[0] * d + nh[1];
+        dh[0] = dh[0] * d + dh[1];
+        nh[1] = saven;
+        dh[1] = saved;
+        
+        diff = fabs(nh[0] / (double)dh[0] - savex);
+        if (k == 100 || x == 0 || diff <= tol) {
+            break;
+        }
+        x = 1 / x;
+    }
+    if (signbit(dh[0])) {
+        *p = -nh[0];
+    }
+    else *p = nh[0];
+    *q = abs(dh[0]);
+}
+
 #endif

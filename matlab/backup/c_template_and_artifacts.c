@@ -98,7 +98,7 @@ void updateOutputs()
 }
 
 /*=========================================================================
- * Event triggered for an arriving sample
+ * Event triggered for a new beat
  *=======================================================================*/
 void onNewBeat()
 {
