@@ -2,6 +2,7 @@ function [C,S1,S2] = rocha_features(signal, RR, F, Beats)
 
 center = floor(size(Beats,1)/2)+1;
 Fs = signal.fs;
+gain = signal.gain;
 
 % extraçao do ponto J de acordo com Pang
 Jp = mex.pang_jpoints(RR, center, Fs);

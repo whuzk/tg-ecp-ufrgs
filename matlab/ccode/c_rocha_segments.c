@@ -1,17 +1,19 @@
 /*=========================================================================
- * c_mohebbi_segments.c
+ * c_rocha_segments.c
  * 
- *  Title: extraction of segments according to Mohebbi
+ *  Title: extraction of segments according to Rocha
  *  Author:     Diego Sogari
  *  Modified:   16/May/2014
  *
  *  Intputs:
  *      1. List of beats (in matrix form)
- *      2. List of J points
- *      3. Sampling frequency (in Hertz)
+ *      2. List of starting points
+ *      3. List of J points
+ *      4. List of ending points
  *
  *  Outputs:
- *      1. List of segments
+ *      1. List of segments 1
+ *      2. List of segments 2
  *
  *  *all inputs and outputs required
  *
@@ -36,52 +38,67 @@
 /*=========================================================================
  * Constants
  *=======================================================================*/
-#define MIN_INPUTS      3       // minimum number of input arguments
-#define MAX_INPUTS      3       // maximum number of input arguments
-#define MIN_OUTPUTS     1       // minimum number of output arguments
-#define MAX_OUTPUTS     1       // maximum number of output arguments
+#define MIN_INPUTS      4       // minimum number of input arguments
+#define MAX_INPUTS      4       // maximum number of input arguments
+#define MIN_OUTPUTS     2       // minimum number of output arguments
+#define MAX_OUTPUTS     2       // maximum number of output arguments
 
-#define OUT_SEG_SIZE    20      // size of the output segment (in samples)
-#define HALF_SEG_SIZE   0.08    // half the size of a segment (in seconds)
+#define OUT_SEG_SIZE    64      // size of the output segment (in samples)
 
 /*=========================================================================
  * Input and output variables
  *=======================================================================*/
 static double *beatList;        // list of beats
+static double *begList;         // list of starting points
 static double *jayList;         // list of J points
+static double *endList;         // list of ending points
 static mwSize qrsLen;           // number of beats
-static double sampFreq;         // sampling frequency
-static double *outSeg;          // output list of segments
+static double *outSeg1;         // output list of segments
+static double *outSeg2;         // output list of segments
 
 /*=========================================================================
  * Other variables
  *=======================================================================*/
 static mwSize bi;               // current beat index
 static mwSize frameSize;        // size of one beat
-static mwSize stsegSize;        // size of a segment
 static double filterH[OUT_SEG_SIZE];    // filter impulse response
 
 /*=========================================================================
  * Lookup for vectors
  *=======================================================================*/
 #define beat(I,J)   (beatList[(I)*frameSize+(J)])
-#define seg(I,J)    (outSeg[(I)*OUT_SEG_SIZE+(J)])
+#define seg1(I,J)   (outSeg1[(I)*OUT_SEG_SIZE+(J)])
+#define seg2(I,J)   (outSeg2[(I)*OUT_SEG_SIZE+(J)])
 
 /*=========================================================================
  * Event triggered for a new beat
  *=======================================================================*/
 void onNewBeat()
 {
-    mwSize istart, n;
+    mwSize istart, iend, len;
+    mwSize n = OUT_SEG_SIZE;
     double *x, *y;
     int p, q;
     
+    istart = (mwSize)begList[bi] - 1;
+    iend = (mwSize)jayList[bi] - 1;
+    if (istart < iend) {
+        len = iend - istart + 1;
+        x = &beat(bi, istart);
+        y = &seg1(bi, 0);
+        rational(n / (double)len, &p, &q, 1.0e-5);
+        upfirdn(y, n, x, len, filterH, p, p, q);
+    }
+    
     istart = (mwSize)jayList[bi] - 1;
-    n = OUT_SEG_SIZE;
-    x = &beat(bi, istart);
-    y = &seg(bi, 0);
-    rational(n / (double)stsegSize, &p, &q, 1.0e-5);
-    upfirdn(y, n, x, stsegSize, filterH, p, p, q);
+    iend = (mwSize)endList[bi] - 1;
+    if (istart < iend) {
+        len = iend - istart + 1;
+        x = &beat(bi, istart);
+        y = &seg2(bi, 0);
+        rational(n / (double)len, &p, &q, 1.0e-5);
+        upfirdn(y, n, x, len, filterH, p, p, q);
+    }
     
     bi++;
 }
@@ -95,14 +112,14 @@ void checkArgs( int nlhs, mxArray *plhs[],
     // check for proper number of input arguments
     if (nrhs < MIN_INPUTS || nrhs > MAX_INPUTS) {
         mexErrMsgIdAndTxt(
-            "EcgToolbox:c_mohebbi_segments:nrhs",
+            "EcgToolbox:c_rocha_segments:nrhs",
             "%d input(s) required and %d optional",
             MIN_INPUTS, MAX_INPUTS - MIN_INPUTS);
     }
     // check for proper number of output arguments
     if (nlhs < MIN_OUTPUTS || nlhs > MAX_OUTPUTS) {
         mexErrMsgIdAndTxt(
-            "EcgToolbox:c_mohebbi_segments:nlhs",
+            "EcgToolbox:c_rocha_segments:nlhs",
             "%d output(s) required and %d optional",
             MIN_OUTPUTS, MAX_OUTPUTS - MIN_OUTPUTS);
     }
@@ -110,28 +127,22 @@ void checkArgs( int nlhs, mxArray *plhs[],
     for (mwSize i = 0; i < nrhs; i++) {
         if (!mxIsDouble(prhs[i]) || mxIsComplex(prhs[i])) {
             mexErrMsgIdAndTxt(
-                "EcgToolbox:c_mohebbi_segments:notDouble",
+                "EcgToolbox:c_rocha_segments:notDouble",
                 "Input #%d must be of type double.", i + 1);
         }
     }
     // make sure the first input argument has more than one line
     if (mxGetM(prhs[0]) == 1) {
         mexErrMsgIdAndTxt(
-            "EcgToolbox:c_mohebbi_segments:badDimensions",
+            "EcgToolbox:c_rocha_segments:badDimensions",
             "Input #1 must have more than one line.");
     }
-    // make sure the second input argument has exactly one column
-    if (mxGetN(prhs[1]) != 1) {
-        mexErrMsgIdAndTxt(
-            "EcgToolbox:c_mohebbi_segments:badDimensions",
-            "Input #2 must have exactly one column.");
-    }
-    // make sure the remaining input arguments are all scalars
-    for (mwSize i = 2; i < nrhs; i++) {
-        if (mxGetNumberOfElements(prhs[i]) != 1) {
+    // make sure the remaining input arguments have exactly one column
+    for (mwSize i = 1; i < nrhs; i++) {
+        if (mxGetN(prhs[i]) != 1) {
             mexErrMsgIdAndTxt(
-                "EcgToolbox:c_mohebbi_segments:notScalar",
-                "Input #%d must be a scalar.", i + 1);
+                "EcgToolbox:c_rocha_segments:badDimensions",
+                "Input #%d must have exactly one column.", i + 1);
         }
     }
 }
@@ -144,21 +155,22 @@ void handleInputs( int nrhs, const mxArray *prhs[],
 {
     // get pointers to the data in the input vectors
     beatList = mxGetPr(prhs[0]);
-    jayList = mxGetPr(prhs[1]);
+    begList = mxGetPr(prhs[1]);
+    jayList = mxGetPr(prhs[2]);
+    endList = mxGetPr(prhs[3]);
     
     // get the dimensions of the first input
     *nrows = (mwSize)mxGetM(prhs[0]);
     *ncols = (mwSize)mxGetN(prhs[0]);
     
-    // make sure the second input argument has compatible dimensions
-    if (mxGetM(prhs[1]) != *ncols) {
-        mexErrMsgIdAndTxt(
-            "EcgToolbox:c_mohebbi_segments:badDimensions",
-            "Inputs #1 and #2 must have compatible dimensions.");
+    // make sure the input arguments 2-4 have compatible dimensions
+    for (mwSize i = 1; i < nrhs; i++) {
+        if (mxGetM(prhs[i]) != *ncols) {
+            mexErrMsgIdAndTxt(
+                "EcgToolbox:c_rocha_segments:badDimensions",
+                "Inputs #1 and #%d must have compatible dimensions.", i + 1);
+        }
     }
-    
-    // get the sampling frequency
-    sampFreq = mxGetScalar(prhs[2]);
 }
 
 /*=========================================================================
@@ -168,19 +180,20 @@ void handleOutputs(int nlhs, mxArray *plhs[])
 {
     // get a pointer to the first output
     plhs[0] = mxCreateDoubleMatrix(OUT_SEG_SIZE, qrsLen, mxREAL);
-    outSeg = mxGetPr(plhs[0]);
+    outSeg1 = mxGetPr(plhs[0]);
+    
+    // get a pointer to the first output
+    plhs[1] = mxCreateDoubleMatrix(OUT_SEG_SIZE, qrsLen, mxREAL);
+    outSeg2 = mxGetPr(plhs[1]);
 }
 
 /*=========================================================================
- * The initializarion routine
+ * The initialization routine 
  *=======================================================================*/
 void init()
 {
     // initialize beat index
     bi = 0;
-    
-    // initialize ST segment size
-    stsegSize = (int)round(HALF_SEG_SIZE * sampFreq) * 2;
     
     // initialize filter impulse response
     for (mwSize i = 0; i < OUT_SEG_SIZE; i++) {

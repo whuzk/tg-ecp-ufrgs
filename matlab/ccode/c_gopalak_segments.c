@@ -19,7 +19,9 @@
 #include <math.h>
 #include "mex.h"
 #include "c_upfirdn.h"
+#include "c_mathutils.h"
 #include "c_timeutils.h"
+#include "c_mexutils.h"
 
 /*=========================================================================
  * Abbreviations
@@ -54,7 +56,7 @@ static double *outSeg;          // output list of segments
  *=======================================================================*/
 static mwSize bi;               // current beat index
 static mwSize frameSize;        // size of one beat
-static double filterH[OUT_SEG_SIZE] = {1.0};    // filter impulse response
+static double filterH[OUT_SEG_SIZE];    // filter impulse response
 
 /*=========================================================================
  * Lookup for vectors
@@ -67,13 +69,17 @@ static double filterH[OUT_SEG_SIZE] = {1.0};    // filter impulse response
  *=======================================================================*/
 void onNewBeat()
 {
-    mwSize rr = min(frameSize, (mwSize)rrList[bi]);
-    mwSize istart = (frameSize - rr) >> 1;
-    mwSize n = OUT_SEG_SIZE;
-    double *x = &beat(bi, istart);
-    double *y = &seg(bi, 0);
+    mwSize rr, istart, n;
+    double *x, *y;
+    int p, q;
     
-    upfirdn(y, n, x, rr, filterH, n, n, rr);
+    rr = min(frameSize, (mwSize)rrList[bi]);
+    istart = (frameSize - rr) >> 1;
+    n = OUT_SEG_SIZE;
+    x = &beat(bi, istart);
+    y = &seg(bi, 0);
+    rational(n / (double)rr, &p, &q, 1.0e-5);
+    upfirdn(y, n, x, rr, filterH, p, p, q);
     
     bi++;
 }
@@ -153,6 +159,20 @@ void handleOutputs(int nlhs, mxArray *plhs[])
 }
 
 /*=========================================================================
+ * The initialization routine 
+ *=======================================================================*/
+void init()
+{
+    // initialize beat index
+    bi = 0;
+    
+    // initialize filter impulse response
+    for (mwSize i = 0; i < OUT_SEG_SIZE; i++) {
+        filterH[i] = 1.0;
+    }
+}
+
+/*=========================================================================
  * The main routine 
  *=======================================================================*/
 void doTheJob()
@@ -161,9 +181,6 @@ void doTheJob()
     
     // start time counter
     tic();
-    
-    // initialize beat index
-    bi = 0;
     
     // process one input sample at a time
     for (mwSize i = 0; i < qrsLen; i++) {
@@ -201,6 +218,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
     
     // handle output arguments
     handleOutputs(nlhs, plhs);
+    
+    // make some initializations
+    init();
     
     // do the actual processing
     doTheJob();
