@@ -63,6 +63,7 @@ static double *outSeg2;         // output list of segments
  *=======================================================================*/
 static mwSize bi;               // current beat index
 static mwSize frameSize;        // size of one beat
+static double *windowBuf;       // window buffer
 static double *filterBuf;       // filter buffer
 static mwSize filterLen;        // length of filter buffer
 static double *resampBuf;       // resampling buffer
@@ -92,12 +93,11 @@ void resamp(double *y, double *x, mwSize Lx, int p, int q)
     
     // compute filter impulse response
     for (mwSize n = 0; n < filterLen; n++) {
-        win = 0.54 - 0.46 * cos(2 * PI * n / (double)(filterLen - 1));
         if (n != M2) {
             c = n - M2;
-            filterBuf[n] = (double)p * win * sin(wc * c) / (PI * c);
+            filterBuf[n] = p * (sin(wc * c) / (PI * c)) * windowBuf[n];
         }
-        else filterBuf[n] = (double)p * win * wc / PI;
+        else filterBuf[n] = p * (wc / PI) * windowBuf[n];
     }
     
     // perform the resampling
@@ -252,6 +252,12 @@ void init()
     filterBuf = (double *)mxMalloc(filterLen * sizeof(double));
     resampLen = OUT_SEG_SIZE + filterLen - 1;
     resampBuf = (double *)mxMalloc(resampLen * sizeof(double));
+    
+    // initialize window buffer
+    windowBuf = (double *)mxMalloc(filterLen * sizeof(double));
+    for (mwSize n = 0; n < filterLen; n++) {
+        windowBuf[n] = 0.54 - 0.46 * cos(2*PI*n / (double)(filterLen - 1));
+    }
 }
 
 /*=========================================================================
@@ -275,6 +281,17 @@ void doTheJob()
     // display time statistics
     mexPrintf("Total processing time: %.2f ms\n", 1000 * time);
     mexPrintf("Average time per beat: %.2f ns\n", 1000000000 * time / qrsLen);
+}
+
+/*=========================================================================
+ * The finalization routine 
+ *=======================================================================*/
+void finalize()
+{
+    // deallocate memory
+    mxFree(filterBuf);
+    mxFree(resampBuf);
+    mxFree(windowBuf);
 }
 
 /*=========================================================================
@@ -306,4 +323,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     
     // do the actual processing
     doTheJob();
+    
+    // perform final adjustments
+    finalize();
 }
