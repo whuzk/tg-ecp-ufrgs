@@ -9,7 +9,7 @@ gain = signal.gain;
 [~,Jt] = mex.mohebbi_ijpoints(Template, defI, defJ, Fs, gain);
 [~,Jb] = mex.mohebbi_ijpoints(Beats, F(3,:)', F(5,:)', Fs, gain);
 
-% extraçao dos segmentos ST (demorado)
+% extraçao dos segmentos ST
 STt = mex.mohebbi_segments(Template, Jt, Fs);
 STb = mex.mohebbi_segments(Beats, Jb, Fs);
 

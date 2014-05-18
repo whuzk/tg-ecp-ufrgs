@@ -1,4 +1,4 @@
-function Result = gopalak_segments(Beats, RR)
+function Result = gopalak_segments(Beats, RR, Fs)
 
 [N,M] = size(Beats);
 RR = min(N,RR);

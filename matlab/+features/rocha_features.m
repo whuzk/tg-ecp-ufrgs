@@ -13,10 +13,8 @@ Jp = mex.pang_jpoints(RR, center, Fs);
 % extraçao dos desvios de segmento ST
 C0 = mex.rocha_stdev(Beats, Ib, Jp, Jb);
 
-% extraçao dos segmentos de batida (demorado)
-tic;
-[S1,S2] = features.rocha_segments(Beats, Ib, Jb, F(end,:)');
-toc;
+% extraçao dos segmentos de batida
+[S1,S2] = mex.rocha_segments(Beats, Ib, Jb, F(end,:)', Fs);
 
 % extraçao dos coeficientes de hermite
 [C1,C2] = mex.rocha_hermite(S1, S2);

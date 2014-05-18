@@ -18,7 +18,7 @@ toc;
 
 % extraçao de caracteristicas do Gopalakrishnan
 tic;
-[Gopalak,GopalakS] = features.gopalak_features(RR, Beats);
+[Gopalak,GopalakS] = features.gopalak_features(signal, RR, Beats);
 toc;
 
 % visualizaçao

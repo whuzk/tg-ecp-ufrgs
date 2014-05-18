@@ -10,6 +10,7 @@
  *      2. List of starting points
  *      3. List of J points
  *      4. List of ending points
+ *      5. Sampling frequency (in Hertz)
  *
  *  Outputs:
  *      1. List of segments 1
@@ -38,8 +39,8 @@
 /*=========================================================================
  * Constants
  *=======================================================================*/
-#define MIN_INPUTS      4       // minimum number of input arguments
-#define MAX_INPUTS      4       // maximum number of input arguments
+#define MIN_INPUTS      5       // minimum number of input arguments
+#define MAX_INPUTS      5       // maximum number of input arguments
 #define MIN_OUTPUTS     2       // minimum number of output arguments
 #define MAX_OUTPUTS     2       // maximum number of output arguments
 
@@ -53,6 +54,7 @@ static double *begList;         // list of starting points
 static double *jayList;         // list of J points
 static double *endList;         // list of ending points
 static mwSize qrsLen;           // number of beats
+static double sampFreq;         // sampling frequency
 static double *outSeg1;         // output list of segments
 static double *outSeg2;         // output list of segments
 
@@ -61,7 +63,10 @@ static double *outSeg2;         // output list of segments
  *=======================================================================*/
 static mwSize bi;               // current beat index
 static mwSize frameSize;        // size of one beat
-static double filterH[OUT_SEG_SIZE];    // filter impulse response
+static double *filterBuf;       // filter buffer
+static mwSize filterLen;        // length of filter buffer
+static double *resampBuf;       // resampling buffer
+static mwSize resampLen;        // length of resampling buffer
 
 /*=========================================================================
  * Lookup for vectors
@@ -71,14 +76,52 @@ static double filterH[OUT_SEG_SIZE];    // filter impulse response
 #define seg2(I,J)   (outSeg2[(I)*OUT_SEG_SIZE+(J)])
 
 /*=========================================================================
+ * Resample
+ *=======================================================================*/
+void resamp(double *y, double *x, mwSize Lx, int p, int q)
+{
+    double wc, win, c;
+    mwSize Ly, delay;
+    int pqmax, M2;
+    
+    // compute parameters
+    rational(p / (double)q, &p, &q, 1.0e-5);
+    pqmax = max(p, q);
+    wc = PI / (double)pqmax;
+    M2 = (filterLen - 1) >> 1;
+    
+    // compute filter impulse response
+    for (mwSize n = 0; n < filterLen; n++) {
+        win = 0.54 - 0.46 * cos(2 * PI * n / (double)(filterLen - 1));
+        if (n != M2) {
+            c = n - M2;
+            filterBuf[n] = (double)p * win * sin(wc * c) / (PI * c);
+        }
+        else filterBuf[n] = (double)p * win * wc / PI;
+    }
+    
+    // perform the resampling
+    Ly = (int)ceil(((Lx - 1) * p + filterLen) / (double)q);
+    memset(resampBuf, 0, filterLen * sizeof(double));
+    if (Ly > resampLen) {
+        mexPrintf("Warning: Ly > resampLen\n");
+        Ly = resampLen;
+    }
+    upfirdn(resampBuf, Ly, x, Lx, filterBuf, filterLen, p, q);
+    
+    // remove delay and write to output
+    delay = (int)floor(M2 / (double)q);
+    Ly = (int)ceil(Lx * p / (double)q);
+    memcpy(y, &resampBuf[delay], Ly * sizeof(double));
+}
+
+/*=========================================================================
  * Event triggered for a new beat
  *=======================================================================*/
 void onNewBeat()
 {
     mwSize istart, iend, len;
-    mwSize n = OUT_SEG_SIZE;
     double *x, *y;
-    int p, q;
     
     istart = (mwSize)begList[bi] - 1;
     iend = (mwSize)jayList[bi] - 1;
@@ -86,8 +129,7 @@ void onNewBeat()
         len = iend - istart + 1;
         x = &beat(bi, istart);
         y = &seg1(bi, 0);
-        rational(n / (double)len, &p, &q, 1.0e-5);
-        upfirdn(y, n, x, len, filterH, p, p, q);
+        resamp(y, x, len, OUT_SEG_SIZE, len);
     }
     
     istart = (mwSize)jayList[bi] - 1;
@@ -96,8 +138,7 @@ void onNewBeat()
         len = iend - istart + 1;
         x = &beat(bi, istart);
         y = &seg2(bi, 0);
-        rational(n / (double)len, &p, &q, 1.0e-5);
-        upfirdn(y, n, x, len, filterH, p, p, q);
+        resamp(y, x, len, OUT_SEG_SIZE, len);
     }
     
     bi++;
@@ -138,11 +179,19 @@ void checkArgs( int nlhs, mxArray *plhs[],
             "Input #1 must have more than one line.");
     }
     // make sure the remaining input arguments have exactly one column
-    for (mwSize i = 1; i < nrhs; i++) {
+    for (mwSize i = 1; i < 4; i++) {
         if (mxGetN(prhs[i]) != 1) {
             mexErrMsgIdAndTxt(
                 "EcgToolbox:c_rocha_segments:badDimensions",
                 "Input #%d must have exactly one column.", i + 1);
+        }
+    }
+    // make sure the remaining input arguments are all scalars
+    for (mwSize i = 4; i < nrhs; i++) {
+        if (mxGetNumberOfElements(prhs[i]) != 1) {
+            mexErrMsgIdAndTxt(
+                "EcgToolbox:c_mohebbi_segments:notScalar",
+                "Input #%d must be a scalar.", i + 1);
         }
     }
 }
@@ -164,13 +213,16 @@ void handleInputs( int nrhs, const mxArray *prhs[],
     *ncols = (mwSize)mxGetN(prhs[0]);
     
     // make sure the input arguments 2-4 have compatible dimensions
-    for (mwSize i = 1; i < nrhs; i++) {
+    for (mwSize i = 1; i < 4; i++) {
         if (mxGetM(prhs[i]) != *ncols) {
             mexErrMsgIdAndTxt(
                 "EcgToolbox:c_rocha_segments:badDimensions",
                 "Inputs #1 and #%d must have compatible dimensions.", i + 1);
         }
     }
+    
+    // get the sampling frequency
+    sampFreq = mxGetScalar(prhs[4]);
 }
 
 /*=========================================================================
@@ -195,10 +247,11 @@ void init()
     // initialize beat index
     bi = 0;
     
-    // initialize filter impulse response
-    for (mwSize i = 0; i < OUT_SEG_SIZE; i++) {
-        filterH[i] = 1.0;
-    }
+    // initialize filter and resampling buffers
+    filterLen = (int)round(2 * sampFreq) + 1;
+    filterBuf = (double *)mxMalloc(filterLen * sizeof(double));
+    resampLen = OUT_SEG_SIZE + filterLen - 1;
+    resampBuf = (double *)mxMalloc(resampLen * sizeof(double));
 }
 
 /*=========================================================================

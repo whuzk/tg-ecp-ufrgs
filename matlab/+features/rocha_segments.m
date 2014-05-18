@@ -1,4 +1,4 @@
-function [S1,S2] = rocha_segments(Beats, B, J, E)
+function [S1,S2] = rocha_segments(Beats, B, J, E, Fs)
 
 M = size(Beats,2);
 S1 = zeros(64,M);

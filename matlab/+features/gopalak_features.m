@@ -1,7 +1,7 @@
-function [C,S] = gopalak_features(RR, Beats)
+function [C,S] = gopalak_features(signal, RR, Beats)
 
-% extraçao dos segmentos de batida (demorado)
-S = features.gopalak_segments(Beats, RR);
+% extraçao dos segmentos de batida
+S = mex.gopalak_segments(Beats, RR, signal.fs);
 
 % extraçao dos coefficientes de hermite
 C = mex.gopalak_hermite(S);

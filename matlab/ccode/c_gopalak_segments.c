@@ -8,6 +8,7 @@
  *  Intputs:
  *      1. List of beats (in matrix form)
  *      2. List of RR intervals
+ *      3. Sampling frequency (in Hertz)
  *
  *  Outputs:
  *      1. List of segments
@@ -21,7 +22,6 @@
 #include "c_upfirdn.h"
 #include "c_mathutils.h"
 #include "c_timeutils.h"
-#include "c_mexutils.h"
 
 /*=========================================================================
  * Abbreviations
@@ -36,8 +36,8 @@
 /*=========================================================================
  * Constants
  *=======================================================================*/
-#define MIN_INPUTS      2       // minimum number of input arguments
-#define MAX_INPUTS      2       // maximum number of input arguments
+#define MIN_INPUTS      3       // minimum number of input arguments
+#define MAX_INPUTS      3       // maximum number of input arguments
 #define MIN_OUTPUTS     1       // minimum number of output arguments
 #define MAX_OUTPUTS     1       // maximum number of output arguments
 
@@ -49,6 +49,7 @@
 static double *beatList;        // list of beats
 static double *rrList;          // list of RR intervals
 static mwSize qrsLen;           // number of beats
+static double sampFreq;         // sampling frequency
 static double *outSeg;          // output list of segments
 
 /*=========================================================================
@@ -56,7 +57,10 @@ static double *outSeg;          // output list of segments
  *=======================================================================*/
 static mwSize bi;               // current beat index
 static mwSize frameSize;        // size of one beat
-static double filterH[OUT_SEG_SIZE];    // filter impulse response
+static double *filterBuf;       // filter buffer
+static mwSize filterLen;        // length of filter buffer
+static double *resampBuf;       // resampling buffer
+static mwSize resampLen;        // length of resampling buffer
 
 /*=========================================================================
  * Lookup for vectors
@@ -65,21 +69,58 @@ static double filterH[OUT_SEG_SIZE];    // filter impulse response
 #define seg(I,J)    (outSeg[(I)*OUT_SEG_SIZE+(J)])
 
 /*=========================================================================
+ * Resample
+ *=======================================================================*/
+void resamp(double *y, double *x, mwSize Lx, int p, int q)
+{
+    double wc, win, c;
+    mwSize Ly, delay;
+    int pqmax, M2;
+    
+    // compute parameters
+    rational(p / (double)q, &p, &q, 1.0e-5);
+    pqmax = max(p, q);
+    wc = PI / (double)pqmax;
+    M2 = (filterLen - 1) >> 1;
+    
+    // compute filter impulse response
+    for (mwSize n = 0; n < filterLen; n++) {
+        win = 0.54 - 0.46 * cos(2 * PI * n / (double)(filterLen - 1));
+        if (n != M2) {
+            c = n - M2;
+            filterBuf[n] = (double)p * win * sin(wc * c) / (PI * c);
+        }
+        else filterBuf[n] = (double)p * win * wc / PI;
+    }
+    
+    // perform the resampling
+    Ly = (int)ceil(((Lx - 1) * p + filterLen) / (double)q);
+    memset(resampBuf, 0, filterLen * sizeof(double));
+    if (Ly > resampLen) {
+        mexPrintf("Warning: Ly > resampLen\n");
+        Ly = resampLen;
+    }
+    upfirdn(resampBuf, Ly, x, Lx, filterBuf, filterLen, p, q);
+    
+    // remove delay and write to output
+    delay = (int)floor(M2 / (double)q);
+    Ly = (int)ceil(Lx * p / (double)q);
+    memcpy(y, &resampBuf[delay], Ly * sizeof(double));
+}
+
+/*=========================================================================
  * Event triggered for a new beat
  *=======================================================================*/
 void onNewBeat()
 {
-    mwSize rr, istart, n;
+    mwSize rr, istart;
     double *x, *y;
-    int p, q;
     
     rr = min(frameSize, (mwSize)rrList[bi]);
     istart = (frameSize - rr) >> 1;
-    n = OUT_SEG_SIZE;
     x = &beat(bi, istart);
     y = &seg(bi, 0);
-    rational(n / (double)rr, &p, &q, 1.0e-5);
-    upfirdn(y, n, x, rr, filterH, p, p, q);
+    resamp(y, x, rr, OUT_SEG_SIZE, rr);
     
     bi++;
 }
@@ -124,6 +165,14 @@ void checkArgs( int nlhs, mxArray *plhs[],
             "EcgToolbox:c_gopalak_segments:badDimensions",
             "Input #2 must have exactly one column.");
     }
+    // make sure the remaining input arguments are all scalars
+    for (mwSize i = 2; i < nrhs; i++) {
+        if (mxGetNumberOfElements(prhs[i]) != 1) {
+            mexErrMsgIdAndTxt(
+                "EcgToolbox:c_mohebbi_segments:notScalar",
+                "Input #%d must be a scalar.", i + 1);
+        }
+    }
 }
 
 /*=========================================================================
@@ -146,6 +195,9 @@ void handleInputs( int nrhs, const mxArray *prhs[],
             "EcgToolbox:c_gopalak_segments:badDimensions",
             "Inputs #1 and #2 must have compatible dimensions.");
     }
+    
+    // get the sampling frequency
+    sampFreq = mxGetScalar(prhs[2]);
 }
 
 /*=========================================================================
@@ -166,10 +218,11 @@ void init()
     // initialize beat index
     bi = 0;
     
-    // initialize filter impulse response
-    for (mwSize i = 0; i < OUT_SEG_SIZE; i++) {
-        filterH[i] = 1.0;
-    }
+    // initialize filter and resampling buffers
+    filterLen = (int)round(2 * sampFreq) + 1;
+    filterBuf = (double *)mxMalloc(filterLen * sizeof(double));
+    resampLen = OUT_SEG_SIZE + filterLen - 1;
+    resampBuf = (double *)mxMalloc(resampLen * sizeof(double));
 }
 
 /*=========================================================================
@@ -193,6 +246,16 @@ void doTheJob()
     // display time statistics
     mexPrintf("Total processing time: %.2f ms\n", 1000 * time);
     mexPrintf("Average time per beat: %.2f ns\n", 1000000000 * time / qrsLen);
+}
+
+/*=========================================================================
+ * The finalization routine 
+ *=======================================================================*/
+void finalize()
+{
+    // deallocate memory
+    mxFree(filterBuf);
+    mxFree(resampBuf);
 }
 
 /*=========================================================================
@@ -224,4 +287,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     
     // do the actual processing
     doTheJob();
+    
+    // perform final adjustments
+    finalize();
 }
