@@ -82,6 +82,8 @@ void onNewBeat()
 void checkArgs( int nlhs, mxArray *plhs[],
                 int nrhs, const mxArray *prhs[])
 {
+    mwSize i;
+    
     // check for proper number of input arguments
     if (nrhs < MIN_INPUTS || nrhs > MAX_INPUTS) {
         mexErrMsgIdAndTxt(
@@ -97,7 +99,7 @@ void checkArgs( int nlhs, mxArray *plhs[],
             MIN_OUTPUTS, MAX_OUTPUTS - MIN_OUTPUTS);
     }
     // make sure all input arguments are of type double
-    for (mwSize i = 0; i < nrhs; i++) {
+    for (i = 0; i < nrhs; i++) {
         if (!mxIsDouble(prhs[i]) || mxIsComplex(prhs[i])) {
             mexErrMsgIdAndTxt(
                 "EcgToolbox:c_rocha_stdev:notDouble",
@@ -111,7 +113,7 @@ void checkArgs( int nlhs, mxArray *plhs[],
             "Input #1 must have more than one line.");
     }
     // make sure the input arguments 2-4 have exactly one column
-    for (mwSize i = 1; i < nrhs; i++) {
+    for (i = 1; i < nrhs; i++) {
         if (mxGetN(prhs[i]) != 1) {
             mexErrMsgIdAndTxt(
                 "EcgToolbox:c_rocha_stdev:badDimensions",
@@ -126,6 +128,8 @@ void checkArgs( int nlhs, mxArray *plhs[],
 void handleInputs( int nrhs, const mxArray *prhs[],
                    mwSize *nrows, mwSize *ncols)
 {
+    mwSize i;
+    
     // get pointers to the data in the input vectors
     beatList = mxGetPr(prhs[0]);
     isoList = mxGetPr(prhs[1]);
@@ -137,7 +141,7 @@ void handleInputs( int nrhs, const mxArray *prhs[],
     *ncols = (mwSize)mxGetN(prhs[0]);
     
     // make sure the input arguments 2-4 have compatible dimensions
-    for (mwSize i = 1; i < nrhs; i++) {
+    for (i = 1; i < nrhs; i++) {
         if (mxGetM(prhs[i]) != *ncols) {
             mexErrMsgIdAndTxt(
                 "EcgToolbox:c_rocha_stdev:badDimensions",
@@ -162,6 +166,7 @@ void handleOutputs(int nlhs, mxArray *plhs[])
 void doTheJob()
 {
     double time;
+    mwSize i;
     
     // start time counter
     tic();
@@ -170,7 +175,7 @@ void doTheJob()
     bi = 0;
     
     // process one input sample at a time
-    for (mwSize i = 0; i < qrsLen; i++) {
+    for (i = 0; i < qrsLen; i++) {
         onNewBeat();
     }
     

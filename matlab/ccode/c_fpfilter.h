@@ -65,17 +65,18 @@ typedef struct {
 double fpfnewx(fpfobject *filter, unsigned int ci, double sample)
 {
     double result = 0;
+    mwSize i;
     
     // update filter X memory
     xval(*filter, ci) = sample;
     
     // compute the first part of the recurrence equation
-    for (mwSize i = 0; i < filter->b.size; i++) {
+    for (i = 0; i < filter->b.size; i++) {
         result += filter->b.val[i] * xval(*filter, ci - filter->b.idx[i]);
     }
     
     // compute the second part of the recurrence equation
-    for (mwSize i = 1; i < filter->a.size; i++) {
+    for (i = 1; i < filter->a.size; i++) {
         result -= filter->a.val[i] * yval(*filter, ci - filter->a.idx[i]);
     }
     
@@ -105,7 +106,7 @@ mwSize fp_construct_coeff(fpfcoeffs *coeffObj, const double *a, mwSize na)
     
     // fill in the non-zero portion of the array
     while (count-- > 0) {
-        while (fpclassify(a[--na]) == FP_ZERO);
+        while (a[--na] == 0.0);
         coeffObj->val[count] = a[na];
         coeffObj->idx[count] = na;
     }
@@ -127,7 +128,7 @@ void fp_create_filter(fpfobject *filter, const double *b, mwSize nb,
     
     // initialize the X buffer
     if (xsize > 2) {
-        xsize = 1 << (1 + ilogb(xsize - 1));
+        xsize = 1 << (1 + ILOG2(xsize - 1));
     }
     filter->x.val = (double *)mxRealloc(filter->x.val, xsize * sizeof(double));
     memset(filter->x.val, 0, xsize * sizeof(double));
@@ -135,7 +136,7 @@ void fp_create_filter(fpfobject *filter, const double *b, mwSize nb,
     
     // initialize the Y buffer
     if (ysize > 2) {
-        ysize = 1 << (1 + ilogb(ysize - 1));
+        ysize = 1 << (1 + ILOG2(ysize - 1));
     }
     filter->y.val = (double *)mxRealloc(filter->y.val, ysize * sizeof(double));
     memset(filter->y.val, 0, ysize * sizeof(double));

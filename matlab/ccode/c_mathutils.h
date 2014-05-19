@@ -13,15 +13,16 @@
 #include <math.h>
 #include "mex.h"
 
-#define PI  3.1415926535897932384626433832795
+#define PI          3.1415926535897932384626433832795
+#define ILOG2(x)    (int)(log10(x) / log10(2.0))
 
 /*=========================================================================
  * Count zeros of an integer array
  *=======================================================================*/
 mwSize count_zeros(const int *a, mwSize na)
 {
-    mwSize count = 0;
-    for (mwSize i = 0; i < na; i++) {
+    mwSize i, count = 0;
+    for (i = 0; i < na; i++) {
         if (a[i] == 0) {
             count++;
         }
@@ -34,9 +35,9 @@ mwSize count_zeros(const int *a, mwSize na)
  *=======================================================================*/
 mwSize double_count_zeros(const double *a, mwSize na)
 {
-    mwSize count = 0;
-    for (mwSize i = 0; i < na; i++) {
-        if (fpclassify(a[i]) == FP_ZERO) {
+    mwSize i, count = 0;
+    for (i = 0; i < na; i++) {
+        if (a[i] == 0.0) {
             count++;
         }
     }
@@ -49,7 +50,9 @@ mwSize double_count_zeros(const double *a, mwSize na)
 long long sum(const int *a, mwSize na)
 {
     long long sum = 0;
-    for (mwSize i = 0; i < na; i++) {
+    mwSize i;
+    
+    for (i = 0; i < na; i++) {
         sum += a[i];
     }
     return sum;
@@ -61,7 +64,9 @@ long long sum(const int *a, mwSize na)
 double double_sum(const double *a, mwSize na)
 {
     double sum = 0.0;
-    for (mwSize i = 0; i < na; i++) {
+    mwSize i;
+    
+    for (i = 0; i < na; i++) {
         sum += a[i];
     }
     return sum;
@@ -74,7 +79,9 @@ double double_sum(const double *a, mwSize na)
  *=======================================================================*/
 void add(const int *a, const int *b, int *result, mwSize na)
 {
-    for (mwSize i = 0; i < na; i++) {
+    mwSize i;
+    
+    for (i = 0; i < na; i++) {
         result[i] = a[i] + b[i];
     }
 }
@@ -87,7 +94,9 @@ void add(const int *a, const int *b, int *result, mwSize na)
 void double_add(const double *a, const double *b, double *result,
         mwSize na)
 {
-    for (mwSize i = 0; i < na; i++) {
+    mwSize i;
+    
+    for (i = 0; i < na; i++) {
         result[i] = a[i] + b[i];
     }
 }
@@ -99,7 +108,9 @@ void double_add(const double *a, const double *b, double *result,
  *=======================================================================*/
 void subtract(const int *a, const int *b, int *result, mwSize na)
 {
-    for (mwSize i = 0; i < na; i++) {
+    mwSize i;
+    
+    for (i = 0; i < na; i++) {
         result[i] = a[i] - b[i];
     }
 }
@@ -112,7 +123,9 @@ void subtract(const int *a, const int *b, int *result, mwSize na)
 void double_subtract(const double *a, const double *b, double *result,
         mwSize na)
 {
-    for (mwSize i = 0; i < na; i++) {
+    mwSize i;
+    
+    for (i = 0; i < na; i++) {
         result[i] = a[i] - b[i];
     }
 }
@@ -124,7 +137,9 @@ void double_subtract(const double *a, const double *b, double *result,
  *=======================================================================*/
 void scalar_multiply(const int *a, int b, int *result, mwSize na)
 {
-    for (mwSize i = 0; i < na; i++) {
+    mwSize i;
+    
+    for (i = 0; i < na; i++) {
         result[i] = a[i] * b;
     }
 }
@@ -137,7 +152,9 @@ void scalar_multiply(const int *a, int b, int *result, mwSize na)
 void double_scalar_multiply(const double *a, double b, double *result,
         mwSize na)
 {
-    for (mwSize i = 0; i < na; i++) {
+    mwSize i;
+    
+    for (i = 0; i < na; i++) {
         result[i] = a[i] * b;
     }
 }
@@ -149,7 +166,9 @@ void double_scalar_multiply(const double *a, double b, double *result,
  *=======================================================================*/
 void array_multiply(const int *a, const int *b, int *result, mwSize na)
 {
-    for (mwSize i = 0; i < na; i++) {
+    mwSize i;
+    
+    for (i = 0; i < na; i++) {
         result[i] = a[i] * b[i];
     }
 }
@@ -162,7 +181,9 @@ void array_multiply(const int *a, const int *b, int *result, mwSize na)
 void double_array_multiply(const double *a, const double *b,
         double *result, mwSize na)
 {
-    for (mwSize i = 0; i < na; i++) {
+    mwSize i;
+    
+    for (i = 0; i < na; i++) {
         result[i] = a[i] * b[i];
     }
 }
@@ -190,10 +211,12 @@ double calcRmsd(const double *a, const double *b, double *aux, mwSize na)
  *=======================================================================*/
 void conv(const int *a, mwSize na, const int *b, mwSize nb, int *result)
 {
+    mwSize i, j;
+    
     memset(result, 0, (na + nb - 1) * sizeof(int));
     
-    for (mwSize i = 0; i < na; i++) {
-        for (mwSize j = 0; j < nb; j++) {
+    for (i = 0; i < na; i++) {
+        for (j = 0; j < nb; j++) {
             result[i + j] += a[i] * b[j];
         }
     }
@@ -206,10 +229,12 @@ void conv(const int *a, mwSize na, const int *b, mwSize nb, int *result)
 void double_conv(const double *a, mwSize na, const double *b, mwSize nb,
         double *result)
 {
+    mwSize i, j;
+    
     memset(result, 0, (na + nb - 1) * sizeof(double));
     
-    for (mwSize i = 0; i < na; i++) {
-        for (mwSize j = 0; j < nb; j++) {
+    for (i = 0; i < na; i++) {
+        for (j = 0; j < nb; j++) {
             result[i + j] += a[i] * b[j];
         }
     }
@@ -224,9 +249,11 @@ void nconv(const int *a, mwSize na, int n, int *result)
     result[0] = 1;
     
     if (n > 0) {
+        mwSize i, size;
         int *temp = (int *)mxMalloc((1 + n * (na - 1)) * sizeof(int));
-        mwSize size = 1;
-        for (mwSize i = 0; i < n; i++) {
+        
+        size = 1;
+        for (i = 0; i < n; i++) {
             conv(result, size, a, na, temp);
             size += na - 1;
             memcpy(result, temp, size * sizeof(int));
@@ -258,7 +285,7 @@ void rational(double x, int *p, int *q, double tol)
     savex = x;
     while (true) {
         k++;
-        d = (int)round(x);
+        d = (int)x;
         x = x - d;
         
         saven = nh[0];
@@ -274,7 +301,7 @@ void rational(double x, int *p, int *q, double tol)
         }
         x = 1 / x;
     }
-    if (signbit(dh[0])) {
+    if (dh[0] < 0) {
         *p = -nh[0];
     }
     else *p = nh[0];

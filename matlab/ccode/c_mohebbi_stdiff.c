@@ -74,6 +74,8 @@ void onNewBeat()
 void checkArgs( int nlhs, mxArray *plhs[],
                 int nrhs, const mxArray *prhs[])
 {
+    mwSize i;
+    
     // check for proper number of input arguments
     if (nrhs < MIN_INPUTS || nrhs > MAX_INPUTS) {
         mexErrMsgIdAndTxt(
@@ -89,7 +91,7 @@ void checkArgs( int nlhs, mxArray *plhs[],
             MIN_OUTPUTS, MAX_OUTPUTS - MIN_OUTPUTS);
     }
     // make sure all input arguments are of type double
-    for (mwSize i = 0; i < nrhs; i++) {
+    for (i = 0; i < nrhs; i++) {
         if (!mxIsDouble(prhs[i]) || mxIsComplex(prhs[i])) {
             mexErrMsgIdAndTxt(
                 "EcgToolbox:c_mohebbi_stdiff:notDouble",
@@ -148,6 +150,7 @@ void handleOutputs(int nlhs, mxArray *plhs[])
 void doTheJob()
 {
     double time;
+    mwSize i;
     
     // start time counter
     tic();
@@ -156,7 +159,7 @@ void doTheJob()
     bi = 0;
     
     // process one input sample at a time
-    for (mwSize i = 0; i < qrsLen; i++) {
+    for (i = 0; i < qrsLen; i++) {
         onNewBeat();
     }
     

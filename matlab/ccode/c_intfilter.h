@@ -108,17 +108,18 @@ static const char *bp_allowed_specs[] = {
 int intfnewx(intfobject *filter, unsigned int ci, int sample)
 {
     int result = 0;
+    mwSize i;
     
     // update filter X memory
     xval(*filter, ci) = sample;
     
     // compute the first part of the recurrence equation
-    for (mwSize i = 0; i < filter->b.size; i++) {
+    for (i = 0; i < filter->b.size; i++) {
         result += filter->b.val[i] * xval(*filter, ci - filter->b.idx[i]);
     }
     
     // compute the second part of the recurrence equation
-    for (mwSize i = 1; i < filter->a.size; i++) {
+    for (i = 1; i < filter->a.size; i++) {
         result -= filter->a.val[i] * yval(*filter, ci - filter->a.idx[i]);
     }
     
@@ -164,7 +165,9 @@ mwSize int_construct_coeff(intfcoeffs *coeffObj, const int *a, mwSize na)
  *=======================================================================*/
 void int_reconstruct_coeff(intfcoeffs *coeffObj, int *result)
 {
-    for (mwSize i = 0; i < coeffObj->size; i++) {
+    mwSize i;
+    
+    for (i = 0; i < coeffObj->size; i++) {
         result[coeffObj->idx[i]] = coeffObj->val[i];
     }
 }
@@ -187,7 +190,7 @@ void int_create_filter(intfobject *filter, double gain, double delay,
     
     // initialize the X buffer
     if (xsize > 2) {
-        xsize = 1 << (1 + ilogb(xsize - 1));
+        xsize = 1 << (1 + ILOG2(xsize - 1));
     }
     filter->x.val = (int *)mxRealloc(filter->x.val, xsize * sizeof(int));
     memset(filter->x.val, 0, xsize * sizeof(int));
@@ -195,7 +198,7 @@ void int_create_filter(intfobject *filter, double gain, double delay,
     
     // initialize the Y buffer
     if (ysize > 2) {
-        ysize = 1 << (1 + ilogb(ysize - 1));
+        ysize = 1 << (1 + ILOG2(ysize - 1));
     }
     filter->y.val = (int *)mxRealloc(filter->y.val, ysize * sizeof(int));
     memset(filter->y.val, 0, ysize * sizeof(int));
@@ -224,6 +227,7 @@ int get_specs(char *strSpec, char **strSpecArray, mwSize maxcount)
 bool is_member(const char *str, const char **strArray)
 {
     mwSize i = 0;
+    
     while (strArray[i] != NULL) {
         if (strcmp(strArray[i++], str) == 0) {
             return true;
@@ -238,8 +242,10 @@ bool is_member(const char *str, const char **strArray)
 void process_specs(va_list vaList, char **strSpecArray,
         mwSize specCount, intfspecs *specObj)
 {
+    mwSize i;
+    
     // process each specification
-    for (mwSize i = 0; i < specCount; i++) {
+    for (i = 0; i < specCount; i++) {
         char *strSpec = strSpecArray[i];
         
         if (strcmp(strSpec, "N") == 0) {
@@ -448,7 +454,7 @@ void design_basic_bp(intfobject *filter, int N, int m, double theta)
     bbase[0] = 1;
     bbase[m] = -1;
     nconv(bbase, m + 1, N, btemp);
-    abase[1] = (int)round(-2 * cos(theta));
+    abase[1] = (int)(-2 * cos(theta));
     nconv(abase, 3, N, atemp);
     
     // calculate gain and delay
@@ -727,7 +733,7 @@ bool design_bandpass(intfobject *filter, double Fs, const char *specStr, ...)
     
     // design the filter
     temp = get_m(N, Bw / 2.0, sense);
-    m = (int)round(ceil(temp * Wc / 2.0) / Wc * 2.0);
+    m = (int)(ceil(temp * Wc / 2.0) / Wc * 2.0);
     design_basic_bp(filter, N, m, M_PI * Wc);
     
     return true;
@@ -757,7 +763,7 @@ bool design_derivative(intfobject *filter, int N, int M)
 bool design_maverage(intfobject *filter, double Fs, double width)
 {
     // get the m-factor
-    int m = (int)round(width * Fs);
+    int m = (int)(width * Fs);
     
     // design the filter
     if (m <= 0) {

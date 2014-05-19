@@ -304,6 +304,8 @@ void onNewSample(double sample)
 void checkArgs( int nlhs, mxArray *plhs[],
                 int nrhs, const mxArray *prhs[])
 {
+    mwSize i;
+    
     // check for proper number of input arguments
     if (nrhs < MIN_INPUTS || nrhs > MAX_INPUTS) {
         mexErrMsgIdAndTxt(
@@ -319,7 +321,7 @@ void checkArgs( int nlhs, mxArray *plhs[],
             MIN_OUTPUTS, MAX_OUTPUTS - MIN_OUTPUTS);
     }
     // make sure all input arguments are of type double
-    for (mwSize i = 0; i < nrhs; i++) {
+    for (i = 0; i < nrhs; i++) {
         if (!mxIsDouble(prhs[i]) || mxIsComplex(prhs[i])) {
             mexErrMsgIdAndTxt(
                 "EcgToolbox:c_preprocess_filter:notDouble",
@@ -333,7 +335,7 @@ void checkArgs( int nlhs, mxArray *plhs[],
             "First input must be a vector.");
     }
     // make sure the remaining input arguments are all scalars
-    for (mwSize i = 1; i < nrhs; i++) {
+    for (i = 1; i < nrhs; i++) {
         if (mxGetNumberOfElements(prhs[i]) != 1) {
             mexErrMsgIdAndTxt(
                 "EcgToolbox:c_preprocess_filter:notScalar",
@@ -434,10 +436,10 @@ void designTpkFilters()
     design_maverage(&tpkMaFilter, sampFreq, TPK_MAF_WIDTH);
     
     // calculate log2 of filter gains (to speedup division)
-    tpkLpGainLog2 = 1 + ilogb(tpkLpFilter.gain - 1);
-    tpkHpGainLog2 = 1 + ilogb(tpkHpFilter.gain - 1);
-    tpkDeGainLog2 = 1 + ilogb(tpkDeFilter.gain - 1);
-    tpkMaGainLog2 = 1 + ilogb(tpkMaFilter.gain - 1);
+    tpkLpGainLog2 = 1 + ILOG2(tpkLpFilter.gain - 1);
+    tpkHpGainLog2 = 1 + ILOG2(tpkHpFilter.gain - 1);
+    tpkDeGainLog2 = 1 + ILOG2(tpkDeFilter.gain - 1);
+    tpkMaGainLog2 = 1 + ILOG2(tpkMaFilter.gain - 1);
     
     // calculate overall delay
     delay = tpkLpFilter.delay +
@@ -447,12 +449,34 @@ void designTpkFilters()
 }
 
 /*=========================================================================
+ * Deallocate memory of the filter objects 
+ *=======================================================================*/
+void deallocate_filters()
+{
+    endintfilter(tpkLpFilter);
+    endintfilter(tpkHpFilter);
+    endintfilter(tpkDeFilter);
+    endintfilter(tpkMaFilter);
+    endintfilter(sunLpFilter);
+    endintfilter(sunMaFilter);
+    endintfilter(sunDeFilter);
+    endintfilter(sunPdFilter1);
+    endmaxfilter(sunMaxFilter);
+    endmaxfilter(sunMinFilter);
+    endintfilter(sunMdFilter);
+    endintfilter(sunPdFilter2);
+    endfpfilter(noisBsFilter);
+    endfpfilter(noisLpFilter);
+    endfpfilter(noisPdFilter);
+}
+
+/*=========================================================================
  * Design the filters 
  *=======================================================================*/
 void designSunFilters()
 {
     double delay2;
-    int width = (int)round(SUN_MDF_WIDTH * sampFreq);
+    int width = (int)(SUN_MDF_WIDTH * sampFreq);
     
     // initialize filter objects
     initintfilter(sunLpFilter);
@@ -470,12 +494,11 @@ void designSunFilters()
     
     // make sure the required delay is sufficiently large
     if (delay < sunLpFilter.delay + width) {
+        deallocate_filters();
         mexErrMsgIdAndTxt(
             "EcgToolbox:c_yansun_filter:badDelay",
             "Required delay must be at least equal to %.2f.",
             sunLpFilter.delay + width);
-        void finalize();
-        finalize();
     }
     
     // design moving-average filter
@@ -502,9 +525,9 @@ void designSunFilters()
     design_allpass(&sunPdFilter2, 1, (int)ceil(delay - delay2));
     
     // calculate log2 of filter gains (to speedup division)
-    sunLpGainLog2 = 1 + ilogb(sunLpFilter.gain - 1);
-    sunMaGainLog2 = 1 + ilogb(sunMaFilter.gain - 1);
-    sunDeGainLog2 = 1 + ilogb(sunDeFilter.gain - 1);
+    sunLpGainLog2 = 1 + ILOG2(sunLpFilter.gain - 1);
+    sunMaGainLog2 = 1 + ILOG2(sunMaFilter.gain - 1);
+    sunDeGainLog2 = 1 + ILOG2(sunDeFilter.gain - 1);
 }
 
 /*=========================================================================
@@ -512,7 +535,7 @@ void designSunFilters()
  *=======================================================================*/
 void designNoisFilters()
 {
-    int i = (int)round(sampFreq / mainsFreq) - 3;
+    int i = (int)(sampFreq / mainsFreq) - 3;
     
     // initialize filter objeects
     initfpfilter(noisBsFilter);
@@ -567,12 +590,13 @@ void init()
 void doTheJob()
 {
     double time;
+    mwSize i;
     
     // start time counter
     tic();
     
     // process one input sample at a time
-    for (mwSize i = 0; i < inputLen; i++) {
+    for (i = 0; i < inputLen; i++) {
         onNewSample(inputSig[i]);
     }
     
@@ -597,21 +621,7 @@ void finalize( int nlhs, mxArray *plhs[],
     }
     
     // deallocate memory of the filter objects
-    endintfilter(tpkLpFilter);
-    endintfilter(tpkHpFilter);
-    endintfilter(tpkDeFilter);
-    endintfilter(tpkMaFilter);
-    endintfilter(sunLpFilter);
-    endintfilter(sunMaFilter);
-    endintfilter(sunDeFilter);
-    endintfilter(sunPdFilter1);
-    endmaxfilter(sunMaxFilter);
-    endmaxfilter(sunMinFilter);
-    endintfilter(sunMdFilter);
-    endintfilter(sunPdFilter2);
-    endfpfilter(noisBsFilter);
-    endfpfilter(noisLpFilter);
-    endfpfilter(noisPdFilter);
+    deallocate_filters();
 }
 
 /*=========================================================================

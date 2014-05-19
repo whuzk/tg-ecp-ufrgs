@@ -99,16 +99,17 @@ void updateOutputs()
 void filterBeat()
 {
     int sample;
+    mwSize i;
     
-    for (mwSize i = 0; i < delay; i++) {
+    for (i = 0; i < delay; i++) {
         sample = intfnewx(&maFilter, i, (int)beat(bi, i));
         intfnewx(&deFilter, i, sample);
     }
-    for (mwSize i = delay; i < frameSize; i++) {
+    for (i = delay; i < frameSize; i++) {
         sample = intfnewx(&maFilter, i, (int)beat(bi, i));
         beatBuf[i - delay] = intfnewx(&deFilter, i, sample);
     }
-    for (mwSize i = frameSize; i < frameSize + delay; i++) {
+    for (i = frameSize; i < frameSize + delay; i++) {
         sample = intfnewx(&maFilter, i, 0);
         beatBuf[i - delay] = intfnewx(&deFilter, i, sample);
     }
@@ -120,7 +121,7 @@ void filterBeat()
 mwSize get_point(mwSize istart, mwSize iend, mwSize len, int thr,
         mwSize def)
 {
-    mwSize m, pos, inc, firstAbove;
+    mwSize i, m, pos, inc, firstAbove;
     
     if (istart <= iend) {
         inc = 1;
@@ -133,7 +134,7 @@ mwSize get_point(mwSize istart, mwSize iend, mwSize len, int thr,
     
     pos = def;
     firstAbove = 0;
-    for (mwSize i = istart; i != iend + inc; i += inc) {
+    for (i = istart; i != iend + inc; i += inc) {
         if (abs(beatBuf[i]) > thr) {
             firstAbove = 1;
         }
@@ -177,6 +178,8 @@ void onNewBeat()
 void checkArgs( int nlhs, mxArray *plhs[],
                 int nrhs, const mxArray *prhs[])
 {
+    mwSize i;
+    
     // check for proper number of input arguments
     if (nrhs < MIN_INPUTS || nrhs > MAX_INPUTS) {
         mexErrMsgIdAndTxt(
@@ -192,7 +195,7 @@ void checkArgs( int nlhs, mxArray *plhs[],
             MIN_OUTPUTS, MAX_OUTPUTS - MIN_OUTPUTS);
     }
     // make sure all input arguments are of type double
-    for (mwSize i = 0; i < nrhs; i++) {
+    for (i = 0; i < nrhs; i++) {
         if (!mxIsDouble(prhs[i]) || mxIsComplex(prhs[i])) {
             mexErrMsgIdAndTxt(
                 "EcgToolbox:c_mohebbi_ijpoints:notDouble",
@@ -218,7 +221,7 @@ void checkArgs( int nlhs, mxArray *plhs[],
             "Input #3 must have exactly one column.");
     }
     // make sure the remaining input arguments are all scalars
-    for (mwSize i = 3; i < nrhs; i++) {
+    for (i = 3; i < nrhs; i++) {
         if (mxGetNumberOfElements(prhs[i]) != 1) {
             mexErrMsgIdAndTxt(
                 "EcgToolbox:c_mohebbi_ijpoints:notScalar",
@@ -292,8 +295,8 @@ void init()
     thresh = (int)(maFilter.gain * inputGain * 1.25 / sampFreq);
     delay = (int)ceil(maFilter.delay + deFilter.delay);
     center = frameSize >> 1;
-    searchL1 = (int)round(0.02 * sampFreq);
-    searchL2 = (int)round(0.12 * sampFreq);
+    searchL1 = (int)(0.02 * sampFreq);
+    searchL2 = (int)(0.12 * sampFreq);
     
     // create the buffers
     beatBuf = (int *)mxMalloc(frameSize * sizeof(int));
@@ -305,12 +308,13 @@ void init()
 void doTheJob()
 {
     double time;
+    mwSize i;
     
     // start time counter
     tic();
     
     // process one input sample at a time
-    for (mwSize i = 0; i < qrsLen; i++) {
+    for (i = 0; i < qrsLen; i++) {
         onNewBeat();
     }
     

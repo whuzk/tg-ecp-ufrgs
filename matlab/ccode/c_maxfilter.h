@@ -9,6 +9,8 @@
 #ifndef C_MAXFILTER
 #define C_MAXFILTER
 
+#include "c_mathutils.h"
+
 /*=========================================================================
  * Type definitions
  *=======================================================================*/
@@ -81,7 +83,7 @@ void create_minmax(maxfobject *filter, mwSize width, bool ismax)
 {
     mwSize size = width;
     if (size > 2) {
-        size = 1 << (1 + ilogb(size - 1));
+        size = 1 << (1 + ILOG2(size - 1));
     }
     filter->delay = width / 2.0;
     filter->width = width;

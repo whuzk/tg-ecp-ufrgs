@@ -76,9 +76,9 @@ static mwSize resampLen;        // length of resampling buffer
  *=======================================================================*/
 void resamp(double *y, double *x, mwSize Lx, int p, int q)
 {
-    double wc, win, c;
-    mwSize Ly, delay;
+    mwSize n, Ly, delay;
     int pqmax, M2;
+    double wc, c;
     
     // compute parameters
     rational(p / (double)q, &p, &q, 1.0e-5);
@@ -87,7 +87,7 @@ void resamp(double *y, double *x, mwSize Lx, int p, int q)
     M2 = (filterLen - 1) >> 1;
     
     // compute filter impulse response
-    for (mwSize n = 0; n < filterLen; n++) {
+    for (n = 0; n < filterLen; n++) {
         if (n != M2) {
             c = n - M2;
             filterBuf[n] = p * (sin(wc * c) / (PI * c)) * windowBuf[n];
@@ -132,6 +132,8 @@ void onNewBeat()
 void checkArgs( int nlhs, mxArray *plhs[],
                 int nrhs, const mxArray *prhs[])
 {
+    mwSize i;
+    
     // check for proper number of input arguments
     if (nrhs < MIN_INPUTS || nrhs > MAX_INPUTS) {
         mexErrMsgIdAndTxt(
@@ -147,7 +149,7 @@ void checkArgs( int nlhs, mxArray *plhs[],
             MIN_OUTPUTS, MAX_OUTPUTS - MIN_OUTPUTS);
     }
     // make sure all input arguments are of type double
-    for (mwSize i = 0; i < nrhs; i++) {
+    for (i = 0; i < nrhs; i++) {
         if (!mxIsDouble(prhs[i]) || mxIsComplex(prhs[i])) {
             mexErrMsgIdAndTxt(
                 "EcgToolbox:c_mohebbi_segments:notDouble",
@@ -167,7 +169,7 @@ void checkArgs( int nlhs, mxArray *plhs[],
             "Input #2 must have exactly one column.");
     }
     // make sure the remaining input arguments are all scalars
-    for (mwSize i = 2; i < nrhs; i++) {
+    for (i = 2; i < nrhs; i++) {
         if (mxGetNumberOfElements(prhs[i]) != 1) {
             mexErrMsgIdAndTxt(
                 "EcgToolbox:c_mohebbi_segments:notScalar",
@@ -216,21 +218,23 @@ void handleOutputs(int nlhs, mxArray *plhs[])
  *=======================================================================*/
 void init()
 {
+    mwSize n;
+    
     // initialize beat index
     bi = 0;
     
     // initialize ST segment size
-    stsegSize = (int)round(HALF_SEG_SIZE * sampFreq) * 2;
+    stsegSize = (int)(HALF_SEG_SIZE * sampFreq) * 2;
     
     // initialize filter and resampling buffers
-    filterLen = (int)round(2 * sampFreq) + 1;
+    filterLen = (int)(2 * sampFreq) + 1;
     filterBuf = (double *)mxMalloc(filterLen * sizeof(double));
     resampLen = OUT_SEG_SIZE + filterLen - 1;
     resampBuf = (double *)mxMalloc(resampLen * sizeof(double));
     
     // initialize window buffer
     windowBuf = (double *)mxMalloc(filterLen * sizeof(double));
-    for (mwSize n = 0; n < filterLen; n++) {
+    for (n = 0; n < filterLen; n++) {
         windowBuf[n] = 0.54 - 0.46 * cos(2*PI*n / (double)(filterLen - 1));
     }
 }
@@ -241,12 +245,13 @@ void init()
 void doTheJob()
 {
     double time;
+    mwSize i;
     
     // start time counter
     tic();
     
     // process one input sample at a time
-    for (mwSize i = 0; i < qrsLen; i++) {
+    for (i = 0; i < qrsLen; i++) {
         onNewBeat();
     }
     
