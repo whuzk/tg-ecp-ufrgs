@@ -6,10 +6,8 @@ M = length(Rk);
 N = height(isqtable);
 L = length(keyWord);
 
-Result.elevation = false(M,1);
-Result.depression = false(M,1);
-Result.elevPeakValue = zeros(M,1);
-Result.depPeakValue = zeros(M,1);
+Result.diagVal = zeros(M,1);
+Result.peakVal = zeros(M,1);
 
 k = 1;
 while k <= N
@@ -31,7 +29,7 @@ while k <= N
                     strcmp(aux(1+(1:L)), keyWord) && ...
                     str2double(aux(2+L)) == id)
                 % fim de episodio
-                peakDev = str2double(aux(4+L:end));
+                peak = str2double(aux(4+L:end));
                 break;
             else
                 k = k + 1;
@@ -54,16 +52,16 @@ while k <= N
             end
         end
         
-        % verifica se é elevaçao ou depressao
         if k <= N
+            % verifica se é elevaçao ou depressao
             if ch == '+'
                 j = beginIndex <= Rk & Rk <= endIndex;
-                Result.elevation(j) = true;
-                Result.elevPeakValue(j) = peakDev;
+                Result.diagVal(j) = 1;
+                Result.peakVal(j) = peak;
             elseif ch == '-'
                 j = beginIndex <= Rk & Rk <= endIndex;
-                Result.depression(j) = true;
-                Result.depPeakValue(j) = peakDev;
+                Result.diagVal(j) = -1;
+                Result.peakVal(j) = peak;
             end
         end
     end

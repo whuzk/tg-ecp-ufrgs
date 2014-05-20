@@ -1,5 +1,6 @@
 % leitura do ecg
-signal = utils.interpret_ecg(e0103,1);
+recordIndex = 1;
+signal = utils.interpret_ecg(e0103, recordIndex);
 
 % preprocessamento
 tic
@@ -21,7 +22,27 @@ tic;
 [Gopalak,GopalakS] = features.gopalak_features(signal, RR, Beats);
 toc;
 
-% visualizaçao
+% extraçao do diagnostico de isquemia
+[STdiag,Tdiag,idx] = utils.extract_ischemia_diag(e0103, signal.fs, R-ceil(delay), recordIndex-1);
+
+% visualizaçao das caracteristicas
 %plot.plot_rocha_features(Rocha, RochaS1, RochaS2);
 %plot.plot_mohebbi_features(Mohebbi, MohebbiS);
 %plot.plot_gopalak_features(Gopalak, GopalakS);
+
+% composiçao do conjunto de dados para treinamento das redes neurais
+Datasets.Rocha = [Rocha' STdiag Tdiag];
+Datasets.Mohebbi = [Mohebbi' STdiag Tdiag];
+Datasets.Gopalak = [Gopalak' STdiag Tdiag];
+
+% composiçao das informaçoes basicas extraidas no preprocessamento
+Preprocess.R = R(idx);
+Preprocess.RR = RR(idx);
+Preprocess.F = F(:,idx);
+Preprocess.Beats = Beats(:,idx);
+Preprocess.Template = Template;
+Preprocess.delay = delay;
+
+% salvamento em arquivo
+filename = ['extracted_' signal.name '.mat'];
+save(filename, 'Preprocess', 'Datasets');

@@ -1,6 +1,6 @@
 function Result = interpret_ecg(Record,RecordIndex)
 
-%idx = ismember(Record.Annotations.atr.Type, 'NLRBAaJSVFejnE/fQ?');
+idx = ismember(Record.Annotations.atr.Type, 'NLRBAaJSVFejnE/fQ?');
 
 Result.id = Record.Info(RecordIndex).SignalIndex;
 Result.fs = sscanf(Record.Info(RecordIndex).SamplingFrequency,'%d');
@@ -11,4 +11,4 @@ Result.gain = sscanf(Record.Info(RecordIndex).Gain,'%d');
 Result.inival = Record.Info(RecordIndex).InitialValue;
 Result.zero = Record.Info(RecordIndex).AdcZero;
 Result.data = Record.SignalData(:,RecordIndex);
-%Result.qrs = Record.Annotations.atr.Sample(idx);
+Result.qrs = Record.Annotations.atr.Sample(idx);
