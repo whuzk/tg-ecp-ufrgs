@@ -22,6 +22,6 @@ tic;
 toc;
 
 % visualizaçao
-%plot.plot_rocha_features(Rocha, RochaS1, RochaS2);
-%plot.plot_mohebbi_features(Mohebbi, MohebbiS);
-%plot.plot_gopalak_features(Gopalak, GopalakS);
+plot.plot_rocha_features(Rocha, RochaS1, RochaS2);
+plot.plot_mohebbi_features(Mohebbi, MohebbiS);
+plot.plot_gopalak_features(Gopalak, GopalakS);
