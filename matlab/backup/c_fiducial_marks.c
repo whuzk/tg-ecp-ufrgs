@@ -25,6 +25,7 @@
  *=======================================================================*/
 #include <math.h>
 #include "mex.h"
+#include "c_mathutils.h"
 #include "c_timeutils.h"
 
 /*=========================================================================
@@ -55,6 +56,7 @@
 #define SEARCH_L1_SEC   0.10    // search limit for R-wave points
 #define SEARCH_L2_SEC   0.02    // search limit for Ronset and Roffset
 #define SEARCH_L3_SEC   0.15    // search limit for T- and P-wave points
+#define SEARCH_L4_SEC   0.08    // search limit for R onset and offset
 
 /*=========================================================================
  * Input and output variables
@@ -84,6 +86,7 @@ static mwSize bufLen;               // length of both buffers
 static mwSize searchL1;             // search limit 1
 static mwSize searchL2;             // search limit 2
 static mwSize searchL3;             // search limit 3
+static mwSize searchL4;             // search limit 4
 
 /*=========================================================================
  * Fast lookup for detection buffers
@@ -150,7 +153,7 @@ bool check_indices(mwSize start, mwSize end, mwSize *inc)
  *=======================================================================*/
 mwSize search_peak_abs(mwSize start, mwSize end, mwSize def)
 {
-    mwSize imax, idx[2];
+    mwSize i, imax, idx[2];
     int y, ymax, val[2];
     mwSize left, right, inc;
     
@@ -160,7 +163,7 @@ mwSize search_peak_abs(mwSize start, mwSize end, mwSize def)
     
     val[0] = val[1] = 0;
     idx[0] = idx[1] = def;
-    for (mwSize i = start + inc; i != end - inc; i += inc) {
+    for (i = start + inc; i != end - inc; i += inc) {
         y = deb(i);
         if (deb(i - 1) < y && y >= deb(i + 1)) {
             if (y > val[0]) {
@@ -187,7 +190,7 @@ mwSize search_peak_abs(mwSize start, mwSize end, mwSize def)
     
     ymax = 0;
     imax = left;
-    for (mwSize i = left + 1; i < right - 1; i++) {
+    for (i = left + 1; i < right - 1; i++) {
         y = abs(mdb(i));
         if (abs(mdb(i - 1)) < y && y >= abs(mdb(i + 1))) {
             if (y > ymax) {
@@ -224,16 +227,16 @@ mwSize search_first_mark_max(mwSize start, mwSize end, mwSize def)
             found = true;
         }
         else {
-            if (y > ymax) {
+            /*if (y > ymax) {
                 ymax = y;
                 imax = i;
-            }
+            }*/
             i += inc;
         }
     }
     
     if (!found) {
-        return imax;
+        return def;
     }
     else return i;
 }
@@ -262,16 +265,16 @@ mwSize search_first_mark_min(mwSize start, mwSize end, mwSize def)
             found = true;
         }
         else {
-            if (y < ymin) {
+            /*if (y < ymin) {
                 ymin = y;
                 imin = i;
-            }
+            }*/
             i += inc;
         }
     }
     
     if (!found) {
-        return imin;
+        return def;
     }
     else return i;
 }
@@ -282,7 +285,7 @@ mwSize search_first_mark_min(mwSize start, mwSize end, mwSize def)
  *=======================================================================*/
 mwSize search_best_mark_abs(mwSize start, mwSize end, mwSize def)
 {
-    mwSize imax, imaxpk;
+    mwSize i, imax, imaxpk;
     int y, ymax, ymaxpk;
     mwSize inc;
     bool found;
@@ -294,7 +297,7 @@ mwSize search_best_mark_abs(mwSize start, mwSize end, mwSize def)
     found = false;
     ymax = ymaxpk = 0;
     imax = imaxpk = start;
-    for (mwSize i = start + inc; i != end - inc; i += inc) {
+    for (i = start + inc; i != end - inc; i += inc) {
         y = abs(mdb(i));
         if (abs(mdb(i - 1)) < y && y >= abs(mdb(i + 1))) {
             if (y > ymaxpk) {
@@ -320,7 +323,7 @@ mwSize search_best_mark_abs(mwSize start, mwSize end, mwSize def)
  *=======================================================================*/
 mwSize search_best_mark_max(mwSize start, mwSize end, mwSize def)
 {
-    mwSize imax, imaxpk;
+    mwSize i, imax, imaxpk;
     int y, ymax, ymaxpk;
     mwSize inc;
     bool found;
@@ -332,7 +335,7 @@ mwSize search_best_mark_max(mwSize start, mwSize end, mwSize def)
     found = false;
     ymax = ymaxpk = 0;
     imax = imaxpk = start;
-    for (mwSize i = start + inc; i != end - inc; i += inc) {
+    for (i = start + inc; i != end - inc; i += inc) {
         y = mdb(i);
         if (mdb(i - 1) < y && y >= mdb(i + 1)) {
             if (y > ymaxpk) {
@@ -358,7 +361,7 @@ mwSize search_best_mark_max(mwSize start, mwSize end, mwSize def)
  *=======================================================================*/
 mwSize search_best_mark_min(mwSize start, mwSize end, mwSize def)
 {
-    mwSize imin, iminpk;
+    mwSize i, imin, iminpk;
     int y, ymin, yminpk;
     mwSize inc;
     bool found;
@@ -370,7 +373,7 @@ mwSize search_best_mark_min(mwSize start, mwSize end, mwSize def)
     found = false;
     ymin = yminpk = 0;
     imin = iminpk = start;
-    for (mwSize i = start + inc; i != end - inc; i += inc) {
+    for (i = start + inc; i != end - inc; i += inc) {
         y = mdb(i);
         if (mdb(i - 1) > y && y <= mdb(i + 1)) {
             if (y < yminpk) {
@@ -392,11 +395,24 @@ mwSize search_best_mark_min(mwSize start, mwSize end, mwSize def)
 }
 
 /*=========================================================================
+ * Special search
+ *=======================================================================*/
+mwSize special_search(mwSize test, mwSize def)
+{
+    int y1 = mdb(test);
+    int y2 = mdb(def);
+    if (SIGN(y1) != SIGN(y2) && abs(y1) >= abs(y2 >> 2)) {
+        return test;
+    }
+    else return def;
+}
+
+/*=========================================================================
  * Perform the detection of fiducial marks
  *=======================================================================*/
 void detectFiducialMarks(mwSize r, mwSize rr1, mwSize rr2)
 {
-    mwSize len;
+    mwSize len, temp1, temp2;
     
     // R-wave
     Rpeak = search_peak_abs(r - searchL1, r + searchL1, r);
@@ -404,12 +420,18 @@ void detectFiducialMarks(mwSize r, mwSize rr1, mwSize rr2)
         // inverted
         Ronset = search_first_mark_min(Rpeak - searchL2, Rpeak - searchL1, Rpeak);
         Roffset = search_first_mark_min(Rpeak + searchL2, Rpeak + searchL1, Rpeak);
+        temp1 = search_first_mark_max(Ronset - 1, Ronset - searchL4, Ronset);
+        temp2 = search_first_mark_max(Roffset + 1, Roffset + searchL4, Roffset);
     }
     else {
         // normal
         Ronset = search_first_mark_max(Rpeak - searchL2, Rpeak - searchL1, Rpeak);
         Roffset = search_first_mark_max(Rpeak + searchL2, Rpeak + searchL1, Rpeak);
+        temp1 = search_first_mark_min(Ronset - 1, Ronset - searchL4, Ronset);
+        temp2 = search_first_mark_min(Roffset + 1, Roffset + searchL4, Roffset);
     }
+    Ronset = special_search(temp1, Ronset);
+    Roffset = special_search(temp2, Roffset);
     
     // P-wave
     len = (rr1 + (rr1 << 1)) >> 3;
@@ -461,7 +483,7 @@ void onNewSample(double sample1, double sample2, bool newQrs)
     if (newQrs) {
         // update rr
         if (rr == -1) {
-            rr = (mwSize)round(sampFreq);
+            rr = (mwSize)sampFreq;
         }
         else rr = 0 - qrs;
         // update qrs
@@ -487,6 +509,8 @@ void onNewSample(double sample1, double sample2, bool newQrs)
 void checkArgs( int nlhs, mxArray *plhs[],
                 int nrhs, const mxArray *prhs[])
 {
+    mwSize i;
+    
     // check for proper number of input arguments
     if (nrhs < MIN_INPUTS || nrhs > MAX_INPUTS) {
         mexErrMsgIdAndTxt(
@@ -502,7 +526,7 @@ void checkArgs( int nlhs, mxArray *plhs[],
             MIN_OUTPUTS, MAX_OUTPUTS - MIN_OUTPUTS);
     }
     // make sure all input arguments are of type double
-    for (mwSize i = 0; i < nrhs; i++) {
+    for (i = 0; i < nrhs; i++) {
         if (!mxIsDouble(prhs[i]) || mxIsComplex(prhs[i])) {
             mexErrMsgIdAndTxt(
                 "EcgToolbox:c_fiducial_marks:notDouble",
@@ -510,7 +534,7 @@ void checkArgs( int nlhs, mxArray *plhs[],
         }
     }
     // make sure the first four arguments are vectors
-    for (mwSize i = 0; i < 3; i++) {
+    for (i = 0; i < 3; i++) {
         if (mxGetM(prhs[i]) != 1 && mxGetN(prhs[i]) != 1) {
             mexErrMsgIdAndTxt(
                 "EcgToolbox:c_fiducial_marks:notVector",
@@ -518,7 +542,7 @@ void checkArgs( int nlhs, mxArray *plhs[],
         }
     }
     // make sure the remaining input arguments are all scalars
-    for (mwSize i = 3; i < nrhs; i++) {
+    for (i = 3; i < nrhs; i++) {
         if (mxGetNumberOfElements(prhs[i]) != 1) {
             mexErrMsgIdAndTxt(
                 "EcgToolbox:c_fiducial_marks:notScalar",
@@ -565,9 +589,10 @@ void handleOutputs( int nlhs, mxArray *plhs[],
                     mwSize nrows, mwSize ncols)
 {
     double *outVectors[MAX_OUTPUTS];
+    mwSize i;
     
     // create the output vectors
-    for (mwSize i = 0; i < nlhs; i++) {
+    for (i = 0; i < nlhs; i++) {
         plhs[i] = mxCreateDoubleMatrix(nrows, ncols, mxREAL);
         outVectors[i] = mxGetPr(plhs[i]);
     }
@@ -592,12 +617,13 @@ void init()
     bi = 0;
     
     // predefined limits
-    searchL1 = (mwSize)round(SEARCH_L1_SEC * sampFreq);
-    searchL2 = (mwSize)round(SEARCH_L2_SEC * sampFreq);
-    searchL3 = (mwSize)round(SEARCH_L3_SEC * sampFreq);
+    searchL1 = (mwSize)(SEARCH_L1_SEC * sampFreq);
+    searchL2 = (mwSize)(SEARCH_L2_SEC * sampFreq);
+    searchL3 = (mwSize)(SEARCH_L3_SEC * sampFreq);
+    searchL4 = (mwSize)(SEARCH_L4_SEC * sampFreq);
     
     // create buffers
-    bufLen = 1 << (1 + ilogb(4 * sampFreq - 1));
+    bufLen = 1 << (1 + ILOG2(4 * sampFreq - 1));
     deBuf = (int *)mxMalloc(bufLen * sizeof(int));
     mdBuf = (int *)mxMalloc(bufLen * sizeof(int));
 }
@@ -608,7 +634,7 @@ void init()
 void doTheJob()
 {
     double time;
-    mwSize newqrs;
+    mwSize i, newqrs;
     mwSize beatCount = 0;
     
     // start time counter
@@ -618,7 +644,7 @@ void doTheJob()
     newqrs = (mwSize)qrsHist[beatCount] - 1;
     
     // process one input sample at a time
-    for (mwSize i = 0; i < inputLen; i++) {
+    for (i = 0; i < inputLen; i++) {
         onNewSample(inputSig1[i], inputSig2[i], newqrs == i);
         if (newqrs == i && beatCount < qrsLen - 1) {
             newqrs = (mwSize)qrsHist[++beatCount] - 1;

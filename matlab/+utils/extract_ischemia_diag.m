@@ -1,11 +1,11 @@
-function [STdiag,Tdiag,idx] = extract_ischemia_diag(ecg, Fs, R, sid)
+function [STdiag,Tdiag,idx2] = extract_ischemia_diag(ecg, Fs, R, sid)
 
 atr = ecg.Annotations.atr;
-[A,idx] = utils.match_qrs(atr.Sample, R, Fs);
-R = atr.Sample(A);
+[idx1,idx2] = utils.match_qrs(atr.Sample, R, Fs);
+Rannot = atr.Sample(idx1);
 
-ST = utils.extract_diagnosis(R, atr, 's', 'ST', sid);
-T = utils.extract_diagnosis(R, atr, 'T', 'T', sid);
+ST = utils.extract_diagnosis(Rannot, atr, 's', 'ST', sid);
+T = utils.extract_diagnosis(Rannot, atr, 'T', 'T', sid);
 
 STdiag = ST.diagVal;
 Tdiag = T.diagVal;

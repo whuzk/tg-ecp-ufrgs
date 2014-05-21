@@ -1,14 +1,13 @@
 % le uma das derivaçoes do ecg
-signal = utils.interpret_ecg(e0116,1);
+recordIndex = 2;
+signal = utils.interpret_ecg(x100, recordIndex);
 data = signal.data - signal.inival;
+Fs = signal.fs;
 
-% detecta os picos de onda R usando codigo c
-[sigI,delay] = mex.tompkins_filter(data, signal.fs);
-R = mex.detect_qrs(sigI, signal.fs);
-
-% detecta os pontos fiduciais
-[sigD,sigM] = mex.yansun_filter(data, signal.fs, delay);
-F = mex.fiducial_marks(sigD, sigM, R, signal.fs);
+% filtragem e detecçao
+[sigI,sigD,sigM,sigN,delay] = mex.preprocess_filter(data, Fs);
+R = mex.detect_qrs(sigI, Fs);
+F = mex.fiducial_marks(sigD, sigM, R, Fs);
 
 % visualizaçao
 data = [zeros(ceil(delay),1); data(1:end-ceil(delay))];

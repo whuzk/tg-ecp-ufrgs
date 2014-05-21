@@ -45,6 +45,7 @@
 #define SEARCH_L1_SEC   0.10    // search limit for R-wave points
 #define SEARCH_L2_SEC   0.02    // search limit for Ronset and Roffset
 #define SEARCH_L3_SEC   0.15    // search limit for T- and P-wave points
+#define SEARCH_L4_SEC   0.08    // search limit for R onset and offset
 #define NUM_BL_SAMPLES  5       // number of samples for baseline removal
 #define NUM_FDP_ROWS    7       // number of rows in the FDP matrix
 #define HALF_FRAME      0.6     // half the size of the beat frame
@@ -129,6 +130,7 @@ static mwSize Toffset;          // current T-wave offset
 static mwSize searchL1;         // search limit 1
 static mwSize searchL2;         // search limit 2
 static mwSize searchL3;         // search limit 3
+static mwSize searchL4;         // search limit 4
 static double artThresh[2];     // thresolds for artifact detection
 static double tempRatio;        // ratio of adaptation for template
 static double rmsdVal;          // value of RMSD (beat and template)
@@ -495,10 +497,10 @@ mwSize search_first_mark_max(mwSize start, mwSize end, mwSize def)
             found = true;
         }
         else {
-            if (y > ymax) {
+            /*if (y > ymax) {
                 ymax = y;
                 imax = i;
-            }
+            }*/
             i += inc;
         }
     }
@@ -533,10 +535,10 @@ mwSize search_first_mark_min(mwSize start, mwSize end, mwSize def)
             found = true;
         }
         else {
-            if (y < ymin) {
+            /*if (y < ymin) {
                 ymin = y;
                 imin = i;
-            }
+            }*/
             i += inc;
         }
     }
@@ -663,11 +665,24 @@ mwSize search_best_mark_min(mwSize start, mwSize end, mwSize def)
 }
 
 /*=========================================================================
+ * Special search
+ *=======================================================================*/
+mwSize special_search(mwSize test, mwSize def)
+{
+    int y1 = mdb(test);
+    int y2 = mdb(def);
+    if (SIGN(y1) != SIGN(y2) && abs(y1) >= abs(y2 >> 2)) {
+        return test;
+    }
+    else return def;
+}
+
+/*=========================================================================
  * Perform the detection of fiducial marks
  *=======================================================================*/
 void searchMarks(mwSize r, mwSize rr1, mwSize rr2)
 {
-    mwSize len;
+    mwSize len, temp1, temp2;
     
     // R-wave
     Rpeak = search_peak_abs(r - searchL1, r + searchL1, r);
@@ -675,12 +690,18 @@ void searchMarks(mwSize r, mwSize rr1, mwSize rr2)
         // inverted
         Ronset = search_first_mark_min(Rpeak - searchL2, Rpeak - searchL1, Rpeak);
         Roffset = search_first_mark_min(Rpeak + searchL2, Rpeak + searchL1, Rpeak);
+        temp1 = search_first_mark_max(Ronset - 1, Ronset - searchL4, Ronset);
+        temp2 = search_first_mark_max(Roffset + 1, Roffset + searchL4, Roffset);
     }
     else {
         // normal
         Ronset = search_first_mark_max(Rpeak - searchL2, Rpeak - searchL1, Rpeak);
         Roffset = search_first_mark_max(Rpeak + searchL2, Rpeak + searchL1, Rpeak);
+        temp1 = search_first_mark_min(Ronset - 1, Ronset - searchL4, Ronset);
+        temp2 = search_first_mark_min(Roffset + 1, Roffset + searchL4, Roffset);
     }
+    Ronset = special_search(temp1, Ronset);
+    Roffset = special_search(temp2, Roffset);
     
     // P-wave
     len = (rr1 + (rr1 << 1)) >> 3;
@@ -949,10 +970,11 @@ void onNewSample(double sample1, double sample2, double sample3, double sample4)
         extractBeat();
         
         // update template and detect artifact
-        if (!detectArtifact()) {
+        //if (!detectArtifact()) {
+        detectArtifact();
             // update outputs
             updateOutputs();
-        }
+        //}
     }
     
     // save RR interval average
@@ -1115,6 +1137,7 @@ void init()
     searchL1 = (mwSize)(SEARCH_L1_SEC * sampFreq);
     searchL2 = (mwSize)(SEARCH_L2_SEC * sampFreq);
     searchL3 = (mwSize)(SEARCH_L3_SEC * sampFreq);
+    searchL4 = (mwSize)(SEARCH_L4_SEC * sampFreq);
     
     // calculate the ratio for template adaptation
     tempRatio = 1.0 / numBeats;

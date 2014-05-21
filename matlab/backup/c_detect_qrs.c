@@ -23,6 +23,7 @@
 #include <math.h>
 #include "mex.h"
 #include "c_mexutils.h"
+#include "c_mathutils.h"
 #include "c_timeutils.h"
 
 /*=========================================================================
@@ -133,8 +134,9 @@ int maxdiff(mwSize start, mwSize len)
 {
     int d = 0;
     int newd;
+    mwSize i;
     
-    for (mwSize i = 1; i < len; i++) {
+    for (i = 1; i < len; i++) {
         newd = detb(start + i) - detb(start + i - 1);
         if (newd > d) {
             d = newd;
@@ -148,11 +150,11 @@ int maxdiff(mwSize start, mwSize len)
  *=======================================================================*/
 mwSize findmax(mwSize start, mwSize len)
 {
-    mwSize pos = 0;
+    mwSize i, pos = 0;
     int y, newy;
     
     y = detb(start);
-    for (mwSize i = 1; i < len; i++) {
+    for (i = 1; i < len; i++) {
         newy = detb(start + i);
         if (newy > y) {
             y = newy;
@@ -302,10 +304,10 @@ void updateRRInfo(mwSize newRR)
     static bool initialized = false;
     static mwSize rrIntLow, rrIntHigh;
     static mwSize rrIdx1 = 0, rrIdx2 = 0;
-    static mwSize y1, y2;
+    static mwSize i, y1, y2;
     
     if (!initialized) {
-        for (mwSize i = 0; i < RRI_BUFLEN; i++) {
+        for (i = 0; i < RRI_BUFLEN; i++) {
             rr1b(i) = newRR;
             rr2b(i) = newRR;
         }
@@ -434,6 +436,8 @@ void onNewSample(double sample)
 void checkArgs( int nlhs, mxArray *plhs[],
                 int nrhs, const mxArray *prhs[])
 {
+    mwSize i;
+    
     // check for proper number of input arguments
     if (nrhs < MIN_INPUTS || nrhs > MAX_INPUTS) {
         mexErrMsgIdAndTxt(
@@ -449,7 +453,7 @@ void checkArgs( int nlhs, mxArray *plhs[],
             MIN_OUTPUTS, MAX_OUTPUTS - MIN_OUTPUTS);
     }
     // make sure all input arguments are of type double
-    for (mwSize i = 0; i < nrhs; i++) {
+    for (i = 0; i < nrhs; i++) {
         if (!mxIsDouble(prhs[i]) || mxIsComplex(prhs[i])) {
             mexErrMsgIdAndTxt(
                 "EcgToolbox:c_detect_qrs:notDouble",
@@ -463,7 +467,7 @@ void checkArgs( int nlhs, mxArray *plhs[],
             "First input must be a vector.");
     }
     // make sure the remaining input arguments are all scalars
-    for (mwSize i = 1; i < nrhs; i++) {
+    for (i = 1; i < nrhs; i++) {
         if (mxGetNumberOfElements(prhs[i]) != 1) {
             mexErrMsgIdAndTxt(
                 "EcgToolbox:c_detect_qrs:notScalar",
@@ -504,9 +508,10 @@ void handleOutputs( int nlhs, mxArray *plhs[],
                     mwSize nrows, mwSize ncols)
 {
     double *outVectors[MAX_OUTPUTS] = {NULL};
+    mwSize i;
     
     // create the output vectors
-    for (mwSize i = 0; i < nlhs; i++) {
+    for (i = 0; i < nlhs; i++) {
         plhs[i] = mxCreateDoubleMatrix(nrows, ncols, mxREAL);
         outVectors[i] = mxGetPr(plhs[i]);
     }
@@ -543,12 +548,12 @@ void init()
     
     // predefined limits
     trainCountDown = (mwSize)(2 * sampFreq);
-    qrsHalfLength = (mwSize)round(0.10 * sampFreq);
-    twaveTolerance = (mwSize)round(0.36 * sampFreq);
-    refractoryPeriod = (mwSize)round(0.20 * sampFreq);
+    qrsHalfLength = (mwSize)(0.10 * sampFreq);
+    twaveTolerance = (mwSize)(0.36 * sampFreq);
+    refractoryPeriod = (mwSize)(0.20 * sampFreq);
     
     // create buffer for the filtered signal
-    detBufLen = 1 << (1 + ilogb(4 * sampFreq - 1));
+    detBufLen = 1 << (1 + ILOG2(4 * sampFreq - 1));
     detBuf = (int *)mxMalloc(detBufLen * sizeof(int));
 }
 
@@ -558,12 +563,13 @@ void init()
 void doTheJob()
 {
     double time;
+    mwSize i;
     
     // start time counter
     tic();
     
     // process one input sample at a time
-    for (mwSize i = 0; i < inputLen; i++) {
+    for (i = 0; i < inputLen; i++) {
         onNewSample(inputSig[i]);
     }
     
