@@ -23,3 +23,4 @@ measures = {
 x100 = load('C:\physiobank\database\mitdb\100.mat');
 e0103 = load('C:\physiobank\database\edb\e0103.mat');
 e0104 = load('C:\physiobank\database\edb\e0104.mat');
+e0105 = load('C:\physiobank\database\edb\e0105.mat');

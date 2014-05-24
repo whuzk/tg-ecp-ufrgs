@@ -117,6 +117,9 @@ void onNewBeat()
     double *x, *y;
     
     rr = min(frameSize, (mwSize)rrList[bi]);
+    if (rr % 2 != 0) {
+        rr--;
+    }
     istart = (frameSize - rr) >> 1;
     x = &beat(bi, istart);
     y = &seg(bi, 0);
