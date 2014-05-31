@@ -14,8 +14,8 @@
 #include "mex.h"
 
 #define PI          3.1415926535897932384626433832795
-#define ILOG2(x)    (int)(log10(x) / log10(2.0))
-#define SIGN(x)     ((x) >= 0.0 ? 0 : 1)
+#define ILOG2(x)    (int)(log10((double)x) / log10(2.0))
+#define SIGN(x)     (((double)x) >= 0.0 ? 0 : 1)
 
 /*=========================================================================
  * Count zeros of an integer array

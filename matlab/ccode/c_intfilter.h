@@ -190,7 +190,7 @@ void int_create_filter(intfobject *filter, double gain, double delay,
     
     // initialize the X buffer
     if (xsize > 2) {
-        xsize = 1 << (1 + ILOG2(xsize - 1));
+        xsize = (1 << (1 + ILOG2(xsize - 1)));
     }
     filter->x.val = (int *)mxRealloc(filter->x.val, xsize * sizeof(int));
     memset(filter->x.val, 0, xsize * sizeof(int));

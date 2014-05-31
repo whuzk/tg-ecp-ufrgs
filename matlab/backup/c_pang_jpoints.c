@@ -130,7 +130,7 @@ void handleInputs( int nrhs, const mxArray *prhs[],
     *ncols = (mwSize)mxGetN(prhs[0]);
     
     // get the location of the R peak
-    rPeak = (int)mxGetScalar(prhs[1]);
+    rPeak = (int)mxGetScalar(prhs[1]) - 1;
     
     // get the sampling frequency
     sampFreq = mxGetScalar(prhs[2]);
