@@ -1,7 +1,7 @@
 function J = pang_jpoints(RR, R, Fs)
 
 % calcula a frequencia cardiaca e os intervalos
-HR = RR*60./Fs;
+HR = 60*Fs./RR;
 A = HR < 100;
 B = 100 <= HR & HR < 110;
 C = 110 <= HR & HR < 120;

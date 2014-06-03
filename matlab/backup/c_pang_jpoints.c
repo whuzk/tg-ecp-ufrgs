@@ -64,7 +64,7 @@ static mwSize bi;               // current beat index
  *=======================================================================*/
 void onNewBeat()
 {
-    mwSize i, heartRate = rrList[bi] * 60 / sampFreq;
+    mwSize i, heartRate = 60.0 * sampFreq / rrList[bi];
     
     for (i = 0; i < NUM_HR_LIMITS && heartRate >= hrLimits[i]; i++);
     outJay[bi++] = rPeak + (int)(msPoints[i] * sampFreq);

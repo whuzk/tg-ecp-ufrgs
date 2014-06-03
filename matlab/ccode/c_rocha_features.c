@@ -176,7 +176,7 @@ void detectIJpoints()
     double heartRate;
     
     // pang J point
-    heartRate = rrList[bi] * 60.0 / sampFreq;
+    heartRate = 60.0 * sampFreq / rrList[bi];
     for (i = 0; i < NUM_HR_LIMITS && heartRate >= hrLimits[i]; i++);
     jayPoint1 = rPeak + (int)(msPoints[i] * sampFreq);
     
