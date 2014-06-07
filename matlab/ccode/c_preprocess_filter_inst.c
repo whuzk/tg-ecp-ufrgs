@@ -1,5 +1,5 @@
 /*=========================================================================
- * c_preprocess_filter.c
+ * c_preprocess_filter_inst.c
  * 
  *  Title: process an input ECG signal
  *  Author:     Diego Sogari
@@ -14,7 +14,10 @@
  *      2. filtered signal 2*
  *      3. filtered signal 3*
  *      4. filtered signal 4*
- *      5. overall preprocessing delay (in samples)
+ *      5. processing time 1*
+ *      6. processing time 2*
+ *      7. processing time 3*
+ *      8. processing time 4*
  *
  *  *required arguments
  *
@@ -25,6 +28,7 @@
 #include "c_filtcoeff.h"
 #include "c_intfilter.h"
 #include "c_maxfilter.h"
+#include "c_timeutils.h"
 
 /*=========================================================================
  * Abbreviations
@@ -53,8 +57,8 @@
  *=======================================================================*/
 #define MIN_INPUTS      2       // minimum number of input arguments
 #define MAX_INPUTS      3       // maximum number of input arguments
-#define MIN_OUTPUTS     4       // minimum number of output arguments
-#define MAX_OUTPUTS     5       // maximum number of output arguments
+#define MIN_OUTPUTS     8       // minimum number of output arguments
+#define MAX_OUTPUTS     8       // maximum number of output arguments
 
 #define MIN_SAMP_FREQ   50*3    // minimum sampling frequency
 #define MAX_SAMP_FREQ   60*16   // maximum sampling frequency
@@ -86,6 +90,10 @@ static double *filtSig2;        // filtered signal 2
 static double *filtSig3;        // filtered signal 3
 static double *filtSig4;        // filtered signal 4
 static double delay;            // overall delay
+static double *procTime1;       // processing time 1
+static double *procTime2;       // processing time 2
+static double *procTime3;       // processing time 3
+static double *procTime4;       // processing time 4
 
 /*=========================================================================
  * Filter variables
@@ -113,6 +121,14 @@ static int tpkMaGainLog2;       // log2 of moving-average filter gain
 static int sunLpGainLog2;       // log2 of low-pass filter gain
 static int sunMaGainLog2;       // log2 of moving-average filter gain
 static int sunDeGainLog2;       // log2 of derivative filter gain
+
+/*=========================================================================
+ * Instrumentation variables
+ *=======================================================================*/
+long long totStartClock;
+long long tpkStartClock;
+long long sunStartClock;
+long long noisStartClock;
 
 /*=========================================================================
  * Low-pass filter
@@ -286,12 +302,23 @@ double noisProcessSample(double sample)
 void onNewSample(double sample)
 {
     int mdsamp;
+    double time;
     
-    // process sample, and save result
+    // qrs detection filter
+    tpkStartClock = tic();
     filtSig1[ci] = (double)tpkProcessSample((short)sample);
+    procTime2[ci] = toc(tpkStartClock);
+    
+    // fp detection filter
+    sunStartClock = tic();
     filtSig2[ci] = (double)sunProcessSample((int)sample, &mdsamp);
+    procTime3[ci] = toc(sunStartClock);
+    
+    // noise reduction filter
+    noisStartClock = tic();
     filtSig4[ci] = noisProcessSample(sample);
     filtSig3[ci] = (double)mdsamp;
+    procTime4[ci] = toc(noisStartClock);
     
     // increment sample index
     ci++;
@@ -392,21 +419,31 @@ void handleInputs( int nrhs, const mxArray *prhs[],
 void handleOutputs( int nlhs, mxArray *plhs[],
                     mwSize nrows, mwSize ncols)
 {
-    // get a pointer to the output vector
+    // get a pointer to the first output vector
     plhs[0] = mxCreateDoubleMatrix(nrows, ncols, mxREAL);
     filtSig1 = mxGetPr(plhs[0]);
     
-    // get a pointer to the first output vector
+    // get a pointer to the second output vector
     plhs[1] = mxCreateDoubleMatrix(nrows, ncols, mxREAL);
     filtSig2 = mxGetPr(plhs[1]);
     
-    // get a pointer to the second output vector
+    // get a pointer to the third output vector
     plhs[2] = mxCreateDoubleMatrix(nrows, ncols, mxREAL);
     filtSig3 = mxGetPr(plhs[2]);
     
-    // get a pointer to the output vector
+    // get a pointer to the fourth output vector
     plhs[3] = mxCreateDoubleMatrix(nrows, ncols, mxREAL);
     filtSig4 = mxGetPr(plhs[3]);
+    
+    // get a pointer to the instrumentation outputs
+    plhs[4] = mxCreateDoubleMatrix(nrows, ncols, mxREAL);
+    procTime1 = mxGetPr(plhs[4]);
+    plhs[5] = mxCreateDoubleMatrix(nrows, ncols, mxREAL);
+    procTime2 = mxGetPr(plhs[5]);
+    plhs[6] = mxCreateDoubleMatrix(nrows, ncols, mxREAL);
+    procTime3 = mxGetPr(plhs[6]);
+    plhs[7] = mxCreateDoubleMatrix(nrows, ncols, mxREAL);
+    procTime4 = mxGetPr(plhs[7]);
 }
 
 /*=========================================================================
@@ -592,7 +629,9 @@ void doTheJob()
     
     // process one input sample at a time
     for (i = 0; i < inputLen; i++) {
+        totStartClock = tic();
         onNewSample(inputSig[i]);
+        procTime1[ci] = toc(totStartClock);
     }
 }
 
@@ -602,11 +641,6 @@ void doTheJob()
 void finalize( int nlhs, mxArray *plhs[],
                mwSize nrows, mwSize ncols)
 {
-    // assign the overall delay to the corresponding output
-    if (nlhs > 4) {
-        plhs[4] = mxCreateDoubleScalar(delay);
-    }
-    
     // deallocate memory of the filter objects
     deallocate_filters();
 }

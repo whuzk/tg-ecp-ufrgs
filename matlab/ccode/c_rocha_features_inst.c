@@ -1,5 +1,5 @@
 /*=========================================================================
- * c_rocha_features.c
+ * c_rocha_features_inst.c
  * 
  *  Title: features extraction according to Rocha et al.
  *  Author:     Diego Sogari
@@ -20,6 +20,10 @@
  *      3. List of hermite coefficients 2
  *      4. List of segments 1
  *      5. List of segments 2
+ *      6. processing time 1*
+ *      7. processing time 2*
+ *      8. processing time 3*
+ *      9. processing time 4*
  *
  *  *all inputs and outputs required
  *
@@ -31,6 +35,7 @@
 #include "c_hermcoeff.h"
 #include "c_intfilter.h"
 #include "c_mathutils.h"
+#include "c_timeutils.h"
 
 /*=========================================================================
  * Abbreviations
@@ -48,8 +53,8 @@
  *=======================================================================*/
 #define MIN_INPUTS      7       // minimum number of input arguments
 #define MAX_INPUTS      7       // maximum number of input arguments
-#define MIN_OUTPUTS     3       // minimum number of output arguments
-#define MAX_OUTPUTS     5       // maximum number of output arguments
+#define MIN_OUTPUTS     9       // minimum number of output arguments
+#define MAX_OUTPUTS     9       // maximum number of output arguments
 
 #define NUM_HR_LIMITS   3       // number of heart rate limits
 #define NUM_MS_POINTS   3+1     // number of measuring points
@@ -75,6 +80,10 @@ static double *outSeg1;         // output list of segments 1
 static double *outSeg2;         // output list of segments 2
 static double *outCoeff1;       // output list of hermite coefficients 1
 static double *outCoeff2;       // output list of hermite coefficients 2
+static double *procTime1;       // processing time 1
+static double *procTime2;       // processing time 2
+static double *procTime3;       // processing time 3
+static double *procTime4;       // processing time 4
 
 /*=========================================================================
  * Other variables
@@ -101,6 +110,14 @@ static double *filterBuf;       // filter buffer
 static mwSize filterLen;        // length of filter buffer
 static double *resampBuf;       // resampling buffer
 static mwSize resampLen;        // length of resampling buffer
+
+/*=========================================================================
+ * Instrumentation variables
+ *=======================================================================*/
+long long totStartClock;
+long long jayStartClock;
+long long segStartClock;
+long long hermStartClock;
 
 /*=========================================================================
  * Lookup for the beat list
@@ -241,9 +258,7 @@ void exctractSegments()
     if (istart < iend) {
         len = iend - istart + 1;
         resamp(seg1Buf, &beat(bi, istart), len, SEGMENT_SIZE, (int)len);
-        if (outSeg1 != NULL) {
-            memcpy(&seg1(bi, 0), seg1Buf, SEGMENT_SIZE * sizeof(double));
-        }
+        memcpy(&seg1(bi, 0), seg1Buf, SEGMENT_SIZE * sizeof(double));
     }
     
     istart = jayPoint2;
@@ -251,9 +266,7 @@ void exctractSegments()
     if (istart < iend) {
         len = iend - istart + 1;
         resamp(seg2Buf, &beat(bi, istart), len, SEGMENT_SIZE, (int)len);
-        if (outSeg2 != NULL) {
-            memcpy(&seg2(bi, 0), seg2Buf, SEGMENT_SIZE * sizeof(double));
-        }
+        memcpy(&seg2(bi, 0), seg2Buf, SEGMENT_SIZE * sizeof(double));
     }
 }
 
@@ -284,15 +297,23 @@ void hermiteExpansion()
  *=======================================================================*/
 void onNewBeat()
 {
-    // ST deviation
+    // I and J points and ST deviation
+    jayStartClock = tic();
     filterBeat();
     detectIJpoints();
     stdev(bi,0) = beat(bi, jayPoint1) - beat(bi, isoPoint);
     stdev(bi,1) = beat(bi, jayPoint2) - beat(bi, isoPoint);
+    procTime2[bi] = toc(jayStartClock);
+    
+    // extract segments
+    segStartClock = tic();
+    exctractSegments();
+    procTime3[bi] = toc(segStartClock);
     
     // Hermite coefficients
-    exctractSegments();
+    hermStartClock = tic();
     hermiteExpansion();
+    procTime4[bi] = toc(hermStartClock);
     
     // increment beat index
     bi++;
@@ -405,18 +426,22 @@ void handleOutputs(int nlhs, mxArray *plhs[])
     outCoeff2 = mxGetPr(plhs[2]);
     
     // optional output 1
-    if (nlhs > 3) {
-        plhs[3] = mxCreateDoubleMatrix(SEGMENT_SIZE, qrsLen, mxREAL);
-        outSeg1 = mxGetPr(plhs[3]);
-    }
-    else outSeg1 = NULL;
+    plhs[3] = mxCreateDoubleMatrix(SEGMENT_SIZE, qrsLen, mxREAL);
+    outSeg1 = mxGetPr(plhs[3]);
     
     // optional output 2
-    if (nlhs > 4) {
-        plhs[4] = mxCreateDoubleMatrix(SEGMENT_SIZE, qrsLen, mxREAL);
-        outSeg2 = mxGetPr(plhs[4]);
-    }
-    else outSeg2 = NULL;
+    plhs[4] = mxCreateDoubleMatrix(SEGMENT_SIZE, qrsLen, mxREAL);
+    outSeg2 = mxGetPr(plhs[4]);
+    
+    // get a pointer to the instrumentation outputs
+    plhs[5] = mxCreateDoubleMatrix(qrsLen, 1, mxREAL);
+    procTime1 = mxGetPr(plhs[5]);
+    plhs[6] = mxCreateDoubleMatrix(qrsLen, 1, mxREAL);
+    procTime2 = mxGetPr(plhs[6]);
+    plhs[7] = mxCreateDoubleMatrix(qrsLen, 1, mxREAL);
+    procTime3 = mxGetPr(plhs[7]);
+    plhs[8] = mxCreateDoubleMatrix(qrsLen, 1, mxREAL);
+    procTime4 = mxGetPr(plhs[8]);
 }
 
 /*=========================================================================
@@ -471,7 +496,9 @@ void doTheJob()
     
     // process one input sample at a time
     for (i = 0; i < qrsLen; i++) {
+        totStartClock = tic();
         onNewBeat();
+        procTime1[i] = toc(totStartClock);
     }
 }
 

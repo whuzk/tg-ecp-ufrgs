@@ -23,7 +23,6 @@
 #include "c_upfirdn.h"
 #include "c_hermcoeff.h"
 #include "c_mathutils.h"
-#include "c_timeutils.h"
 
 /*=========================================================================
  * Abbreviations
@@ -286,11 +285,7 @@ void init()
  *=======================================================================*/
 void doTheJob()
 {
-    double time;
     mwSize i;
-    
-    // start time counter
-    tic();
     
     // initialize beat index
     bi = 0;
@@ -299,13 +294,6 @@ void doTheJob()
     for (i = 0; i < qrsLen; i++) {
         onNewBeat();
     }
-    
-    // stop time counter
-    time = toc();
-    
-    // display time statistics
-    mexPrintf("Total processing time: %.2f ms\n", 1000 * time);
-    mexPrintf("Average time per beat: %.2f ns\n", 1000000000 * time / qrsLen);
 }
 
 /*=========================================================================

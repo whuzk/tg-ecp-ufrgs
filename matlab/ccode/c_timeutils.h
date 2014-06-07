@@ -10,30 +10,29 @@
 /*=========================================================================
  * Global variables
  *=======================================================================*/
-static __int64 start;
 static double pcfreq = 0.0;
 
 /*=========================================================================
  * Start timer
  *=======================================================================*/
-void tic()
+long long tic()
 {
     LARGE_INTEGER li;
     if (QueryPerformanceFrequency(&li)) {
         pcfreq = (double)li.QuadPart;
         if (QueryPerformanceCounter(&li)) {
-            start = li.QuadPart;
+            return li.QuadPart;
         }
         else {
             mexErrMsgIdAndTxt(
-                    "EcgToolbox:c_ecg_utils:pcCounterNotAccessible",
+                    "EcgToolbox:c_timeutils:pcCounterNotAccessible",
                     "Could not read PC counter.");
-            start = -1;
+            return -1;
         }
     }
     else {
         mexErrMsgIdAndTxt(
-                "EcgToolbox:c_ecg_utils:pcFreqNotAccessible",
+                "EcgToolbox:c_timeutils:pcFreqNotAccessible",
                 "Could not read PC frequency.");
         pcfreq = 0.0;
     }
@@ -43,24 +42,24 @@ void tic()
 /*=========================================================================
  * Stop timer
  *=======================================================================*/
-double toc()
+double toc(long long start)
 {
     LARGE_INTEGER li;
     if (pcfreq == 0.0) {
         mexErrMsgIdAndTxt(
-                "EcgToolbox:c_ecg_utils:pcFreqNotSet",
+                "EcgToolbox:c_timeutils:pcFreqNotSet",
                 "PC frequency was not set.");
         return -1.0;
     }
     else if (start < 0) {
         mexErrMsgIdAndTxt(
-                "EcgToolbox:c_ecg_utils:startCountNotSet",
+                "EcgToolbox:c_timeutils:startCountNotSet",
                 "Start count was not set.");
         return -1.0;
     }
     else if (!QueryPerformanceCounter(&li)) {
         mexErrMsgIdAndTxt(
-                "EcgToolbox:c_ecg_utils:pcCounterNotAccessible",
+                "EcgToolbox:c_timeutils:pcCounterNotAccessible",
                 "Could not read PC counter.");
         return -1.0;
     }

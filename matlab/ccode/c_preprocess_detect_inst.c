@@ -1,5 +1,5 @@
 /*=========================================================================
- * c_preprocess_detect.c
+ * c_preprocess_detect_inst.c
  * 
  *  Title: real-time detection of QRS complex, fiducial marks, etc.
  *  Author:     Diego Sogari
@@ -18,7 +18,11 @@
  *      2. List of averaged R-R intervals (in samples)*
  *      3. List of fiducial mark locations (in samples)*
  *      4. List of extracted beats*
- *      5. The template of normal beat*
+ *      5. processing time 1*
+ *      6. processing time 2*
+ *      7. processing time 3*
+ *      8. processing time 4*
+ *      9. processing time 5*
  *
  *  *required
  *
@@ -26,14 +30,15 @@
 #include <math.h>
 #include "mex.h"
 #include "c_mathutils.h"
+#include "c_timeutils.h"
 
 /*=========================================================================
  * Constants
  *=======================================================================*/
 #define MIN_INPUTS      5       // minimum number of input arguments
 #define MAX_INPUTS      6       // maximum number of input arguments
-#define MIN_OUTPUTS     5       // minimum number of output arguments
-#define MAX_OUTPUTS     5       // maximum number of output arguments
+#define MIN_OUTPUTS     9       // minimum number of output arguments
+#define MAX_OUTPUTS     9       // maximum number of output arguments
 
 #define MIN_SAMP_FREQ   50*2    // minimum sampling frequency
 #define MAX_SAMP_FREQ   60*40   // maximum sampling frequency
@@ -67,7 +72,11 @@ static double *beatList;        // list of extracted beats
 static double *template;        // template of normal beat
 static mwSize numBeats;         // number of beats for adaptation
 static mwSize totalQrsLen;      // total number of columns in the output
-                                //      vectors
+static double *procTime1;       // processing time 1
+static double *procTime2;       // processing time 2
+static double *procTime3;       // processing time 3
+static double *procTime4;       // processing time 4
+static double *procTime5;       // processing time 5
 
 /*=========================================================================
  * Buffer variables
@@ -134,6 +143,15 @@ static double artThresh[2];     // thresolds for artifact detection
 static double tempRatio;        // ratio of adaptation for template
 static double rmsdVal;          // value of RMSD (beat and template)
 static mwSize savedRRInterval;  // copy of current RR interval average
+
+/*=========================================================================
+ * Instrumentation variables
+ *=======================================================================*/
+long long totStartClock;
+long long qrsStartClock;
+long long fpStartClock;
+long long segStartClock;
+long long artStartClock;
 
 /*=========================================================================
  * Check if index is valid in detection buffer 
@@ -944,11 +962,6 @@ void updateOutputs()
     // save beat
     memcpy(&beat(bi, 0), beatBuf, frameSize * sizeof(double));
 
-    // save template
-    if (bi == numBeats - 1) {
-        memcpy(template, tempBuf, frameSize * sizeof(double));
-    }
-
     // increment beat index
     bi++;
 }
@@ -967,16 +980,24 @@ void onNewSample(double sample1, double sample2, double sample3, double sample4)
     noisb(0) = sample4;
     
     // detect qrs
+    qrsStartClock = tic();
     qrsDetected = detectQrs();
+    procTime2[ci] = toc(qrsStartClock);
     
     // detect beat
+    fpStartClock = tic();
     beatDetected = detectBeat(qrsDetected);
+    procTime3[ci] = toc(fpStartClock);
     
     // extract beat
+    segStartClock = tic();
     extractBeat(beatDetected);
+    procTime4[ci] = toc(segStartClock);
     
     // update template and detect artifact
+    artStartClock = tic();
     artDetected = detectArtifact(beatDetected);
+    procTime5[ci] = toc(artStartClock);
     
     // update outputs
     if (beatDetected && !artDetected) {
@@ -1088,7 +1109,8 @@ void handleInputs( int nrhs, const mxArray *prhs[],
 /*=========================================================================
  * Hanlde output arguments 
  *=======================================================================*/
-void handleOutputs(int nlhs, mxArray *plhs[])
+void handleOutputs( int nlhs, mxArray *plhs[],
+                    mwSize nrows, mwSize ncols)
 {
     totalQrsLen = QRS_MEM_STEP;
     
@@ -1108,9 +1130,17 @@ void handleOutputs(int nlhs, mxArray *plhs[])
     plhs[3] = mxCreateDoubleMatrix(frameSize, totalQrsLen, mxREAL);
     beatList = mxGetPr(plhs[3]);
     
-    // get a pointer to the template vector
-    plhs[4] = mxCreateDoubleMatrix(frameSize, 1, mxREAL);
-    template = mxGetPr(plhs[4]);
+    // get a pointer to the instrumentation outputs
+    plhs[4] = mxCreateDoubleMatrix(nrows, ncols, mxREAL);
+    procTime1 = mxGetPr(plhs[4]);
+    plhs[5] = mxCreateDoubleMatrix(nrows, ncols, mxREAL);
+    procTime2 = mxGetPr(plhs[5]);
+    plhs[6] = mxCreateDoubleMatrix(nrows, ncols, mxREAL);
+    procTime3 = mxGetPr(plhs[6]);
+    plhs[7] = mxCreateDoubleMatrix(nrows, ncols, mxREAL);
+    procTime4 = mxGetPr(plhs[7]);
+    plhs[8] = mxCreateDoubleMatrix(nrows, ncols, mxREAL);
+    procTime5 = mxGetPr(plhs[8]);
 }
 
 /*=========================================================================
@@ -1169,7 +1199,9 @@ void doTheJob()
     
     // process one input sample at a time
     for (i = 0; i < inputLen; i++) {
+        totStartClock = tic();
         onNewSample(inputSig1[i], inputSig2[i], inputSig3[i], inputSig4[i]);
+        procTime1[ci] = toc(totStartClock);
     }
 }
 
@@ -1237,7 +1269,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     frameSize = 2 * (int)(HALF_FRAME * sampFreq) + 1;
     
     // handle output arguments
-    handleOutputs(nlhs, plhs);
+    handleOutputs(nlhs, plhs, nrows, ncols);
     
     // make some initializations
     init();

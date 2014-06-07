@@ -1,25 +1,25 @@
 /*=========================================================================
- * c_rocha_features.c
+ * c_mohebbi_features_inst.c
  * 
- *  Title: features extraction according to Rocha et al.
+ *  Title: features extraction according to Mohebbi and Moghadam
  *  Author:     Diego Sogari
  *  Modified:   16/May/2014
  *
  *  Intputs:
  *      1. List of Beats
- *      2. List of RR intervals
- *      3. Default value of isoelectric points
- *      4. Default value of J points
- *      5. List of beat ending points
- *      6. Sampling frequency (in Hertz)
- *      7. Gain of the input signal
+ *      2. Reference beat
+ *      3. Default value of J points
+ *      4. Default value of template J point
+ *      5. Sampling frequency (in Hertz)
+ *      6. Gain of the input signal
  *
  *  Outputs:
- *      1. List of ST deviation measures
- *      2. List of hermite coefficients 1
- *      3. List of hermite coefficients 2
- *      4. List of segments 1
- *      5. List of segments 2
+ *      1. List of ST segment differences
+ *      2. List of ST segments
+ *      3. processing time 1*
+ *      4. processing time 2*
+ *      5. processing time 3*
+ *      6. processing time 4*
  *
  *  *all inputs and outputs required
  *
@@ -28,9 +28,9 @@
 #include <math.h>
 #include "mex.h"
 #include "c_upfirdn.h"
-#include "c_hermcoeff.h"
 #include "c_intfilter.h"
 #include "c_mathutils.h"
+#include "c_timeutils.h"
 
 /*=========================================================================
  * Abbreviations
@@ -46,52 +46,47 @@
 /*=========================================================================
  * Constants
  *=======================================================================*/
-#define MIN_INPUTS      7       // minimum number of input arguments
-#define MAX_INPUTS      7       // maximum number of input arguments
-#define MIN_OUTPUTS     3       // minimum number of output arguments
-#define MAX_OUTPUTS     5       // maximum number of output arguments
+#define MIN_INPUTS      6       // minimum number of input arguments
+#define MAX_INPUTS      6       // maximum number of input arguments
+#define MIN_OUTPUTS     6       // minimum number of output arguments
+#define MAX_OUTPUTS     6       // maximum number of output arguments
 
-#define NUM_HR_LIMITS   3       // number of heart rate limits
-#define NUM_MS_POINTS   3+1     // number of measuring points
 #define MAF_WIDTH       0.05    // width of the moving-average (in seconds)
 #define DER_ORDERN      1       // derivative filter order N
 #define DER_ORDERM      0       // derivative filter order M
-#define NUM_HERM_COEF   6       // number of hermite coefficients
-#define SEGMENT_SIZE    64      // size of the segments (in samples)
+#define SEGMENT_SIZE    20      // size of the segments (in samples)
+#define HALF_SEG_SIZE   0.08    // half the size of a segment (in seconds)
 
 /*=========================================================================
  * Input and output variables
  *=======================================================================*/
 static double *beatList;        // list of beats
-static double *rrList;          // list of RR intervals
-static double *defIso;          // list of default isoelectric points
+static double *refBeat;         // reference beat
 static double *defJay;          // list of default J points
-static double *endList;         // list of beat ending points
+static double defTempJay;       // default template J point
 static mwSize qrsLen;           // number of beats
 static double sampFreq;         // sampling frequency
 static double inputGain;        // gain of the input signal
-static double *outSTdev;        // output list of ST deviation
-static double *outSeg1;         // output list of segments 1
-static double *outSeg2;         // output list of segments 2
-static double *outCoeff1;       // output list of hermite coefficients 1
-static double *outCoeff2;       // output list of hermite coefficients 2
+static double *outSTdiff;       // output list of ST segment differences
+static double *outSeg;          // output list of ST segments
+static double *procTime1;       // processing time 1
+static double *procTime2;       // processing time 2
+static double *procTime3;       // processing time 3
+static double *procTime4;       // processing time 4
 
 /*=========================================================================
  * Other variables
  *=======================================================================*/
 static mwSize bi;               // current beat index
 static mwSize frameSize;        // size of one beat
+static mwSize stsegSize;        // size of a segment
 static mwSize rPeak;            // location of R peak
-static double hrLimits[] = {100.0, 110.0, 120.0};       // heart rate limits
-static double msPoints[] = {0.12, 0.112, 0.104, 0.1};   // measuring points
 static intfobject maFilter;     // moving-average filter object
 static intfobject deFilter;     // derivative filter object
 static int *beatBuf;            // buffer for the current beat
-static double *seg1Buf;         // buffer for the segment 1
-static double *seg2Buf;         // buffer for the segment 2
-static mwSize isoPoint;         // isoelectric point
-static mwSize jayPoint1;        // jay point 1
-static mwSize jayPoint2;        // jay point 2
+static double *segRefBuf;       // buffer for the reference segment
+static double *segBuf;          // buffer for the segment
+static mwSize jayPoint;         // jay point
 static int thresh;              // threshold for detection
 static mwSize delay;            // sum of detection filter delays
 static mwSize searchL1;         // search limit 1
@@ -103,29 +98,34 @@ static double *resampBuf;       // resampling buffer
 static mwSize resampLen;        // length of resampling buffer
 
 /*=========================================================================
+ * Instrumentation variables
+ *=======================================================================*/
+long long totStartClock;
+long long jayStartClock;
+long long segStartClock;
+long long difStartClock;
+
+/*=========================================================================
  * Lookup for the beat list
  *=======================================================================*/
-#define beat(I,J)   (beatList[(I)*frameSize+(J)])
-#define stdev(I,J)  (outSTdev[(I)*2+(J)])
-#define coef1(I,J)  (outCoeff1[(I)*NUM_HERM_COEF+(J)])
-#define coef2(I,J)  (outCoeff2[(I)*NUM_HERM_COEF+(J)])
-#define seg1(I,J)   (outSeg1[(I)*SEGMENT_SIZE+(J)])
-#define seg2(I,J)   (outSeg2[(I)*SEGMENT_SIZE+(J)])
+#define beat(I,J)       (beatList[(I)*frameSize+(J)])
+#define stdiff(I,J)     (outSTdiff[(I)*SEGMENT_SIZE+(J)])
+#define stseg(I,J)      (outSeg[(I)*SEGMENT_SIZE+(J)])
 
 /*=========================================================================
  * Filter the beat signal
  *=======================================================================*/
-void filterBeat()
+void filterBeat(double *x)
 {
     int sample;
     mwSize i;
     
     for (i = 0; i < delay; i++) {
-        sample = intfnewx(&maFilter, i, (int)beat(bi, i));
+        sample = intfnewx(&maFilter, i, (int)x[i]);
         intfnewx(&deFilter, i, sample);
     }
     for (i = delay; i < frameSize; i++) {
-        sample = intfnewx(&maFilter, i, (int)beat(bi, i));
+        sample = intfnewx(&maFilter, i, (int)x[i]);
         beatBuf[i - delay] = intfnewx(&deFilter, i, sample);
     }
     for (i = frameSize; i < frameSize + delay; i++) {
@@ -167,27 +167,13 @@ mwSize get_point(mwSize istart, mwSize iend, mwSize len, mwSize def)
 }
 
 /*=========================================================================
- * detect I and J points
+ * detect J point
  *=======================================================================*/
-void detectIJpoints()
+void detectJpoint(mwSize defJ)
 {
-    mwSize i, istart, iend;
-    double heartRate;
-    
-    // pang J point
-    heartRate = 60.0 * sampFreq / rrList[bi];
-    for (i = 0; i < NUM_HR_LIMITS && heartRate >= hrLimits[i]; i++);
-    jayPoint1 = rPeak + (int)(msPoints[i] * sampFreq);
-    
-    // isoelectric point
-    istart = rPeak - searchL1;
-    iend = rPeak - searchL2;
-    isoPoint = get_point(istart, iend, searchL1, (int)defIso[bi] - 1);
-    
-    // J point
-    istart = rPeak + searchL1;
-    iend = rPeak + searchL2;
-    jayPoint2 = get_point(istart, iend, searchL1, (int)defJay[bi] - 1);
+    mwSize istart = rPeak + searchL1;
+    mwSize iend = rPeak + searchL2;
+    jayPoint = get_point(istart, iend, searchL1, defJ);
 }
 
 /*=========================================================================
@@ -230,53 +216,20 @@ void resamp(double *y, double *x, mwSize Lx, int p, int q)
 }
 
 /*=========================================================================
- * Extract beat segments
+ * Extract ST segment
  *=======================================================================*/
-void exctractSegments()
+void exctractSegment(double *x, double *y)
 {
-    mwSize istart, iend, len;
-    
-    istart = isoPoint;
-    iend = jayPoint2;
-    if (istart < iend) {
-        len = iend - istart + 1;
-        resamp(seg1Buf, &beat(bi, istart), len, SEGMENT_SIZE, (int)len);
-        if (outSeg1 != NULL) {
-            memcpy(&seg1(bi, 0), seg1Buf, SEGMENT_SIZE * sizeof(double));
-        }
-    }
-    
-    istart = jayPoint2;
-    iend = (int)endList[bi] - 1;
-    if (istart < iend) {
-        len = iend - istart + 1;
-        resamp(seg2Buf, &beat(bi, istart), len, SEGMENT_SIZE, (int)len);
-        if (outSeg2 != NULL) {
-            memcpy(&seg2(bi, 0), seg2Buf, SEGMENT_SIZE * sizeof(double));
-        }
-    }
+    resamp(segBuf, x, stsegSize, SEGMENT_SIZE, stsegSize);
+    memcpy(y, segBuf, SEGMENT_SIZE * sizeof(double));
 }
 
 /*=========================================================================
- * Calculate Hermite expansion
+ * Calculate ST segment difference
  *=======================================================================*/
-void hermiteExpansion()
+void stsegmentDiff()
 {
-    size_t m = NUM_HERM_COEF;
-    size_t p = SEGMENT_SIZE;
-    size_t n = 1;
-    char *chn = "N";
-    double one = 1.0;
-    double zero = 0.0;
-    double *A, *C;
-    
-    A = rocha_S1_hcoef;
-    C = &coef1(bi, 0);
-    dgemm(chn, chn, &m, &n, &p, &one, A, &m, seg1Buf, &p, &zero, C, &m);
-    
-    A = rocha_S2_hcoef;
-    C = &coef2(bi, 0);
-    dgemm(chn, chn, &m, &n, &p, &one, A, &m, seg2Buf, &p, &zero, C, &m);
+    double_subtract(segBuf, segRefBuf, &stdiff(bi, 0), SEGMENT_SIZE);
 }
 
 /*=========================================================================
@@ -284,15 +237,21 @@ void hermiteExpansion()
  *=======================================================================*/
 void onNewBeat()
 {
-    // ST deviation
-    filterBeat();
-    detectIJpoints();
-    stdev(bi,0) = beat(bi, jayPoint1) - beat(bi, isoPoint);
-    stdev(bi,1) = beat(bi, jayPoint2) - beat(bi, isoPoint);
+    // detect J point
+    jayStartClock = tic();
+    filterBeat(&beat(bi, 0));
+    detectJpoint((int)defJay[bi] - 1);
+    procTime2[bi] = toc(jayStartClock);
     
-    // Hermite coefficients
-    exctractSegments();
-    hermiteExpansion();
+    // extract segment
+    segStartClock = tic();
+    exctractSegment(&beat(bi, jayPoint), &stseg(bi, 0));
+    procTime3[bi] = toc(segStartClock);
+    
+    // calculate difference
+    difStartClock = tic();
+    stsegmentDiff();
+    procTime4[bi] = toc(difStartClock);
     
     // increment beat index
     bi++;
@@ -309,14 +268,14 @@ void checkArgs( int nlhs, mxArray *plhs[],
     // check for proper number of input arguments
     if (nrhs < MIN_INPUTS || nrhs > MAX_INPUTS) {
         mexErrMsgIdAndTxt(
-            "EcgToolbox:c_rocha_features:nrhs",
+            "EcgToolbox:c_mohebbi_features:nrhs",
             "%d input(s) required and %d optional",
             MIN_INPUTS, MAX_INPUTS - MIN_INPUTS);
     }
     // check for proper number of output arguments
     if (nlhs < MIN_OUTPUTS || nlhs > MAX_OUTPUTS) {
         mexErrMsgIdAndTxt(
-            "EcgToolbox:c_rocha_features:nlhs",
+            "EcgToolbox:c_mohebbi_features:nlhs",
             "%d output(s) required and %d optional",
             MIN_OUTPUTS, MAX_OUTPUTS - MIN_OUTPUTS);
     }
@@ -324,29 +283,29 @@ void checkArgs( int nlhs, mxArray *plhs[],
     for (i = 0; i < nrhs; i++) {
         if (!mxIsDouble(prhs[i]) || mxIsComplex(prhs[i])) {
             mexErrMsgIdAndTxt(
-                "EcgToolbox:c_rocha_features:notDouble",
+                "EcgToolbox:c_mohebbi_features:notDouble",
                 "Input #%d must be of type double.", i + 1);
         }
     }
     // make sure the first input argument has more than one line
     if (mxGetM(prhs[0]) == 1) {
         mexErrMsgIdAndTxt(
-            "EcgToolbox:c_rocha_features:badDimensions",
+            "EcgToolbox:c_mohebbi_features:badDimensions",
             "Input #1 must have more than one line.");
     }
-    // make sure the input arguments 2-5 are vectors
-    for (i = 1; i < 5; i++) {
+    // make sure the input arguments 2-3 are vectors
+    for (i = 1; i < 3; i++) {
         if (mxGetM(prhs[i]) != 1 && mxGetN(prhs[i]) != 1) {
             mexErrMsgIdAndTxt(
-                "EcgToolbox:c_rocha_features:notVector",
+                "EcgToolbox:c_mohebbi_features:notVector",
                 "Input #%d must be a vector.", i + 1);
         }
     }
     // make sure the remaining input arguments are all scalars
-    for (i = 5; i < nrhs; i++) {
+    for (i = 3; i < nrhs; i++) {
         if (mxGetNumberOfElements(prhs[i]) != 1) {
             mexErrMsgIdAndTxt(
-                "EcgToolbox:c_rocha_features:notScalar",
+                "EcgToolbox:c_mohebbi_features:notScalar",
                 "Input #%d must be a scalar.", i + 1);
         }
     }
@@ -358,33 +317,36 @@ void checkArgs( int nlhs, mxArray *plhs[],
 void handleInputs( int nrhs, const mxArray *prhs[],
                    mwSize *nrows, mwSize *ncols)
 {
-    mwSize i;
-    
     // get pointers to the data in the input vectors
     beatList = mxGetPr(prhs[0]);
-    rrList = mxGetPr(prhs[1]);
-    defIso = mxGetPr(prhs[2]);
-    defJay = mxGetPr(prhs[3]);
-    endList = mxGetPr(prhs[4]);
+    refBeat = mxGetPr(prhs[1]);
+    defJay = mxGetPr(prhs[2]);
     
     // get the dimensions of the first input
     *nrows = (mwSize)mxGetM(prhs[0]);
     *ncols = (mwSize)mxGetN(prhs[0]);
     
-    // make sure the input arguments 2-5 have compatible dimensions
-    for (i = 1; i < 5; i++) {
-        if (max(mxGetM(prhs[i]), mxGetN(prhs[i])) != *ncols) {
-            mexErrMsgIdAndTxt(
-                "EcgToolbox:c_rocha_features:badDimensions",
-                "Inputs #1 and #%d must have compatible dimensions.", i + 1);
-        }
+    // make sure the input argument 2 has compatible dimensions
+    if (max(mxGetM(prhs[1]), mxGetN(prhs[1])) != *nrows) {
+        mexErrMsgIdAndTxt(
+            "EcgToolbox:c_mohebbi_features:badDimensions",
+            "Input #1 and #2 must have compatible dimensions.");
+    }
+    // make sure the input argument 3 has compatible dimensions
+    if (max(mxGetM(prhs[2]), mxGetN(prhs[2])) != *ncols) {
+        mexErrMsgIdAndTxt(
+            "EcgToolbox:c_mohebbi_features:badDimensions",
+            "Inputs #1 and #3 must have compatible dimensions.");
     }
     
+    // get the default template J point
+    defTempJay = mxGetScalar(prhs[3]);
+    
     // get the sampling frequency
-    sampFreq = mxGetScalar(prhs[5]);
+    sampFreq = mxGetScalar(prhs[4]);
     
     // get the gain of the input
-    inputGain = mxGetScalar(prhs[6]);
+    inputGain = mxGetScalar(prhs[5]);
 }
 
 /*=========================================================================
@@ -393,30 +355,22 @@ void handleInputs( int nrhs, const mxArray *prhs[],
 void handleOutputs(int nlhs, mxArray *plhs[])
 {
     // get a pointer to the first output
-    plhs[0] = mxCreateDoubleMatrix(2, qrsLen, mxREAL);
-    outSTdev = mxGetPr(plhs[0]);
-    
-    // get a pointer to the first output
-    plhs[1] = mxCreateDoubleMatrix(NUM_HERM_COEF, qrsLen, mxREAL);
-    outCoeff1 = mxGetPr(plhs[1]);
+    plhs[0] = mxCreateDoubleMatrix(SEGMENT_SIZE, qrsLen, mxREAL);
+    outSTdiff = mxGetPr(plhs[0]);
     
     // get a pointer to the second output
-    plhs[2] = mxCreateDoubleMatrix(NUM_HERM_COEF, qrsLen, mxREAL);
-    outCoeff2 = mxGetPr(plhs[2]);
+    plhs[1] = mxCreateDoubleMatrix(SEGMENT_SIZE, qrsLen, mxREAL);
+    outSeg = mxGetPr(plhs[1]);
     
-    // optional output 1
-    if (nlhs > 3) {
-        plhs[3] = mxCreateDoubleMatrix(SEGMENT_SIZE, qrsLen, mxREAL);
-        outSeg1 = mxGetPr(plhs[3]);
-    }
-    else outSeg1 = NULL;
-    
-    // optional output 2
-    if (nlhs > 4) {
-        plhs[4] = mxCreateDoubleMatrix(SEGMENT_SIZE, qrsLen, mxREAL);
-        outSeg2 = mxGetPr(plhs[4]);
-    }
-    else outSeg2 = NULL;
+    // get a pointer to the instrumentation outputs
+    plhs[2] = mxCreateDoubleMatrix(qrsLen, 1, mxREAL);
+    procTime1 = mxGetPr(plhs[2]);
+    plhs[3] = mxCreateDoubleMatrix(qrsLen, 1, mxREAL);
+    procTime2 = mxGetPr(plhs[3]);
+    plhs[4] = mxCreateDoubleMatrix(qrsLen, 1, mxREAL);
+    procTime3 = mxGetPr(plhs[4]);
+    plhs[5] = mxCreateDoubleMatrix(qrsLen, 1, mxREAL);
+    procTime4 = mxGetPr(plhs[5]);
 }
 
 /*=========================================================================
@@ -438,6 +392,7 @@ void init()
     design_derivative(&deFilter, DER_ORDERN, DER_ORDERM);
     
     // initialize numeric data
+    stsegSize = (int)(HALF_SEG_SIZE * sampFreq) * 2;
     thresh = (int)(maFilter.gain * inputGain * 1.25 / sampFreq);
     delay = (int)ceil(maFilter.delay + deFilter.delay);
     searchL1 = (int)(0.02 * sampFreq);
@@ -445,8 +400,8 @@ void init()
     
     // initialize buffers
     beatBuf = (int *)mxMalloc(frameSize * sizeof(int));
-    seg1Buf = (double *)mxMalloc(SEGMENT_SIZE * sizeof(double));
-    seg2Buf = (double *)mxMalloc(SEGMENT_SIZE * sizeof(double));
+    segRefBuf = (double *)mxMalloc(SEGMENT_SIZE * sizeof(double));
+    segBuf = (double *)mxMalloc(SEGMENT_SIZE * sizeof(double));
     filterLen = (int)(2 * sampFreq) + 1;
     filterBuf = (double *)mxMalloc(filterLen * sizeof(double));
     resampLen = SEGMENT_SIZE + filterLen - 1;
@@ -469,9 +424,16 @@ void doTheJob()
     // initialize beat index
     bi = 0;
     
+    // handle the template
+    filterBeat(refBeat);
+    detectJpoint((int)defTempJay - 1);
+    exctractSegment(&refBeat[jayPoint], segRefBuf);
+    
     // process one input sample at a time
     for (i = 0; i < qrsLen; i++) {
+        totStartClock = tic();
         onNewBeat();
+        procTime1[i] = toc(totStartClock);
     }
 }
 
@@ -486,8 +448,8 @@ void finalize()
     
     // deallocate memory
     mxFree(beatBuf);
-    mxFree(seg1Buf);
-    mxFree(seg2Buf);
+    mxFree(segRefBuf);
+    mxFree(segBuf);
     mxFree(filterBuf);
     mxFree(resampBuf);
     mxFree(windowBuf);
