@@ -10,5 +10,7 @@ Result.res = sscanf(Record.Info(RecordIndex).AdcResolution,'%d');
 Result.gain = sscanf(Record.Info(RecordIndex).Gain,'%d');
 Result.inival = Record.Info(RecordIndex).InitialValue;
 Result.zero = Record.Info(RecordIndex).AdcZero;
+Result.len = Record.Info(RecordIndex).LengthSamples;
+Result.time = (0:Result.len-1)'./Result.fs;
 Result.data = Record.SignalData(:,RecordIndex);
 Result.qrs = Record.Annotations.atr.Sample(idx);
