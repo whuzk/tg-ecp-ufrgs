@@ -4,7 +4,7 @@ y = zeros(N,1);
 pos = zeros(1,M);
 val = zeros(1,M);
 first = 1;
-count = 1;
+count = 0;
 for i = 1:N
     % get the current sample
     a = x(i);

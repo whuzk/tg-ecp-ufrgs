@@ -21,8 +21,6 @@ block.OutputPort(1).Dimensions = 1;
 block.OutputPort(1).DatatypeID = 6; % int32
 block.OutputPort(1).Complexity = 'Real';
 block.OutputPort(1).SamplingMode = 'Sample';
-% Register parameters
-block.NumDialogPrms = 2;
 % Register sample times (Inherited)
 block.SampleTimes = [-1 0];
 % Specify the block simStateCompliance
@@ -80,7 +78,7 @@ wsize = block.DialogPrm(1).Data;
 block.Dwork(1).Data = zeros(1,wsize,'int32');
 block.Dwork(2).Data = zeros(1,wsize,'int32');
 block.Dwork(3).Data = int32(1);
-block.Dwork(4).Data = int32(1);
+block.Dwork(4).Data = int32(0);
 block.Dwork(5).Data = int32(1);
 
 function Outputs(block)

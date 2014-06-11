@@ -5,3 +5,9 @@ mex 'ccode\c_preprocess_detect.c';
 mex 'ccode\c_mohebbi_features.c';
 mex('-largeArrayDims', 'ccode\c_rocha_features.c', blaslib);
 mex('-largeArrayDims', 'ccode\c_gopalak_features.c', blaslib);
+
+mex 'ccode\c_preprocess_filter_inst.c';
+mex 'ccode\c_preprocess_detect_inst.c';
+mex 'ccode\c_mohebbi_features_inst.c';
+mex('-largeArrayDims', 'ccode\c_rocha_features_inst.c', blaslib);
+mex('-largeArrayDims', 'ccode\c_gopalak_features_inst.c', blaslib);
