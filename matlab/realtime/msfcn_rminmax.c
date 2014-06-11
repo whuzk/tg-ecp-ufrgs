@@ -45,7 +45,7 @@ static void mdlInitializeSizes(SimStruct *S)
     
     // size of work and mode vectors
     ssSetNumRWork(S, 0);
-    ssSetNumIWork(S, 2);
+    ssSetNumIWork(S, 1);
     ssSetNumPWork(S, 1);
     ssSetNumModes(S, 0);
     
@@ -104,10 +104,7 @@ static void mdlStart(SimStruct *S)
     filter = malloc(sizeof(maxfobject));
     initmaxfilter(*filter);
     create_minmax(filter, wsize, ismax);
-    
     ssSetPWorkValue(S, 0, filter);
-    ssSetIWorkValue(S, 0, 0);
-    ssSetIWorkValue(S, 1, 0);
 }
 
 static void mdlOutputs(SimStruct *S, int_T tid)
@@ -122,10 +119,8 @@ static void mdlUpdate(SimStruct *S, int_T tid)
 {
     const int_T *x = ssGetInputPortSignal(S, 0);
     maxfobject *filter = ssGetPWorkValue(S, 0);
-    int_T ci = ssGetIWorkValue(S, 1);
     
-    ssSetIWorkValue(S, 0, maxfnewx(filter, ci, *x));
-    ssSetIWorkValue(S, 1, ci + 1);
+    ssSetIWorkValue(S, 0, maxfnewx(filter, *x));
 }
 
 static void mdlTerminate(SimStruct *S)

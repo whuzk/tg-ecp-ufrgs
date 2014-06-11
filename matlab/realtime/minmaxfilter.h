@@ -12,8 +12,6 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define ILOG2(x)    (int)(log10((double)x) / log10(2.0))
-
 /*=========================================================================
  * Type definitions
  *=======================================================================*/
@@ -24,6 +22,7 @@ typedef struct {
 } maxfbuffer;
 
 typedef struct {
+    unsigned int ci;    // current sample index
     double delay;       // filter delay (in samples)
     mwSize width;       // width of the filter window
     mwSize count;       // number of elements in the filter buffer
@@ -36,8 +35,9 @@ typedef struct {
 /*=========================================================================
  * Macros
  *=======================================================================*/
-#define val(f,k)    (f).b.val[((f).first+(k))&((f).b.size-1)]
-#define idx(f,k)    (f).b.idx[((f).first+(k))&((f).b.size-1)]
+#define ILOG2(x)    (int)(log10((double)x) / log10(2.0))
+#define VAL(f,k)    (f).b.val[((f).first+(k))&((f).b.size-1)]
+#define IDX(f,k)    (f).b.idx[((f).first+(k))&((f).b.size-1)]
 
 #define initmaxfilter(f)\
     (f).b.val = NULL;   \
@@ -50,39 +50,42 @@ typedef struct {
 /*=========================================================================
  * Update filter memory with an incoming sample, and return the output.
  *=======================================================================*/
-int maxfnewx(maxfobject *filter, unsigned int ci, int sample)
+static int maxfnewx(maxfobject *object, int sample)
 {
     mwSize j;
     
-    if (filter->ismax) {
+    if (object->ismax) {
         // search for the first element greater than the current sample
-        for (j = filter->count; j > 0 && sample >= val(*filter, j - 1); j--);
+        for (j = object->count; j > 0 && sample >= VAL(*object, j - 1); j--);
     }
     else {
         // search for the first element smaller than the current sample
-        for (j = filter->count; j > 0 && sample <= val(*filter, j - 1); j--);
+        for (j = object->count; j > 0 && sample <= VAL(*object, j - 1); j--);
     }
     
     // put the sample next to the element found and adjust the count
-    val(*filter, j) = sample;
-    idx(*filter, j) = ci;
-    filter->count = j + 1;
+    VAL(*object, j) = sample;
+    IDX(*object, j) = object->ci;
+    object->count = j + 1;
     
     // check if the first in line has gone out of the window length
-    if (filter->count > filter->width ||
-            idx(*filter, 0) == ci - filter->width) {
-        filter->first++;
-        filter->count--;
+    if (object->count > object->width ||
+            IDX(*object, 0) == object->ci - object->width) {
+        object->first++;
+        object->count--;
     }
     
+    // increment sample index
+    object->ci++;
+    
     // return the max in the window
-    return val(*filter, 0);
+    return VAL(*object, 0);
 }
 
 /*=========================================================================
  * Initialize a maxfilter object and allocate memory for its properties
  *=======================================================================*/
-void create_minmax(maxfobject *filter, mwSize width, bool ismax)
+static void create_minmax(maxfobject *filter, mwSize width, bool ismax)
 {
     mwSize size = width;
     if (size > 2) {

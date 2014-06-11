@@ -19,7 +19,7 @@ B = ones(2*s+1,1);
 sigL = filter(bl, al, x);
 sigI = filter(bi, ai, sigL);
 sigD = filter(bd, ad, sigI);
-sigM = (imerode(sigL,B)+imdilate(sigL,B)-2*sigL);
+sigM = imerode(sigL,B) + imdilate(sigL,B) - 2*sigL;
 
 % atrasa os sinais
 d = ceil(delay - (dl + di + dd));
