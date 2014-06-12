@@ -13,12 +13,13 @@
 #include "peakdetector.h"
 
 #define NUM_INPUTS  1
-#define NUM_OUTPUTS 2
+#define NUM_OUTPUTS 3
 
 #define OBJECT  ((PeakDetector<int> *)ssGetPWorkValue(S, 0))
 #define INPUT   ((const int_T *)ssGetInputPortSignal(S, 0))[0]
 #define OUTPUT1 ((int_T *)ssGetOutputPortSignal(S, 0))[0]
 #define OUTPUT2 ((bool *)ssGetOutputPortSignal(S, 1))[0]
+#define OUTPUT3 ((bool *)ssGetOutputPortSignal(S, 2))[0]
 
 static void mdlInitializeSizes(SimStruct *S)
 {
@@ -54,6 +55,7 @@ static void mdlInitializeSizes(SimStruct *S)
     }
     ssSetOutputPortDataType(S, 0, SS_INT32);
     ssSetOutputPortDataType(S, 1, SS_BOOLEAN);
+    ssSetOutputPortDataType(S, 2, SS_BOOLEAN);
     
     // number of sample times
     ssSetNumSampleTimes(S, 1);
@@ -91,7 +93,8 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 {
     PeakDetector<int> *obj = OBJECT;
     OUTPUT1 = obj->outputPeakIndex();
-    OUTPUT2 = obj->outputSignalRising();
+    OUTPUT2 = obj->outputPeakDetected();
+    OUTPUT3= obj->outputSignalRising();
 }
 
 #define MDL_UPDATE

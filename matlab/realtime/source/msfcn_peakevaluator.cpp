@@ -12,7 +12,7 @@
 #include "simstruc.h"
 #include "peakevaluator.h"
 
-#define NUM_INPUTS  5
+#define NUM_INPUTS  6
 #define NUM_OUTPUTS 3
 
 #define OBJECT  ((PeakEvaluator<int> *)ssGetPWorkValue(S, 0))
@@ -21,6 +21,7 @@
 #define INPUT3  ((const int_T *)ssGetInputPortSignal(S, 2))[0]
 #define INPUT4  ((const bool *)ssGetInputPortSignal(S, 3))[0]
 #define INPUT5  ((const bool *)ssGetInputPortSignal(S, 4))[0]
+#define INPUT6  ((const bool *)ssGetInputPortSignal(S, 5))[0]
 #define OUTPUT1 ((int_T *)ssGetOutputPortSignal(S, 0))[0]
 #define OUTPUT2 ((int_T *)ssGetOutputPortSignal(S, 1))[0]
 #define OUTPUT3 ((bool *)ssGetOutputPortSignal(S, 2))[0]
@@ -59,6 +60,7 @@ static void mdlInitializeSizes(SimStruct *S)
     ssSetInputPortDataType(S, 2, SS_INT32);
     ssSetInputPortDataType(S, 3, SS_BOOLEAN);
     ssSetInputPortDataType(S, 4, SS_BOOLEAN);
+    ssSetInputPortDataType(S, 5, SS_BOOLEAN);
     
     // output port properties
     for (i = 0; i < NUM_OUTPUTS; i++) {
@@ -130,7 +132,7 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 #define MDL_UPDATE
 static void mdlUpdate(SimStruct *S, int_T tid)
 {
-    OBJECT->newx(INPUT1, INPUT2, INPUT3, INPUT4, INPUT5);
+    OBJECT->newx(INPUT1, INPUT2, INPUT3, INPUT4, INPUT5, INPUT6);
 }
 
 static void mdlTerminate(SimStruct *S)

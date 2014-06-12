@@ -22,14 +22,13 @@ protected:
     type noiseLevel;
     type estimRatio;
     mwSize bufferLen;
-    mwSize lastPeakIdx;
     bool qrsDetected;
     type estimate(type oldVal, type newVal);
 public:
     PeakEvaluator(type ratio, mwSize len);
     ~PeakEvaluator();
     void newx(const type *buffer, mwSize peakIdx, type thresh,
-            bool searchback, bool training);
+            bool normalpeak, bool searchback, bool training);
     type outputSignalLevel();
     type outputNoiseLevel();
     bool outputQrsDetected();
@@ -45,7 +44,6 @@ PeakEvaluator<type>::PeakEvaluator(type ratio, mwSize len)
     this->noiseLevel = (type)0;
     this->estimRatio = ratio;
     this->bufferLen = len;
-    this->lastPeakIdx = 0;
     this->qrsDetected = false;
 }
 
@@ -79,9 +77,14 @@ int PeakEvaluator<int>::estimate(int oldVal, int newVal)
  *=======================================================================*/
 template <class type>
 void PeakEvaluator<type>::newx(const type *buffer, mwSize peakIdx,
-        type thresh, bool searchback, bool training)
+        type thresh, bool normalpeak, bool searchback, bool training)
 {
-    type peakAmp = buffer[bufferLen - 1 + peakIdx];
+    type peakAmp;
+    
+    if (bufferLen + peakIdx > 0) {
+        peakAmp = buffer[bufferLen - 1 + peakIdx];
+    }
+    else peakAmp = buffer[0];
     
     if (searchback) {
         type save = estimRatio;
@@ -93,7 +96,7 @@ void PeakEvaluator<type>::newx(const type *buffer, mwSize peakIdx,
         estimRatio = save;
         qrsDetected = true;
     }
-    else if (lastPeakIdx != peakIdx) {
+    else if (normalpeak) {
         if (peakAmp >= thresh) {
             if (training) {
                 signalLevel = (type)fmax((double)signalLevel, (double)peakAmp);
@@ -108,7 +111,6 @@ void PeakEvaluator<type>::newx(const type *buffer, mwSize peakIdx,
             else noiseLevel = estimate(noiseLevel, peakAmp);
             qrsDetected = false;
         }
-        lastPeakIdx = peakIdx;
     }
     else qrsDetected = false;
 }
