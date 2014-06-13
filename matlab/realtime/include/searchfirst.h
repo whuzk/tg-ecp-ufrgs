@@ -13,7 +13,7 @@
 #include "mex.h"
 
 #define IDXOK(k)    (bufferLen+(k) > 0)
-#define BUFMVAL(k)  (bufferM[bufferLen-1+(k)])
+#define BUFVAL(k)   (buffer[bufferLen-1+(k)])
 
 /*=========================================================================
  * Type definitions
@@ -29,8 +29,7 @@ protected:
 public:
     SearchFirst(mwSize buflen, bool ismax);
     ~SearchFirst();
-    void newx(const type *bufferM, int start, int end, int def,
-            bool beatDetected);
+    void newx(const type *buffer, int start, int end, int def);
     int outputPeakIdx();
 };
 
@@ -76,35 +75,32 @@ bool SearchFirst<type>::check_indices(int start, int end, int *inc)
  * Update filter memory with an incoming sample
  *=======================================================================*/
 template <class type>
-void SearchFirst<type>::newx(const type *bufferM, int start, int end,
-        int def, bool beatDetected)
+void SearchFirst<type>::newx(const type *buffer, int start, int end, int def)
 {
-    if (beatDetected) {
-        int i, inc;
-        type y;
+    int i, inc;
+    type y;
 
-        if (!check_indices(start, end, &inc)) {
-            peakIdx = def;
-            return;
-        }
-        if (ismax) {
-            for (i = start + inc; i != end - inc; i += inc) {
-                y = BUFMVAL(i);
-                if (BUFMVAL(i - 1) < y && y >= BUFMVAL(i + 1)) {
-                    break;
-                }
-            }
-        }
-        else {
-            for (i = start + inc; i != end - inc; i += inc) {
-                y = BUFMVAL(i);
-                if (BUFMVAL(i - 1) > y && y <= BUFMVAL(i + 1)) {
-                    break;
-                }
-            }
-        }
-        peakIdx = i;
+    if (!check_indices(start, end, &inc)) {
+        peakIdx = def;
+        return;
     }
+    if (ismax) {
+        for (i = start + inc; i != end - inc; i += inc) {
+            y = BUFVAL(i);
+            if (BUFVAL(i - 1) < y && y >= BUFVAL(i + 1)) {
+                break;
+            }
+        }
+    }
+    else {
+        for (i = start + inc; i != end - inc; i += inc) {
+            y = BUFVAL(i);
+            if (BUFVAL(i - 1) > y && y <= BUFVAL(i + 1)) {
+                break;
+            }
+        }
+    }
+    peakIdx = i;
 }
 
 /*=========================================================================

@@ -95,7 +95,7 @@ static void mdlOutputs(SimStruct *S, int_T tid)
     obj->newx(INPUT);
     OUTPUT1 = obj->outputPeakIndex();
     OUTPUT2 = obj->outputPeakDetected();
-    OUTPUT3= obj->outputSignalRising();
+    OUTPUT3 = obj->outputSignalRising();
 }
 
 static void mdlTerminate(SimStruct *S)

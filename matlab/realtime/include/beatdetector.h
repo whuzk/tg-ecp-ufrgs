@@ -21,13 +21,14 @@ protected:
     mwSize countDown;
     mwSize rrIntLeft;
     mwSize rrIntRight;
+    int peakIdx;
     int lastQrsIdx;
     bool beatDetected;
 public:
     BeatDetector(double Fs);
     ~BeatDetector();
     void newx(int qrsIdx, bool qrsDetected);
-    int outputLastQrsIdx();
+    int outputPeakIdx();
     mwSize outputRrIntLeft();
     mwSize outputRrIntRight();
     bool outputBeatDetected();
@@ -42,6 +43,7 @@ BeatDetector::BeatDetector(double Fs)
     this->countDown = -1;
     this->rrIntLeft = -1;
     this->rrIntRight = 0;
+    this->peakIdx = 0;
     this->lastQrsIdx = 0;
     this->beatDetected = false;
 }
@@ -58,15 +60,18 @@ BeatDetector::~BeatDetector()
  *=======================================================================*/
 void BeatDetector::newx(int qrsIdx, bool qrsDetected)
 {
+    beatDetected = false;
+    peakIdx = 0;
+    
     // simulate QRS detection
     if ((qrsDetected && countDown > 0) || countDown == 0) {
         if (countDown > 0) {
             rrIntRight = qrsIdx - lastQrsIdx;
         }
         else rrIntRight = rrIntLeft;
+        peakIdx = lastQrsIdx;
         beatDetected = true;
     }
-    else beatDetected = false;
     
     if (qrsDetected) {
         // update rr
@@ -90,9 +95,9 @@ void BeatDetector::newx(int qrsIdx, bool qrsDetected)
 /*=========================================================================
  * Return the output
  *=======================================================================*/
-int BeatDetector::outputLastQrsIdx()
+int BeatDetector::outputPeakIdx()
 {
-    return this->lastQrsIdx;
+    return this->peakIdx;
 }
 
 /*=========================================================================

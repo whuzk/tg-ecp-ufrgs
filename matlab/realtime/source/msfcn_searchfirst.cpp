@@ -12,7 +12,7 @@
 #include "simstruc.h"
 #include "searchfirst.h"
 
-#define NUM_INPUTS  5
+#define NUM_INPUTS  4
 #define NUM_OUTPUTS 1
 
 #define OBJECT  ((SearchFirst<int> *)ssGetPWorkValue(S, 0))
@@ -20,7 +20,6 @@
 #define INPUT2  ((const int_T *)ssGetInputPortSignal(S, 1))[0]
 #define INPUT3  ((const int_T *)ssGetInputPortSignal(S, 2))[0]
 #define INPUT4  ((const int_T *)ssGetInputPortSignal(S, 3))[0]
-#define INPUT5  ((const bool *)ssGetInputPortSignal(S, 4))[0]
 #define OUTPUT  ((int_T *)ssGetOutputPortSignal(S, 0))[0]
 
 static void mdlInitializeSizes(SimStruct *S)
@@ -56,7 +55,6 @@ static void mdlInitializeSizes(SimStruct *S)
     ssSetInputPortDataType(S, 1, SS_INT32);
     ssSetInputPortDataType(S, 2, SS_INT32);
     ssSetInputPortDataType(S, 3, SS_INT32);
-    ssSetInputPortDataType(S, 4, SS_BOOLEAN);
     
     // output port properties
     for (i = 0; i < NUM_OUTPUTS; i++) {
@@ -103,7 +101,7 @@ static void mdlStart(SimStruct *S)
 static void mdlOutputs(SimStruct *S, int_T tid)
 {
     SearchFirst<int> *obj = OBJECT;
-    obj->newx(INPUT1, INPUT2, INPUT3, INPUT4, INPUT5);
+    obj->newx(INPUT1, INPUT2, INPUT3, INPUT4);
     OUTPUT = obj->outputPeakIdx();
 }
 

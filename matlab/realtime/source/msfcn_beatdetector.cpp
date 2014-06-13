@@ -98,7 +98,7 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 {
     BeatDetector *obj = OBJECT;
     obj->newx(INPUT1, INPUT2);
-    OUTPUT1 = obj->outputLastQrsIdx();
+    OUTPUT1 = obj->outputPeakIdx();
     OUTPUT2 = obj->outputRrIntLeft();
     OUTPUT3 = obj->outputRrIntRight();
     OUTPUT4 = obj->outputBeatDetected();

@@ -30,7 +30,7 @@ public:
     SearchPeak(mwSize buflen);
     ~SearchPeak();
     void newx(const type *bufferD, const type *bufferM, int start,
-            int end, int def, bool beatDetected);
+            int end, int def);
     int outputPeakIdx();
 };
 
@@ -76,59 +76,56 @@ bool SearchPeak<type>::check_indices(int start, int end, int *inc)
  *=======================================================================*/
 template <class type>
 void SearchPeak<type>::newx(const type *bufferD, const type *bufferM,
-        int start, int end, int def, bool beatDetected)
+        int start, int end, int def)
 {
-    if (beatDetected) {
-        int i, imax, idx[2];
-        type y, ymax, val[2];
-        int left, right, inc;
+    int i, imax, idx[2];
+    type y, ymax, val[2];
+    int left, right, inc;
 
-        if (!check_indices(start, end, &inc)) {
-            peakIdx = def;
-            return;
-        }
-
-        val[0] = val[1] = 0;
-        idx[0] = idx[1] = def;
-        for (i = start + inc; i != end - inc; i += inc) {
-            y = BUFDVAL(i);
-            if (BUFDVAL(i - 1) < y && y >= BUFDVAL(i + 1)) {
-                if (y > val[0]) {
-                    idx[0] = i;
-                    val[0] = y;
-                }
-            }
-            else if (BUFDVAL(i - 1) > y && y <= BUFDVAL(i + 1)) {
-                if (y < val[1]) {
-                    idx[1] = i;
-                    val[1] = y;
-                }
-            }
-        }
-
-        if (idx[0] < idx[1]) {
-            left = idx[0];
-            right = idx[1];
-        }
-        else {
-            left = idx[1];
-            right = idx[0];
-        }
-
-        ymax = 0;
-        imax = left;
-        for (i = left + 1; i < right - 1; i++) {
-            y = abs(BUFMVAL(i));
-            if (abs(BUFMVAL(i - 1)) < y && y >= abs(BUFMVAL(i + 1))) {
-                if (y > ymax) {
-                    ymax = y;
-                    imax = i;
-                }
-            }
-        }
-
-        peakIdx = imax;
+    if (!check_indices(start, end, &inc)) {
+        peakIdx = def;
+        return;
     }
+
+    val[0] = val[1] = 0;
+    idx[0] = idx[1] = def;
+    for (i = start + inc; i != end - inc; i += inc) {
+        y = BUFDVAL(i);
+        if (BUFDVAL(i - 1) < y && y >= BUFDVAL(i + 1)) {
+            if (y > val[0]) {
+                idx[0] = i;
+                val[0] = y;
+            }
+        }
+        else if (BUFDVAL(i - 1) > y && y <= BUFDVAL(i + 1)) {
+            if (y < val[1]) {
+                idx[1] = i;
+                val[1] = y;
+            }
+        }
+    }
+
+    if (idx[0] < idx[1]) {
+        left = idx[0];
+        right = idx[1];
+    }
+    else {
+        left = idx[1];
+        right = idx[0];
+    }
+
+    ymax = 0;
+    imax = left;
+    for (i = left + 1; i < right - 1; i++) {
+        y = abs(BUFMVAL(i));
+        if (abs(BUFMVAL(i - 1)) < y && y >= abs(BUFMVAL(i + 1))) {
+            if (y > ymax) {
+                ymax = y;
+                imax = i;
+            }
+        }
+    }
+    peakIdx = imax;
 }
 
 /*=========================================================================
