@@ -30,7 +30,7 @@ static void mdlInitializeSizes(SimStruct *S)
     int i;
     
     // number of parameters
-    ssSetNumSFcnParams(S, 0);
+    ssSetNumSFcnParams(S, 1);
     if (ssGetNumSFcnParams(S) != ssGetSFcnParamsCount(S)) {
         return;
     }
@@ -89,8 +89,9 @@ static void mdlInitializeSizes(SimStruct *S)
 }
 
 static void mdlInitializeSampleTimes(SimStruct *S)
-{    
-    ssSetSampleTime(S, 0, INHERITED_SAMPLE_TIME);
+{
+    double Fs = mxGetPr(ssGetSFcnParam(S, 0))[0];
+    ssSetSampleTime(S, 0, 1.0/Fs);
     ssSetOffsetTime(S, 0, 0.0);
     ssSetModelReferenceSampleTimeDefaultInheritance(S);  
 }
@@ -105,13 +106,8 @@ static void mdlStart(SimStruct *S)
 static void mdlOutputs(SimStruct *S, int_T tid)
 {
     SearchBack<int> *obj = OBJECT;
+    obj->newx(INPUT1, INPUT2, INPUT3, INPUT4, INPUT5, INPUT6, INPUT7);
     OUTPUT = obj->outputPeakIdx();
-}
-
-#define MDL_UPDATE
-static void mdlUpdate(SimStruct *S, int_T tid)
-{
-    OBJECT->newx(INPUT1, INPUT2, INPUT3, INPUT4, INPUT5, INPUT6, INPUT7);
 }
 
 static void mdlTerminate(SimStruct *S)

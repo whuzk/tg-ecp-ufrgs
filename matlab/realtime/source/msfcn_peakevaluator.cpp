@@ -31,7 +31,7 @@ static void mdlInitializeSizes(SimStruct *S)
     int i;
     
     // number of parameters
-    ssSetNumSFcnParams(S, 1);
+    ssSetNumSFcnParams(S, 2);
     if (ssGetNumSFcnParams(S) != ssGetSFcnParamsCount(S)) {
         return;
     }
@@ -91,8 +91,9 @@ static void mdlInitializeSizes(SimStruct *S)
 }
 
 static void mdlInitializeSampleTimes(SimStruct *S)
-{    
-    ssSetSampleTime(S, 0, INHERITED_SAMPLE_TIME);
+{
+    double Fs = mxGetPr(ssGetSFcnParam(S, 0))[0];
+    ssSetSampleTime(S, 0, 1.0/Fs);
     ssSetOffsetTime(S, 0, 0.0);
     ssSetModelReferenceSampleTimeDefaultInheritance(S);  
 }
@@ -102,7 +103,7 @@ static void mdlCheckParameters(SimStruct *S)
 {
     const mxArray *m;
     
-    m = ssGetSFcnParam(S, 0);
+    m = ssGetSFcnParam(S, 1);
     if (mxGetNumberOfElements(m) != 1 || !mxIsNumeric(m) || mxIsComplex(m)) {
         ssSetErrorStatus(S, "First parameter must be real-valued.");
         return;
@@ -117,22 +118,17 @@ static void mdlCheckParameters(SimStruct *S)
 static void mdlStart(SimStruct *S)
 {
     int length = ssGetInputPortDimensions(S, 0)[0];
-    int factor = (int)mxGetPr(ssGetSFcnParam(S, 0))[0];
+    int factor = (int)mxGetPr(ssGetSFcnParam(S, 1))[0];
     ssSetPWorkValue(S, 0, new PeakEvaluator<int>(length, factor));
 }
 
 static void mdlOutputs(SimStruct *S, int_T tid)
 {
     PeakEvaluator<int> *obj = OBJECT;
+    obj->newx(INPUT1, INPUT2, INPUT3, INPUT4, INPUT5, INPUT6);
     OUTPUT1 = obj->outputSignalLevel();
     OUTPUT2 = obj->outputNoiseLevel();
     OUTPUT3 = obj->outputQrsDetected();
-}
-
-#define MDL_UPDATE
-static void mdlUpdate(SimStruct *S, int_T tid)
-{
-    OBJECT->newx(INPUT1, INPUT2, INPUT3, INPUT4, INPUT5, INPUT6);
 }
 
 static void mdlTerminate(SimStruct *S)

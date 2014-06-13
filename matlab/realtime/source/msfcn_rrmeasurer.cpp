@@ -79,7 +79,7 @@ static void mdlInitializeSizes(SimStruct *S)
 }
 
 static void mdlInitializeSampleTimes(SimStruct *S)
-{    
+{
     ssSetSampleTime(S, 0, INHERITED_SAMPLE_TIME);
     ssSetOffsetTime(S, 0, 0.0);
     ssSetModelReferenceSampleTimeDefaultInheritance(S);  
@@ -94,14 +94,9 @@ static void mdlStart(SimStruct *S)
 static void mdlOutputs(SimStruct *S, int_T tid)
 {
     RrMeasurer *obj = OBJECT;
+    obj->newx(INPUT1, INPUT2, INPUT3);
     OUTPUT1 = obj->outputRrMean();
     OUTPUT2 = obj->outputRrMiss();
-}
-
-#define MDL_UPDATE
-static void mdlUpdate(SimStruct *S, int_T tid)
-{
-    OBJECT->newx(INPUT1, INPUT2, INPUT3);
 }
 
 static void mdlTerminate(SimStruct *S)

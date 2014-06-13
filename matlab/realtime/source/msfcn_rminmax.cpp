@@ -73,7 +73,7 @@ static void mdlInitializeSizes(SimStruct *S)
 }
 
 static void mdlInitializeSampleTimes(SimStruct *S)
-{    
+{
     ssSetSampleTime(S, 0, INHERITED_SAMPLE_TIME);
     ssSetOffsetTime(S, 0, 0.0);
     ssSetModelReferenceSampleTimeDefaultInheritance(S);  
@@ -111,13 +111,9 @@ static void mdlStart(SimStruct *S)
 
 static void mdlOutputs(SimStruct *S, int_T tid)
 {
-    OUTPUT = OBJECT->output();
-}
-
-#define MDL_UPDATE
-static void mdlUpdate(SimStruct *S, int_T tid)
-{
-    OBJECT->newx(INPUT);
+    MinMaxFilter<int> *obj = OBJECT;
+    obj->newx(INPUT);
+    OUTPUT = obj->output();
 }
 
 static void mdlTerminate(SimStruct *S)

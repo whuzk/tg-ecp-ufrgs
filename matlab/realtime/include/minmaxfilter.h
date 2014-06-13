@@ -9,6 +9,7 @@
 #ifndef MINMAXFILTER
 #define MINMAXFILTER
 
+#include <string.h>
 #include <math.h>
 #include "mex.h"
 
@@ -82,8 +83,10 @@ void MinMaxBuff<type>::init(mwSize width)
     this->size = (width <= 2) ? width : 1 << (1 + ILOG2(width - 1));
     delete[] this->val;
     delete[] this->idx;
-    this->val = new type[size]{0};
-    this->idx = new unsigned int[size]{0};
+    this->val = new type[size];
+    this->idx = new unsigned int[size];
+    memset(val, 0, size * sizeof(type));
+    memset(idx, 0, size * sizeof(unsigned int));
 }
 
 /*=========================================================================

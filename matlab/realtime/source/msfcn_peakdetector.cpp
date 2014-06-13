@@ -77,7 +77,7 @@ static void mdlInitializeSizes(SimStruct *S)
 }
 
 static void mdlInitializeSampleTimes(SimStruct *S)
-{    
+{
     ssSetSampleTime(S, 0, INHERITED_SAMPLE_TIME);
     ssSetOffsetTime(S, 0, 0.0);
     ssSetModelReferenceSampleTimeDefaultInheritance(S);  
@@ -92,15 +92,10 @@ static void mdlStart(SimStruct *S)
 static void mdlOutputs(SimStruct *S, int_T tid)
 {
     PeakDetector<int> *obj = OBJECT;
+    obj->newx(INPUT);
     OUTPUT1 = obj->outputPeakIndex();
     OUTPUT2 = obj->outputPeakDetected();
     OUTPUT3= obj->outputSignalRising();
-}
-
-#define MDL_UPDATE
-static void mdlUpdate(SimStruct *S, int_T tid)
-{
-    OBJECT->newx(INPUT);
 }
 
 static void mdlTerminate(SimStruct *S)

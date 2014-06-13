@@ -14,7 +14,7 @@
 
 #define IDXOK(k)    (bufferLen+(k) > 0)
 #define BUFVAL(k)   (buffer[bufferLen-1+(k)])
-#define MAX(a,b)    ((type)fmax((double)(a), (double)(b)))
+#define MAX(a,b)    ((a) > (b) ? (a) : (b))
 
 /*=========================================================================
  * Type definitions

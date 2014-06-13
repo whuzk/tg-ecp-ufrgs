@@ -81,26 +81,11 @@ static void mdlInitializeSizes(SimStruct *S)
 }
 
 static void mdlInitializeSampleTimes(SimStruct *S)
-{    
-    ssSetSampleTime(S, 0, INHERITED_SAMPLE_TIME);
+{
+    double Fs = mxGetPr(ssGetSFcnParam(S, 0))[0];
+    ssSetSampleTime(S, 0, 1.0/Fs);
     ssSetOffsetTime(S, 0, 0.0);
     ssSetModelReferenceSampleTimeDefaultInheritance(S);  
-}
-
-#define MDL_CHECK_PARAMETERS
-static void mdlCheckParameters(SimStruct *S)
-{
-    const mxArray *m;
-    
-    m = ssGetSFcnParam(S, 0);
-    if (mxGetNumberOfElements(m) != 1 || !mxIsNumeric(m) || mxIsComplex(m)) {
-        ssSetErrorStatus(S, "First parameter must be real-valued.");
-        return;
-    }
-    else if ((int_T)mxGetPr(m)[0] <= 0) {
-        ssSetErrorStatus(S, "The sampling rate must be greater than zero.");
-        return;
-    }
 }
 
 #define MDL_START
@@ -114,13 +99,8 @@ static void mdlStart(SimStruct *S)
 static void mdlOutputs(SimStruct *S, int_T tid)
 {
     QrsEvaluator<int> *obj = OBJECT;
+    obj->newx(INPUT1, INPUT2, INPUT3);
     OUTPUT = obj->outputQrsConfirmed();
-}
-
-#define MDL_UPDATE
-static void mdlUpdate(SimStruct *S, int_T tid)
-{
-    OBJECT->newx(INPUT1, INPUT2, INPUT3);
 }
 
 static void mdlTerminate(SimStruct *S)
