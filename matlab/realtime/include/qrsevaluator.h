@@ -32,7 +32,7 @@ protected:
 public:
     QrsEvaluator(mwSize buflen, double Fs);
     ~QrsEvaluator();
-    void newx(const type *buffer, int qrsIdx, bool qrsDetected);
+    void newx(const type *buffer, int qrsIdx, bool qrsValidated);
     bool outputQrsConfirmed();
 };
 
@@ -82,11 +82,11 @@ type QrsEvaluator<type>::maxdiff(const type *buffer, int start, mwSize len)
  *=======================================================================*/
 template <class type>
 void QrsEvaluator<type>::newx(const type *buffer, int qrsIdx,
-        bool qrsDetected)
+        bool qrsValidated)
 {
     qrsConfirmed = false;
     
-    if (qrsDetected) {
+    if (qrsValidated) {
         mwSize rr = qrsIdx - lastQrsIdx;
         
         if (rr > twaveTolerance) {

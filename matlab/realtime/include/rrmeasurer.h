@@ -40,7 +40,7 @@ protected:
 public:
     RrMeasurer();
     ~RrMeasurer();
-    void newx(mwSize newRR, bool qrsDetected, bool qrsConfirmed);
+    void newx(int peakIdx, bool qrsDetected, bool qrsConfirmed);
     mwSize outputRrMean();
     mwSize outputRrMiss();
 };
