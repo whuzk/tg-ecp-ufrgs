@@ -12,33 +12,37 @@
 #include <math.h>
 #include "mex.h"
 
+#define IDXOK(k)    (bufferLen+(k) > 0)
+#define BUFVAL(k)   (buffer[bufferLen-1+(k)])
+
 /*=========================================================================
  * Type definitions
  *=======================================================================*/
 template <class type>
 class SearchBack {
+private:
+    int findmax(const type *buffer, int start, mwSize len);
 protected:
-    type signalLevel;
-    type noiseLevel;
-    type estimRatio;
-    mwSize lastPeakIdx;
-    bool qrsDetected;
-    type estimate(type oldVal, type newVal);
+    mwSize bufferLen;
+    int peakIdx;
+    int searchbackIdx;
 public:
-    SearchBack(type ratio);
+    SearchBack(mwSize buflen);
     ~SearchBack();
-    void newx();
-    //type outputSignalLevel();
-    //type outputNoiseLevel();
-    //bool outputQrsDetected();
+    void newx(const type *buffer, int qrsIdx, type thresh, mwSize rrMean,
+        mwSize rrMiss, bool sigRising, bool qrsConfirmed);
+    int outputPeakIdx();
 };
 
 /*=========================================================================
  * Constructor
  *=======================================================================*/
 template <class type>
-SearchBack<type>::SearchBack(type ratio)
+SearchBack<type>::SearchBack(mwSize buflen)
 {
+    this->bufferLen = buflen;
+    this->peakIdx = 0;
+    this->searchbackIdx = 0;
 }
 
 /*=========================================================================
@@ -50,87 +54,57 @@ SearchBack<type>::~SearchBack()
 }
 
 /*=========================================================================
- * Iterative estimator (default for real numbers)
+ * Find the position of the maximum value on the detection signal 
  *=======================================================================*/
 template <class type>
-type SearchBack<type>::estimate(type oldVal, type newVal)
+int SearchBack<type>::findmax(const type *buffer, int start, mwSize len)
 {
-    return (1 - estimRatio) * oldVal + estimRatio * newVal;
-}
-
-/*=========================================================================
- * Iterative estimator (default for real numbers)
- *=======================================================================*/
-int SearchBack<int>::estimate(int oldVal, int newVal)
-{
-    return (((1 << estimRatio) - 1) * oldVal + newVal) >> estimRatio;
+    mwSize i;
+    type y, newy;
+    int pos = 0;
+    
+    y = BUFVAL(start);
+    for (i = 1; i < len; i++) {
+        newy = BUFVAL(start + i);
+        if (newy > y) {
+            y = newy;
+            pos = i;
+        }
+    }
+    return start + pos;
 }
 
 /*=========================================================================
  * Update filter memory with an incoming sample
  *=======================================================================*/
 template <class type>
-void SearchBack<type>::newx(type peakAmp, mwSize peakIdx, type thresh,
-        bool training, bool searchback)
+void SearchBack<type>::newx(const type *buffer, int qrsIdx, type thresh,
+        mwSize rrMean, mwSize rrMiss, bool sigRising, bool qrsConfirmed)
 {
-    if ((!isSignalRising || tpkb(0) < (sigThreshold >> 1)) &&
-            searchBackIdx != 0 && 0 >= searchBackIdx + rrIntMiss) {
-        // calculate starting point for the search
-        mwSize begin = 0 - rrIntMean2 + 1;
-        
-        if (isvalidindex(begin)) {
-            // search back and locate the max in this interval
-            peakIdx = findmax(begin, rrIntMean2);
-            peakAmp = tpkb(peakIdx);
-            
-            // check if candidate peak is from qrs
-            if (peakAmp < sigThreshold &&
-                    peakAmp >= (sigThreshold >> 1) &&
-                    !istwave(peakIdx, lastQrsIdx)) {
-                // adjust signal level
-                signalLevel = estimate(signalLevel, 2, peakAmp);
-                // signalize qrs detection
-                return true;
-            }
-            else {
-                // reduce levels by half
-                signalLevel >>= 1;
-                noiseLevel >>= 1;
-                // postpone searchback
-                searchBackIdx += rrIntMean2;
-                return false;
-            }
-        }
-        else return false;
+    peakIdx = 0;
+    
+    if (qrsConfirmed) {
+        searchbackIdx = qrsIdx;
     }
-    else return false;
+    else if ((!sigRising || BUFVAL(0) < (thresh / (type)2)) &&
+            (searchbackIdx != 0 && 0 >= searchbackIdx + rrMiss) &&
+            IDXOK(1 - rrMean)) {
+        // search back and locate the max in this interval
+        peakIdx = findmax(buffer, 1 - rrMean, rrMean);
+    }
+    
+    if (searchbackIdx != 0) {
+        searchbackIdx--;
+    }
 }
 
 /*=========================================================================
  * Return the output
  *=======================================================================*/
 template <class type>
-type SearchBack<type>::outputSignalLevel()
+int SearchBack<type>::outputPeakIdx()
 {
-    return this->signalLevel;
-}
-
-/*=========================================================================
- * Return the output
- *=======================================================================*/
-template <class type>
-type SearchBack<type>::outputNoiseLevel()
-{
-    return this->noiseLevel;
-}
-
-/*=========================================================================
- * Return the output
- *=======================================================================*/
-template <class type>
-bool SearchBack<type>::outputQrsDetected()
-{
-    return this->qrsDetected;
+    return this->peakIdx;
 }
 
 #endif

@@ -1,30 +1,25 @@
 /*=========================================================================
- * msfcn_peakevaluator.cpp
+ * msfcn_qrsevaluator.cpp
  * 
- *  Title: S-Function block implementation of peak evaluation.
+ *  Title: S-Function block implementation of QRS evaluation.
  *  Author:     Diego Sogari
  *  Modified:   11/June/2014
  *
  *=======================================================================*/
-#define S_FUNCTION_NAME  msfcn_peakevaluator
+#define S_FUNCTION_NAME  msfcn_qrsevaluator
 #define S_FUNCTION_LEVEL 2
 
 #include "simstruc.h"
-#include "peakevaluator.h"
+#include "qrsevaluator.h"
 
-#define NUM_INPUTS  6
-#define NUM_OUTPUTS 3
+#define NUM_INPUTS  3
+#define NUM_OUTPUTS 1
 
-#define OBJECT  ((PeakEvaluator<int> *)ssGetPWorkValue(S, 0))
+#define OBJECT  ((QrsEvaluator<int> *)ssGetPWorkValue(S, 0))
 #define INPUT1  ((const int_T *)ssGetInputPortSignal(S, 0))
 #define INPUT2  ((const int_T *)ssGetInputPortSignal(S, 1))[0]
-#define INPUT3  ((const int_T *)ssGetInputPortSignal(S, 2))[0]
-#define INPUT4  ((const bool *)ssGetInputPortSignal(S, 3))[0]
-#define INPUT5  ((const bool *)ssGetInputPortSignal(S, 4))[0]
-#define INPUT6  ((const bool *)ssGetInputPortSignal(S, 5))[0]
-#define OUTPUT1 ((int_T *)ssGetOutputPortSignal(S, 0))[0]
-#define OUTPUT2 ((int_T *)ssGetOutputPortSignal(S, 1))[0]
-#define OUTPUT3 ((bool *)ssGetOutputPortSignal(S, 2))[0]
+#define INPUT3  ((const bool *)ssGetInputPortSignal(S, 2))[0]
+#define OUTPUT  ((bool *)ssGetOutputPortSignal(S, 0))[0]
 
 static void mdlInitializeSizes(SimStruct *S)
 {
@@ -57,19 +52,14 @@ static void mdlInitializeSizes(SimStruct *S)
     ssSetInputPortMatrixDimensions(S, 0, DYNAMICALLY_SIZED, DYNAMICALLY_SIZED);
     ssSetInputPortDataType(S, 0, SS_INT32);
     ssSetInputPortDataType(S, 1, SS_INT32);
-    ssSetInputPortDataType(S, 2, SS_INT32);
-    ssSetInputPortDataType(S, 3, SS_BOOLEAN);
-    ssSetInputPortDataType(S, 4, SS_BOOLEAN);
-    ssSetInputPortDataType(S, 5, SS_BOOLEAN);
+    ssSetInputPortDataType(S, 2, SS_BOOLEAN);
     
     // output port properties
     for (i = 0; i < NUM_OUTPUTS; i++) {
         ssSetOutputPortWidth(S, i, 1);
         ssSetOutputPortSampleTime(S, i, INHERITED_SAMPLE_TIME);
     }
-    ssSetOutputPortDataType(S, 0, SS_INT32);
-    ssSetOutputPortDataType(S, 1, SS_INT32);
-    ssSetOutputPortDataType(S, 2, SS_BOOLEAN);
+    ssSetOutputPortDataType(S, 0, SS_BOOLEAN);
     
     // number of sample times
     ssSetNumSampleTimes(S, 1);
@@ -108,7 +98,7 @@ static void mdlCheckParameters(SimStruct *S)
         return;
     }
     else if ((int_T)mxGetPr(m)[0] <= 0) {
-        ssSetErrorStatus(S, "The adaptation rate must be greater than zero.");
+        ssSetErrorStatus(S, "The sampling rate must be greater than zero.");
         return;
     }
 }
@@ -117,22 +107,20 @@ static void mdlCheckParameters(SimStruct *S)
 static void mdlStart(SimStruct *S)
 {
     int length = ssGetInputPortDimensions(S, 0)[0];
-    int factor = (int)mxGetPr(ssGetSFcnParam(S, 0))[0];
-    ssSetPWorkValue(S, 0, new PeakEvaluator<int>(length, factor));
+    double Fs = mxGetPr(ssGetSFcnParam(S, 0))[0];
+    ssSetPWorkValue(S, 0, new QrsEvaluator<int>(length, Fs));
 }
 
 static void mdlOutputs(SimStruct *S, int_T tid)
 {
-    PeakEvaluator<int> *obj = OBJECT;
-    OUTPUT1 = obj->outputSignalLevel();
-    OUTPUT2 = obj->outputNoiseLevel();
-    OUTPUT3 = obj->outputQrsDetected();
+    QrsEvaluator<int> *obj = OBJECT;
+    OUTPUT = obj->outputQrsConfirmed();
 }
 
 #define MDL_UPDATE
 static void mdlUpdate(SimStruct *S, int_T tid)
 {
-    OBJECT->newx(INPUT1, INPUT2, INPUT3, INPUT4, INPUT5, INPUT6);
+    OBJECT->newx(INPUT1, INPUT2, INPUT3);
 }
 
 static void mdlTerminate(SimStruct *S)

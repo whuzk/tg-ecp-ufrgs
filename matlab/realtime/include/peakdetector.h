@@ -17,8 +17,8 @@
 template <class type>
 class PeakDetector {
 protected:
-    mwSize peakIdx;         // index of the detected peak
-    mwSize lastPeakIdx;     // index of the last peak
+    int peakIdx;            // index of the detected peak
+    int lastPeakIdx;        // index of the last peak
     type lastPeakAmp;       // amplitude of the last peak
     bool wasPeakDetected;   // flag to indicate a new detected peak
     bool isSignalRising;    // flag to indicate a rise in the signal
@@ -26,7 +26,7 @@ public:
     PeakDetector();
     ~PeakDetector();
     void newx(type x);
-    mwSize outputPeakIndex();
+    int outputPeakIndex();
     bool outputPeakDetected();
     bool outputSignalRising();
 };
@@ -38,8 +38,8 @@ template <class type>
 PeakDetector<type>::PeakDetector()
 {
     this->peakIdx = 0;
-    this->lastPeakAmp = (type)0;
     this->lastPeakIdx = 0;
+    this->lastPeakAmp = (type)0;
     this->wasPeakDetected = false;
     this->isSignalRising = false;
 }
@@ -87,7 +87,7 @@ void PeakDetector<type>::newx(type x)
  * Return the output
  *=======================================================================*/
 template <class type>
-mwSize PeakDetector<type>::outputPeakIndex()
+int PeakDetector<type>::outputPeakIndex()
 {
     return this->peakIdx;
 }

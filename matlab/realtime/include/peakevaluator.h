@@ -12,22 +12,26 @@
 #include <math.h>
 #include "mex.h"
 
+#define IDXOK(k)    (bufferLen+(k) > 0)
+#define BUFVAL(k)   (buffer[bufferLen-1+(k)])
+#define MAX(a,b)    ((type)fmax((double)(a), (double)(b)))
+
 /*=========================================================================
  * Type definitions
  *=======================================================================*/
 template <class type>
 class PeakEvaluator {
 protected:
+    mwSize bufferLen;
     type signalLevel;
     type noiseLevel;
-    type estimRatio;
-    mwSize bufferLen;
+    type estimFactor;
     bool qrsDetected;
     type estimate(type oldVal, type newVal);
 public:
-    PeakEvaluator(type ratio, mwSize len);
+    PeakEvaluator(mwSize buflen, type factor);
     ~PeakEvaluator();
-    void newx(const type *buffer, mwSize peakIdx, type thresh,
+    void newx(const type *buffer, int peakIdx, type thresh,
             bool normalpeak, bool searchback, bool training);
     type outputSignalLevel();
     type outputNoiseLevel();
@@ -38,12 +42,12 @@ public:
  * Constructor
  *=======================================================================*/
 template <class type>
-PeakEvaluator<type>::PeakEvaluator(type ratio, mwSize len)
+PeakEvaluator<type>::PeakEvaluator(mwSize buflen, type factor)
 {
+    this->bufferLen = buflen;
     this->signalLevel = (type)0;
     this->noiseLevel = (type)0;
-    this->estimRatio = ratio;
-    this->bufferLen = len;
+    this->estimFactor = factor;
     this->qrsDetected = false;
 }
 
@@ -56,63 +60,50 @@ PeakEvaluator<type>::~PeakEvaluator()
 }
 
 /*=========================================================================
- * Iterative estimator (default for real numbers)
+ * Iterative estimator
  *=======================================================================*/
 template <class type>
 type PeakEvaluator<type>::estimate(type oldVal, type newVal)
 {
-    return (1 - estimRatio) * oldVal + estimRatio * newVal;
-}
-
-/*=========================================================================
- * Iterative estimator (for integers)
- *=======================================================================*/
-int PeakEvaluator<int>::estimate(int oldVal, int newVal)
-{
-    return (((1 << estimRatio) - 1) * oldVal + newVal) >> estimRatio;
+    return ((estimFactor - 1) * oldVal + newVal) / estimFactor;
 }
 
 /*=========================================================================
  * Update filter memory with an incoming sample
  *=======================================================================*/
 template <class type>
-void PeakEvaluator<type>::newx(const type *buffer, mwSize peakIdx,
+void PeakEvaluator<type>::newx(const type *buffer, int peakIdx,
         type thresh, bool normalpeak, bool searchback, bool training)
 {
-    type peakAmp;
+    qrsDetected = false;
     
-    if (bufferLen + peakIdx > 0) {
-        peakAmp = buffer[bufferLen - 1 + peakIdx];
-    }
-    else peakAmp = buffer[0];
-    
-    if (searchback) {
-        type save = estimRatio;
-        if (estimRatio > 1) {
-            estimRatio -= 1;
-        }
-        else estimRatio *= 2;
-        signalLevel = estimate(signalLevel, peakAmp);
-        estimRatio = save;
-        qrsDetected = true;
-    }
-    else if (normalpeak) {
-        if (peakAmp >= thresh) {
-            if (training) {
-                signalLevel = (type)fmax((double)signalLevel, (double)peakAmp);
-            }
-            else signalLevel = estimate(signalLevel, peakAmp);
-            qrsDetected = true;
-        }
-        else {
-            if (training) {
-                noiseLevel = (type)fmax((double)noiseLevel, (double)peakAmp);
+    if (IDXOK(peakIdx)) {
+        type peakAmp = BUFVAL(peakIdx);
+        
+        if (searchback) {
+            type save = estimFactor;
+            estimFactor /= (type)2;
+            if (peakAmp >= thresh / (type)2) {
+                signalLevel = estimate(signalLevel, peakAmp);
+                qrsDetected = true;
             }
             else noiseLevel = estimate(noiseLevel, peakAmp);
-            qrsDetected = false;
+            estimFactor = save;
         }
-    }
-    else qrsDetected = false;
+        else if (normalpeak) {
+            if (peakAmp >= thresh) {
+                if (training) {
+                    signalLevel = MAX(signalLevel, peakAmp);
+                }
+                else signalLevel = estimate(signalLevel, peakAmp);
+                qrsDetected = true;
+            }
+            else if (training) {
+                noiseLevel = MAX(noiseLevel, peakAmp);
+            }
+            else noiseLevel = estimate(noiseLevel, peakAmp);
+        }
+    } 
 }
 
 /*=========================================================================
