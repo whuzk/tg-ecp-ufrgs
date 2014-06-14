@@ -1,37 +1,37 @@
 /*=========================================================================
- * msfcn_searchback.cpp
+ * msfcn_beatframer.cpp
  * 
- *  Title: S-Function block implementation of searchback procedure.
+ *  Title: S-Function block implementation of max/min searching.
  *  Author:     Diego Sogari
  *  Modified:   11/June/2014
  *
  *=======================================================================*/
-#define S_FUNCTION_NAME  msfcn_searchback
+#define S_FUNCTION_NAME  msfcn_beatframer
 #define S_FUNCTION_LEVEL 2
 
 #include "simstruc.h"
-#include "searchback.h"
+#include "beatframer.h"
 
-#define NUM_INPUTS  7
+#define NUM_INPUTS  6
 #define NUM_OUTPUTS 1
 
-#define OBJECT  ((SearchBack<int> *)ssGetPWorkValue(S, 0))
+#define OBJECT  ((BeatFramer<double> *)ssGetPWorkValue(S, 0))
 #define PARAM1  ((double)mxGetPr(ssGetSFcnParam(S, 0))[0])
-#define INPUT1  ((const int_T *)ssGetInputPortSignal(S, 0))
+#define PARAM2  ((int)mxGetPr(ssGetSFcnParam(S, 1))[0])
+#define INPUT1  ((const real_T *)ssGetInputPortSignal(S, 0))
 #define INPUT2  ((const int_T *)ssGetInputPortSignal(S, 1))[0]
 #define INPUT3  ((const int_T *)ssGetInputPortSignal(S, 2))[0]
 #define INPUT4  ((const int_T *)ssGetInputPortSignal(S, 3))[0]
-#define INPUT5  ((const int_T *)ssGetInputPortSignal(S, 4))[0]
-#define INPUT6  ((const bool *)ssGetInputPortSignal(S, 5))[0]
-#define INPUT7  ((const bool *)ssGetInputPortSignal(S, 6))[0]
-#define OUTPUT  ((int_T *)ssGetOutputPortSignal(S, 0))[0]
+#define INPUT5  ((const real_T *)ssGetInputPortSignal(S, 4))[0]
+#define INPUT6  ((const real_T *)ssGetInputPortSignal(S, 5))[0]
+#define OUTPUT  ((real_T *)ssGetOutputPortSignal(S, 0))
 
 static void mdlInitializeSizes(SimStruct *S)
 {
-    int i;
+    int i, framelen;
     
     // number of parameters
-    ssSetNumSFcnParams(S, 1);
+    ssSetNumSFcnParams(S, 2);
     if (ssGetNumSFcnParams(S) != ssGetSFcnParamsCount(S)) {
         return;
     }
@@ -46,7 +46,7 @@ static void mdlInitializeSizes(SimStruct *S)
     
     // input port properties
     for (i = 0; i < NUM_INPUTS; i++) {
-        if (i != 0) {
+        if (i > 0) {
             ssSetInputPortWidth(S, i, 1);
         }
         ssSetInputPortDirectFeedThrough(S, i, 1);
@@ -54,21 +54,20 @@ static void mdlInitializeSizes(SimStruct *S)
         ssSetInputPortRequiredContiguous(S, i, 1);
     }
     ssSetInputPortFrameData(S, 0, FRAME_YES);
-    ssSetInputPortMatrixDimensions(S, 0, DYNAMICALLY_SIZED, DYNAMICALLY_SIZED);
-    ssSetInputPortDataType(S, 0, SS_INT32);
+    ssSetInputPortMatrixDimensions(S, 0, DYNAMICALLY_SIZED, 1);
+    ssSetInputPortDataType(S, 0, SS_DOUBLE);
     ssSetInputPortDataType(S, 1, SS_INT32);
     ssSetInputPortDataType(S, 2, SS_INT32);
     ssSetInputPortDataType(S, 3, SS_INT32);
-    ssSetInputPortDataType(S, 4, SS_INT32);
-    ssSetInputPortDataType(S, 5, SS_BOOLEAN);
-    ssSetInputPortDataType(S, 6, SS_BOOLEAN);
+    ssSetInputPortDataType(S, 4, SS_DOUBLE);
+    ssSetInputPortDataType(S, 5, SS_DOUBLE);
     
     // output port properties
-    for (i = 0; i < NUM_OUTPUTS; i++) {
-        ssSetOutputPortWidth(S, i, 1);
-        ssSetOutputPortSampleTime(S, i, INHERITED_SAMPLE_TIME);
-    }
-    ssSetOutputPortDataType(S, 0, SS_INT32);
+    ssSetOutputPortDataType(S, 0, SS_DOUBLE);
+    ssSetOutputPortSampleTime(S, 0, INHERITED_SAMPLE_TIME);
+    ssSetOutputPortFrameData(S, 0, FRAME_YES);
+    framelen = (int)mxGetPr(ssGetSFcnParam(S, 1))[0];
+    ssSetOutputPortMatrixDimensions(S, 0, framelen, 1);
     
     // number of sample times
     ssSetNumSampleTimes(S, 1);
@@ -96,18 +95,33 @@ static void mdlInitializeSampleTimes(SimStruct *S)
     ssSetModelReferenceSampleTimeDefaultInheritance(S);  
 }
 
+#if defined(MATLAB_MEX_FILE)
+#define MDL_SET_INPUT_PORT_DIMENSION_INFO
+static void mdlSetInputPortDimensionInfo(
+        SimStruct *S, int_T port, const DimsInfo_T *dimsInfo)
+{
+    if(!ssSetInputPortDimensionInfo(S, port, dimsInfo)) return;
+}
+
+# define MDL_SET_OUTPUT_PORT_DIMENSION_INFO
+static void mdlSetOutputPortDimensionInfo(
+        SimStruct *S, int_T port, const DimsInfo_T *dimsInfo)
+{
+    if(!ssSetOutputPortDimensionInfo(S, port, dimsInfo)) return;
+}
+#endif
+
 #define MDL_START
 static void mdlStart(SimStruct *S)
 {
-    int length = ssGetInputPortDimensions(S, 0)[0];
-    ssSetPWorkValue(S, 0, new SearchBack<int>(length));
+    int bufflen = ssGetInputPortDimensions(S, 0)[0];
+    ssSetPWorkValue(S, 0, new BeatFramer<double>(bufflen, PARAM2));
 }
 
 static void mdlOutputs(SimStruct *S, int_T tid)
 {
-    SearchBack<int> *obj = OBJECT;
-    obj->newx(INPUT1, INPUT2, INPUT3, INPUT4, INPUT5, INPUT6, INPUT7);
-    OUTPUT = obj->outputPeakIdx();
+    BeatFramer<double> *obj = OBJECT;
+    obj->newx(INPUT1, OUTPUT, INPUT2, INPUT3, INPUT4, INPUT5, INPUT6);
 }
 
 static void mdlTerminate(SimStruct *S)

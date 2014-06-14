@@ -269,7 +269,7 @@ void nconv(const int *a, mwSize na, int n, int *result)
 void first_order_fit(const double *x, const double *y, double *p)
 {
     p[0] = (y[1] - y[0]) / (x[1] - x[0]);
-    p[1] = y[0] - x[0]*p[1];
+    p[1] = y[0] - x[0] * p[0];
 }
 
 /*=========================================================================

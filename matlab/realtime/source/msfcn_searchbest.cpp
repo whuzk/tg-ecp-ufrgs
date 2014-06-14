@@ -16,6 +16,8 @@
 #define NUM_OUTPUTS 1
 
 #define OBJECT  ((SearchBest<int> *)ssGetPWorkValue(S, 0))
+#define PARAM1  ((double)mxGetPr(ssGetSFcnParam(S, 0))[0])
+#define PARAM2  ((bool)mxGetLogicals(ssGetSFcnParam(S, 1))[0])
 #define INPUT1  ((const int_T *)ssGetInputPortSignal(S, 0))
 #define INPUT2  ((const int_T *)ssGetInputPortSignal(S, 1))[0]
 #define INPUT3  ((const int_T *)ssGetInputPortSignal(S, 2))[0]
@@ -84,8 +86,7 @@ static void mdlInitializeSizes(SimStruct *S)
 
 static void mdlInitializeSampleTimes(SimStruct *S)
 {
-    double Fs = mxGetPr(ssGetSFcnParam(S, 0))[0];
-    ssSetSampleTime(S, 0, 1.0/Fs);
+    ssSetSampleTime(S, 0, 1.0/PARAM1);
     ssSetOffsetTime(S, 0, 0.0);
     ssSetModelReferenceSampleTimeDefaultInheritance(S);  
 }
@@ -94,8 +95,7 @@ static void mdlInitializeSampleTimes(SimStruct *S)
 static void mdlStart(SimStruct *S)
 {
     int length = ssGetInputPortDimensions(S, 0)[0];
-    bool ismax = mxGetLogicals(ssGetSFcnParam(S, 1))[0];
-    ssSetPWorkValue(S, 0, new SearchBest<int>(length, ismax));
+    ssSetPWorkValue(S, 0, new SearchBest<int>(length, PARAM2));
 }
 
 static void mdlOutputs(SimStruct *S, int_T tid)

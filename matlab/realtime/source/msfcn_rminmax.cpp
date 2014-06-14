@@ -16,6 +16,9 @@
 #define NUM_OUTPUTS 1
 
 #define OBJECT  ((MinMaxFilter<int> *)ssGetPWorkValue(S, 0))
+#define PARAM1  ((double)mxGetPr(ssGetSFcnParam(S, 0))[0])
+#define PARAM2  ((int)mxGetPr(ssGetSFcnParam(S, 1))[0])
+#define PARAM3  ((bool)mxGetLogicals(ssGetSFcnParam(S, 2))[0])
 #define INPUT   ((const int_T *)ssGetInputPortSignal(S, 0))[0]
 #define OUTPUT  ((int_T *)ssGetOutputPortSignal(S, 0))[0]
 
@@ -24,7 +27,7 @@ static void mdlInitializeSizes(SimStruct *S)
     int i;
     
     // number of parameters
-    ssSetNumSFcnParams(S, 2);
+    ssSetNumSFcnParams(S, 3);
     if (ssGetNumSFcnParams(S) != ssGetSFcnParamsCount(S)) {
         return;
     }
@@ -74,39 +77,15 @@ static void mdlInitializeSizes(SimStruct *S)
 
 static void mdlInitializeSampleTimes(SimStruct *S)
 {
-    ssSetSampleTime(S, 0, INHERITED_SAMPLE_TIME);
+    ssSetSampleTime(S, 0, 1.0/PARAM1);
     ssSetOffsetTime(S, 0, 0.0);
     ssSetModelReferenceSampleTimeDefaultInheritance(S);  
-}
-
-#define MDL_CHECK_PARAMETERS
-static void mdlCheckParameters(SimStruct *S)
-{
-    const mxArray *m;
-    
-    m = ssGetSFcnParam(S, 0);
-    if (mxGetNumberOfElements(m) != 1 || !mxIsNumeric(m) || mxIsComplex(m)) {
-        ssSetErrorStatus(S, "First parameter must be real-valued.");
-        return;
-    }
-    else if ((int_T)mxGetPr(m)[0] <= 0) {
-        ssSetErrorStatus(S, "The window size must be greater than zero.");
-        return;
-    }
-    
-    m = ssGetSFcnParam(S, 1);
-    if (mxGetNumberOfElements(m) != 1 || !mxIsLogical(m)) {
-        ssSetErrorStatus(S, "Second parameter must be logical.");
-        return;
-    }
 }
 
 #define MDL_START
 static void mdlStart(SimStruct *S)
 {
-    mwSize wsize = (int)mxGetPr(ssGetSFcnParam(S, 0))[0];
-    bool ismax = mxGetLogicals(ssGetSFcnParam(S, 1))[0];
-    ssSetPWorkValue(S, 0, new MinMaxFilter<int>(wsize, ismax));
+    ssSetPWorkValue(S, 0, new MinMaxFilter<int>(PARAM2, PARAM3));
 }
 
 static void mdlOutputs(SimStruct *S, int_T tid)

@@ -16,6 +16,7 @@
 #define NUM_OUTPUTS 2
 
 #define OBJECT  ((RrMeasurer *)ssGetPWorkValue(S, 0))
+#define PARAM1  ((double)mxGetPr(ssGetSFcnParam(S, 0))[0])
 #define INPUT1  ((const int_T *)ssGetInputPortSignal(S, 0))[0]
 #define INPUT2  ((bool *)ssGetInputPortSignal(S, 1))[0]
 #define INPUT3  ((bool *)ssGetInputPortSignal(S, 2))[0]
@@ -27,7 +28,7 @@ static void mdlInitializeSizes(SimStruct *S)
     int i;
     
     // number of parameters
-    ssSetNumSFcnParams(S, 0);
+    ssSetNumSFcnParams(S, 1);
     if (ssGetNumSFcnParams(S) != ssGetSFcnParamsCount(S)) {
         return;
     }
@@ -80,7 +81,7 @@ static void mdlInitializeSizes(SimStruct *S)
 
 static void mdlInitializeSampleTimes(SimStruct *S)
 {
-    ssSetSampleTime(S, 0, INHERITED_SAMPLE_TIME);
+    ssSetSampleTime(S, 0, 1.0/PARAM1);
     ssSetOffsetTime(S, 0, 0.0);
     ssSetModelReferenceSampleTimeDefaultInheritance(S);  
 }

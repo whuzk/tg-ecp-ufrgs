@@ -16,6 +16,7 @@
 #define NUM_OUTPUTS 4
 
 #define OBJECT  ((BeatDetector *)ssGetPWorkValue(S, 0))
+#define PARAM1  ((double)mxGetPr(ssGetSFcnParam(S, 0))[0])
 #define INPUT1  ((const int_T *)ssGetInputPortSignal(S, 0))[0]
 #define INPUT2  ((const bool *)ssGetInputPortSignal(S, 1))[0]
 #define OUTPUT1 ((int_T *)ssGetOutputPortSignal(S, 0))[0]
@@ -90,8 +91,7 @@ static void mdlInitializeSampleTimes(SimStruct *S)
 #define MDL_START
 static void mdlStart(SimStruct *S)
 {
-    double Fs = mxGetPr(ssGetSFcnParam(S, 0))[0];
-    ssSetPWorkValue(S, 0, new BeatDetector(Fs));
+    ssSetPWorkValue(S, 0, new BeatDetector(PARAM1));
 }
 
 static void mdlOutputs(SimStruct *S, int_T tid)

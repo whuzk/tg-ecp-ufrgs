@@ -25,10 +25,11 @@ delay_fp2 = ceil(delay_qrs-fpdl-s);
 noiseds = mean(grpdelay(noisebs,noiseas,[5 15]*2/Fs));
 [noisebl,noiseal] = butter(4,40*2/Fs);
 noisedl = mean(grpdelay(noisebl,noiseal,[5 15]*2/Fs));
-delay_noise = ceil(noiseds + noisedl);
+delay_noise = ceil(delay_qrs-noiseds-noisedl);
 
 %% Detection
 BufLen = 4*Fs;
+FrameLen = 2*floor(0.6*Fs)+1;
 L1 = floor(0.10*Fs);
 L2 = floor(0.02*Fs);
 L3 = floor(0.15*Fs);

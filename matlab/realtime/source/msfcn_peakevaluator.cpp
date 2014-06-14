@@ -16,6 +16,8 @@
 #define NUM_OUTPUTS 3
 
 #define OBJECT  ((PeakEvaluator<int> *)ssGetPWorkValue(S, 0))
+#define PARAM1  ((double)mxGetPr(ssGetSFcnParam(S, 0))[0])
+#define PARAM2  ((int)mxGetPr(ssGetSFcnParam(S, 1))[0])
 #define INPUT1  ((const int_T *)ssGetInputPortSignal(S, 0))
 #define INPUT2  ((const int_T *)ssGetInputPortSignal(S, 1))[0]
 #define INPUT3  ((const int_T *)ssGetInputPortSignal(S, 2))[0]
@@ -92,34 +94,16 @@ static void mdlInitializeSizes(SimStruct *S)
 
 static void mdlInitializeSampleTimes(SimStruct *S)
 {
-    double Fs = mxGetPr(ssGetSFcnParam(S, 0))[0];
-    ssSetSampleTime(S, 0, 1.0/Fs);
+    ssSetSampleTime(S, 0, 1.0/PARAM1);
     ssSetOffsetTime(S, 0, 0.0);
     ssSetModelReferenceSampleTimeDefaultInheritance(S);  
-}
-
-#define MDL_CHECK_PARAMETERS
-static void mdlCheckParameters(SimStruct *S)
-{
-    const mxArray *m;
-    
-    m = ssGetSFcnParam(S, 1);
-    if (mxGetNumberOfElements(m) != 1 || !mxIsNumeric(m) || mxIsComplex(m)) {
-        ssSetErrorStatus(S, "First parameter must be real-valued.");
-        return;
-    }
-    else if ((int_T)mxGetPr(m)[0] <= 0) {
-        ssSetErrorStatus(S, "The adaptation rate must be greater than zero.");
-        return;
-    }
 }
 
 #define MDL_START
 static void mdlStart(SimStruct *S)
 {
     int length = ssGetInputPortDimensions(S, 0)[0];
-    int factor = (int)mxGetPr(ssGetSFcnParam(S, 1))[0];
-    ssSetPWorkValue(S, 0, new PeakEvaluator<int>(length, factor));
+    ssSetPWorkValue(S, 0, new PeakEvaluator<int>(length, PARAM2));
 }
 
 static void mdlOutputs(SimStruct *S, int_T tid)

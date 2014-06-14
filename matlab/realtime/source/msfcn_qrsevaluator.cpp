@@ -16,6 +16,7 @@
 #define NUM_OUTPUTS 1
 
 #define OBJECT  ((QrsEvaluator<int> *)ssGetPWorkValue(S, 0))
+#define PARAM1  ((double)mxGetPr(ssGetSFcnParam(S, 0))[0])
 #define INPUT1  ((const int_T *)ssGetInputPortSignal(S, 0))
 #define INPUT2  ((const int_T *)ssGetInputPortSignal(S, 1))[0]
 #define INPUT3  ((const bool *)ssGetInputPortSignal(S, 2))[0]
@@ -82,8 +83,7 @@ static void mdlInitializeSizes(SimStruct *S)
 
 static void mdlInitializeSampleTimes(SimStruct *S)
 {
-    double Fs = mxGetPr(ssGetSFcnParam(S, 0))[0];
-    ssSetSampleTime(S, 0, 1.0/Fs);
+    ssSetSampleTime(S, 0, 1.0/PARAM1);
     ssSetOffsetTime(S, 0, 0.0);
     ssSetModelReferenceSampleTimeDefaultInheritance(S);  
 }
@@ -92,8 +92,7 @@ static void mdlInitializeSampleTimes(SimStruct *S)
 static void mdlStart(SimStruct *S)
 {
     int length = ssGetInputPortDimensions(S, 0)[0];
-    double Fs = mxGetPr(ssGetSFcnParam(S, 0))[0];
-    ssSetPWorkValue(S, 0, new QrsEvaluator<int>(length, Fs));
+    ssSetPWorkValue(S, 0, new QrsEvaluator<int>(length, PARAM1));
 }
 
 static void mdlOutputs(SimStruct *S, int_T tid)

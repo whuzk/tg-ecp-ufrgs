@@ -16,6 +16,7 @@
 #define NUM_OUTPUTS 3
 
 #define OBJECT  ((PeakDetector<int> *)ssGetPWorkValue(S, 0))
+#define PARAM1  ((double)mxGetPr(ssGetSFcnParam(S, 0))[0])
 #define INPUT   ((const int_T *)ssGetInputPortSignal(S, 0))[0]
 #define OUTPUT1 ((int_T *)ssGetOutputPortSignal(S, 0))[0]
 #define OUTPUT2 ((bool *)ssGetOutputPortSignal(S, 1))[0]
@@ -26,7 +27,7 @@ static void mdlInitializeSizes(SimStruct *S)
     int i;
     
     // number of parameters
-    ssSetNumSFcnParams(S, 0);
+    ssSetNumSFcnParams(S, 1);
     if (ssGetNumSFcnParams(S) != ssGetSFcnParamsCount(S)) {
         return;
     }
@@ -78,7 +79,7 @@ static void mdlInitializeSizes(SimStruct *S)
 
 static void mdlInitializeSampleTimes(SimStruct *S)
 {
-    ssSetSampleTime(S, 0, INHERITED_SAMPLE_TIME);
+    ssSetSampleTime(S, 0, 1.0/PARAM1);
     ssSetOffsetTime(S, 0, 0.0);
     ssSetModelReferenceSampleTimeDefaultInheritance(S);  
 }
