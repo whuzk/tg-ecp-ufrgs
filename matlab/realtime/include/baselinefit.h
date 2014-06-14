@@ -12,7 +12,6 @@
 #include <math.h>
 #include "mex.h"
 
-#define IDXOK(k)    (bufferLen+(k) > 0)
 #define BUFVAL(k)   (buffer[bufferLen-1+(k)])
 #define MAX(a,b)    ((a) > (b) ? (a) : (b))
 #define MIN(a,b)    ((a) < (b) ? (a) : (b))

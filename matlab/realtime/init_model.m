@@ -29,8 +29,9 @@ delay_noise = ceil(delay_qrs-noiseds-noisedl);
 
 %% Detection
 BufLen = 4*Fs;
-FrameLen = 2*floor(0.6*Fs)+1;
 L1 = floor(0.10*Fs);
 L2 = floor(0.02*Fs);
 L3 = floor(0.15*Fs);
 L4 = floor(0.08*Fs);
+FrameLen = 2*floor(0.6*Fs)+1;
+TempCount = 30;

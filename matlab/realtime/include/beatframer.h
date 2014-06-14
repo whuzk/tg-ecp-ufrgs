@@ -13,7 +13,6 @@
 #include <math.h>
 #include "mex.h"
 
-#define IDXOK(k)    (bufferLen+(k) > 0)
 #define BUFVAL(k)   (buffer[bufferLen-1+(k)])
 #define MAX(a,b)    ((a) > (b) ? (a) : (b))
 #define MIN(a,b)    ((a) < (b) ? (a) : (b))
@@ -73,9 +72,6 @@ void BeatFramer<type>::newx(const type *buffer, type *frame, int rpeak,
     // update start and end indices
     start = ponset + cut1;
     end = toffset - cut2;
-    if (start > end || !IDXOK(start) || !IDXOK(end)) {
-        return;
-    }
     
     // calculate new amplitudes
     memset(frame, 0, frameLen * sizeof(type));
