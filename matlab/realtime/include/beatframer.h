@@ -30,7 +30,7 @@ public:
     BeatFramer(mwSize buflen, mwSize framelen);
     ~BeatFramer();
     void newx(const type *buffer, type *outbuffer, int rpeak, int ponset,
-            int toffset, double p0, double p1);
+            int toffset, const double *p);
 };
 
 /*=========================================================================
@@ -56,7 +56,7 @@ BeatFramer<type>::~BeatFramer()
  *=======================================================================*/
 template <class type>
 void BeatFramer<type>::newx(const type *buffer, type *frame, int rpeak,
-        int ponset, int toffset, double p0, double p1)
+        int ponset, int toffset, const double *p)
 {
     mwSize len1, len2, halflen, beatlen, pad, cut1, cut2;
     int i, j, r, start, end;
@@ -80,7 +80,7 @@ void BeatFramer<type>::newx(const type *buffer, type *frame, int rpeak,
     // calculate new amplitudes
     memset(frame, 0, frameLen * sizeof(type));
     for (i = start, j = pad; i <= end; i++, j++) {
-        baseline = (p0 * (i - ponset) + p1);
+        baseline = (p[0] * (i - ponset) + p[1]);
         frame[j] = BUFVAL(i) - baseline;
     }
 }

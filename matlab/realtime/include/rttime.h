@@ -9,10 +9,8 @@
     __inline double hightimer()
     {
         HANDLE hCurrentProcess = GetCurrentProcess();
-        DWORD dwProcessAffinity;
-        DWORD dwSystemAffinity;    
+        DWORD dwProcessAffinity, dwSystemAffinity;    
         LARGE_INTEGER frequency, counter;
-        double sec_per_tick, total_ticks;
 
         /* force thread on first cpu */
         GetProcessAffinityMask(hCurrentProcess,
@@ -45,12 +43,11 @@ class RtTime {
 protected:
     double scaleFactor;
     time_T prevSimTime;
-    double outputVal;
+    double previousState;
 public:
     RtTime(double scale, time_T initial);
     ~RtTime();
-    void newx(double *x, time_T simTime);
-    double output();
+    double update(time_T simTime);
 };
 
 /*=========================================================================
@@ -60,7 +57,7 @@ RtTime::RtTime(double scale, time_T initial)
 {
     this->scaleFactor = scale;
     this->prevSimTime = initial;
-    this->outputVal = 0.0;
+    this->previousState = hightimer();
 }
 
 /*=========================================================================
@@ -73,7 +70,7 @@ RtTime::~RtTime()
 /*=========================================================================
  * Update filter memory with an incoming sample
  *=======================================================================*/
-void RtTime::newx(double *x, time_T simTime)
+double RtTime::update(time_T simTime)
 {
    double diff = 0.0;
    double dt, t0;
@@ -90,7 +87,7 @@ void RtTime::newx(double *x, time_T simTime)
    t0 = previous;
    
    /* Wait to reach the desired time */
-   execution = t0 - x[0];
+   execution = t0 - previousState;
    while (diff < (dt - min(dt, execution))) {
        current = hightimer();
        /* Look for wrapup */
@@ -102,18 +99,12 @@ void RtTime::newx(double *x, time_T simTime)
        previous = current;
    }
    
-   /* Store current time to be used in next time step*/
-   x[0] = previous;
+   /* Store current time to be used in next time step */
    prevSimTime = simTime;
-   outputVal = dt - execution;
-}
-
-/*=========================================================================
- * Return the output
- *=======================================================================*/
-double RtTime::output()
-{
-    return this->outputVal;
+   previousState = previous;
+   
+   /* Return the output */
+   return dt - execution;
 }
 
 #endif

@@ -13,7 +13,7 @@
 #include "baselinefit.h"
 
 #define NUM_INPUTS  3
-#define NUM_OUTPUTS 2
+#define NUM_OUTPUTS 1
 
 #define OBJECT  ((BaselineFit<double> *)ssGetPWorkValue(S, 0))
 #define PARAM1  ((double)mxGetPr(ssGetSFcnParam(S, 0))[0])
@@ -21,8 +21,7 @@
 #define INPUT1  ((const real_T *)ssGetInputPortSignal(S, 0))
 #define INPUT2  ((const int_T *)ssGetInputPortSignal(S, 1))[0]
 #define INPUT3  ((const int_T *)ssGetInputPortSignal(S, 2))[0]
-#define OUTPUT1 ((real_T *)ssGetOutputPortSignal(S, 0))[0]
-#define OUTPUT2 ((real_T *)ssGetOutputPortSignal(S, 1))[0]
+#define OUTPUT  ((real_T *)ssGetOutputPortSignal(S, 0))
 
 static void mdlInitializeSizes(SimStruct *S)
 {
@@ -52,17 +51,15 @@ static void mdlInitializeSizes(SimStruct *S)
         ssSetInputPortRequiredContiguous(S, i, 1);
     }
     ssSetInputPortFrameData(S, 0, FRAME_YES);
-    ssSetInputPortMatrixDimensions(S, 0, DYNAMICALLY_SIZED, DYNAMICALLY_SIZED);
+    ssSetInputPortMatrixDimensions(S, 0, DYNAMICALLY_SIZED, 1);
     ssSetInputPortDataType(S, 0, SS_DOUBLE);
     ssSetInputPortDataType(S, 1, SS_INT32);
     ssSetInputPortDataType(S, 2, SS_INT32);
     
     // output port properties
-    for (i = 0; i < NUM_OUTPUTS; i++) {
-        ssSetOutputPortWidth(S, i, 1);
-        ssSetOutputPortDataType(S, i, SS_DOUBLE);
-        ssSetOutputPortSampleTime(S, i, INHERITED_SAMPLE_TIME);
-    }
+    ssSetOutputPortWidth(S, 0, 2);
+    ssSetOutputPortDataType(S, 0, SS_DOUBLE);
+    ssSetOutputPortSampleTime(S, 0, INHERITED_SAMPLE_TIME);
     
     // number of sample times
     ssSetNumSampleTimes(S, 1);
@@ -90,6 +87,22 @@ static void mdlInitializeSampleTimes(SimStruct *S)
     ssSetModelReferenceSampleTimeDefaultInheritance(S);  
 }
 
+#if defined(MATLAB_MEX_FILE)
+#define MDL_SET_INPUT_PORT_DIMENSION_INFO
+static void mdlSetInputPortDimensionInfo(
+        SimStruct *S, int_T port, const DimsInfo_T *dimsInfo)
+{
+    if(!ssSetInputPortDimensionInfo(S, port, dimsInfo)) return;
+}
+
+# define MDL_SET_OUTPUT_PORT_DIMENSION_INFO
+static void mdlSetOutputPortDimensionInfo(
+        SimStruct *S, int_T port, const DimsInfo_T *dimsInfo)
+{
+    if(!ssSetOutputPortDimensionInfo(S, port, dimsInfo)) return;
+}
+#endif
+
 #define MDL_START
 static void mdlStart(SimStruct *S)
 {
@@ -101,8 +114,8 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 {
     BaselineFit<double> *obj = OBJECT;
     obj->newx(INPUT1, INPUT2, INPUT3);
-    OUTPUT1 = obj->outputCoeff(0);
-    OUTPUT2 = obj->outputCoeff(1);
+    OUTPUT[0] = obj->outputCoeff(0);
+    OUTPUT[1] = obj->outputCoeff(1);
 }
 
 static void mdlTerminate(SimStruct *S)

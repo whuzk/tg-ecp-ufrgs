@@ -12,7 +12,7 @@
 #include "simstruc.h"
 #include "beatframer.h"
 
-#define NUM_INPUTS  6
+#define NUM_INPUTS  5
 #define NUM_OUTPUTS 1
 
 #define OBJECT  ((BeatFramer<double> *)ssGetPWorkValue(S, 0))
@@ -22,8 +22,7 @@
 #define INPUT2  ((const int_T *)ssGetInputPortSignal(S, 1))[0]
 #define INPUT3  ((const int_T *)ssGetInputPortSignal(S, 2))[0]
 #define INPUT4  ((const int_T *)ssGetInputPortSignal(S, 3))[0]
-#define INPUT5  ((const real_T *)ssGetInputPortSignal(S, 4))[0]
-#define INPUT6  ((const real_T *)ssGetInputPortSignal(S, 5))[0]
+#define INPUT5  ((const real_T *)ssGetInputPortSignal(S, 4))
 #define OUTPUT  ((real_T *)ssGetOutputPortSignal(S, 0))
 
 static void mdlInitializeSizes(SimStruct *S)
@@ -46,7 +45,7 @@ static void mdlInitializeSizes(SimStruct *S)
     
     // input port properties
     for (i = 0; i < NUM_INPUTS; i++) {
-        if (i > 0) {
+        if (i > 0 && i < NUM_INPUTS - 1) {
             ssSetInputPortWidth(S, i, 1);
         }
         ssSetInputPortDirectFeedThrough(S, i, 1);
@@ -60,7 +59,7 @@ static void mdlInitializeSizes(SimStruct *S)
     ssSetInputPortDataType(S, 2, SS_INT32);
     ssSetInputPortDataType(S, 3, SS_INT32);
     ssSetInputPortDataType(S, 4, SS_DOUBLE);
-    ssSetInputPortDataType(S, 5, SS_DOUBLE);
+    ssSetInputPortWidth(S, 4, 2);
     
     // output port properties
     ssSetOutputPortDataType(S, 0, SS_DOUBLE);
@@ -121,7 +120,7 @@ static void mdlStart(SimStruct *S)
 static void mdlOutputs(SimStruct *S, int_T tid)
 {
     BeatFramer<double> *obj = OBJECT;
-    obj->newx(INPUT1, OUTPUT, INPUT2, INPUT3, INPUT4, INPUT5, INPUT6);
+    obj->newx(INPUT1, OUTPUT, INPUT2, INPUT3, INPUT4, INPUT5);
 }
 
 static void mdlTerminate(SimStruct *S)

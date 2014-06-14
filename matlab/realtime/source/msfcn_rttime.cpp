@@ -5,15 +5,16 @@
 #include "rttime.h"
 
 #define OBJECT  ((RtTime *)ssGetPWorkValue(S, 0))
-#define PARAM   ((double)mxGetPr(ssGetSFcnParam(S, 0))[0])
+#define PARAM1  ((double)mxGetPr(ssGetSFcnParam(S, 0))[0])
+#define PARAM2  ((double)mxGetPr(ssGetSFcnParam(S, 1))[0])
 #define OUTPUT  ((real_T *)ssGetOutputPortSignal(S, 0))[0]
 
 static void mdlInitializeSizes(SimStruct *S)
 {
-   ssSetNumSFcnParams(S, 1);  /* Number of expected parameters */
+   ssSetNumSFcnParams(S, 2);  /* Number of expected parameters */
    if (ssGetNumSFcnParams(S) != ssGetSFcnParamsCount(S)) return;
    ssSetNumContStates(S, 0);
-   ssSetNumDiscStates(S, 1);
+   ssSetNumDiscStates(S, 0);
    if (!ssSetNumInputPorts(S, 0)) return;
    if (!ssSetNumOutputPorts(S, 1)) return;
    ssSetOutputPortWidth(S, 0, 1);
@@ -28,21 +29,19 @@ static void mdlInitializeSizes(SimStruct *S)
 
 static void mdlInitializeSampleTimes(SimStruct *S)
 {
-   ssSetSampleTime(S, 0, CONTINUOUS_SAMPLE_TIME);
+   ssSetSampleTime(S, 0, 1.0/PARAM1);
    ssSetOffsetTime(S, 0, 0.0);
 }
 
 #define MDL_START
 static void mdlStart(SimStruct *S)
 {
-   ssSetPWorkValue(S, 0, new RtTime(PARAM, ssGetTStart(S)));
+   ssSetPWorkValue(S, 0, new RtTime(PARAM2, ssGetTStart(S)));
 }
 
 static void mdlOutputs(SimStruct *S, int_T tid)
 {
-   RtTime *obj = OBJECT;
-   obj->newx(ssGetDiscStates(S), ssGetT(S));
-   OUTPUT = obj->output();
+   OUTPUT = OBJECT->update(ssGetT(S));
 }
 
 static void mdlTerminate(SimStruct *S)
