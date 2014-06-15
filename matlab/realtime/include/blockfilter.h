@@ -1,13 +1,13 @@
 /*=========================================================================
- * smoothbeat.h
+ * blockfilter.h
  * 
  *  Title: smoothing of a cardiac beat
  *  Author:     Diego Sogari
  *  Modified:   12/June/2014
  *
  *=======================================================================*/
-#ifndef SMOOTHBEAT
-#define SMOOTHBEAT
+#ifndef BLOCKFILTER
+#define BLOCKFILTER
 
 #include <string.h>
 #include <math.h>
@@ -18,16 +18,17 @@
  * Type definitions
  *=======================================================================*/
 template <class type>
-class SmoothBeat {
+class BlockFilter {
 private:
     type *create_numerator(int len);
 protected:
     mwSize bufferLen;
-    mwSize delay;
     RtFilter<type> *filter;
+    int delay;
 public:
-    SmoothBeat(mwSize bufferLen, int width);
-    ~SmoothBeat();
+    BlockFilter(mwSize bufferLen, const type *b, mwSize nb,
+            const type *a, mwSize na, int delay);
+    ~BlockFilter();
     void newx(const double *buffer, double *outbuffer);
 };
 
@@ -35,34 +36,19 @@ public:
  * Constructor
  *=======================================================================*/
 template <class type>
-type *SmoothBeat<type>::create_numerator(int len)
+BlockFilter<type>::BlockFilter(mwSize buflen, const type *b, mwSize nb,
+        const type *a, mwSize na, int delay)
 {
-    type *b = new type[len];
-    memset(b, 0, len * sizeof(type));
-    b[0] = (type)1;
-    b[len - 1] = (type)-1;
-    return b;
-}
-
-/*=========================================================================
- * Constructor
- *=======================================================================*/
-template <class type>
-SmoothBeat<type>::SmoothBeat(mwSize buflen, int width)
-{
-    type a[2] = {(type)1, (type)-1};
-    type *b = create_numerator(width + 1);
     this->bufferLen = buflen;
-    this->delay = width >> 1;
-    this->filter = new RtFilter<type>(b, width + 1, a, 2);
-    delete[] b;
+    this->filter = new RtFilter<type>(b, nb, a, na);
+    this->delay = delay;
 }
 
 /*=========================================================================
  * Destructor
  *=======================================================================*/
 template <class type>
-SmoothBeat<type>::~SmoothBeat()
+BlockFilter<type>::~BlockFilter()
 {
     delete filter;
 }
@@ -71,7 +57,7 @@ SmoothBeat<type>::~SmoothBeat()
  * Update filter memory with an incoming sample
  *=======================================================================*/
 template <class type>
-void SmoothBeat<type>::newx(const double *buffer, double *outbuffer)
+void BlockFilter<type>::newx(const double *buffer, double *outbuffer)
 {
     mwSize i;
     

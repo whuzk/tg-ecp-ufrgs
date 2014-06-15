@@ -1,30 +1,34 @@
 /*=========================================================================
- * msfcn_smoothbeat.cpp
+ * msfcn_doublertfilter.cpp
  * 
- *  Title: S-Function block implementation of smoothing.
+ *  Title: S-Function block implementation of filtering.
  *  Author:     Diego Sogari
  *  Modified:   11/June/2014
  *
  *=======================================================================*/
-#define S_FUNCTION_NAME  msfcn_smoothbeat
+#define S_FUNCTION_NAME  msfcn_doublertfilter
 #define S_FUNCTION_LEVEL 2
 
 #include "simstruc.h"
-#include "smoothbeat.h"
+#include "rtfilter.h"
 
 #define NUM_INPUTS  1
 #define NUM_OUTPUTS 1
+#define NUM_PARAMS  3
 
-#define OBJECT  ((SmoothBeat<double> *)ssGetPWorkValue(S, 0))
+#define OBJECT  ((RtFilter<double> *)ssGetPWorkValue(S, 0))
 #define PARAM1  ((double)mxGetPr(ssGetSFcnParam(S, 0))[0])
-#define PARAM2  ((int)mxGetPr(ssGetSFcnParam(S, 1))[0])
-#define INPUT1  ((const real_T *)ssGetInputPortSignal(S, 0))
-#define OUTPUT1 ((real_T *)ssGetOutputPortSignal(S, 0))
+#define PARAM2a ((double *)mxGetPr(ssGetSFcnParam(S, 1)))
+#define PARAM2b ((int)mxGetNumberOfElements(ssGetSFcnParam(S, 1)))
+#define PARAM3a ((double *)mxGetPr(ssGetSFcnParam(S, 2)))
+#define PARAM3b ((int)mxGetNumberOfElements(ssGetSFcnParam(S, 2)))
+#define INPUT1  ((const real_T *)ssGetInputPortSignal(S, 0))[0]
+#define OUTPUT1 ((real_T *)ssGetOutputPortSignal(S, 0))[0]
 
 static void mdlInitializeSizes(SimStruct *S)
 {
     // number of parameters
-    ssSetNumSFcnParams(S, 2);
+    ssSetNumSFcnParams(S, NUM_PARAMS);
     if (ssGetNumSFcnParams(S) != ssGetSFcnParamsCount(S)) {
         return;
     }
@@ -38,17 +42,15 @@ static void mdlInitializeSizes(SimStruct *S)
     if (!ssSetNumOutputPorts(S, NUM_OUTPUTS)) return;
     
     // input port properties
+    ssSetInputPortWidth(S, 0, 1);
     ssSetInputPortDirectFeedThrough(S, 0, 1);
     ssSetInputPortRequiredContiguous(S, 0, 1);
     ssSetInputPortSampleTime(S, 0, INHERITED_SAMPLE_TIME);
-    ssSetInputPortFrameData(S, 0, FRAME_YES);
-    ssSetInputPortMatrixDimensions(S, 0, DYNAMICALLY_SIZED, 1);
     ssSetInputPortDataType(S, 0, SS_DOUBLE);
     
     // output port properties
+    ssSetOutputPortWidth(S, 0, 1);
     ssSetOutputPortSampleTime(S, 0, INHERITED_SAMPLE_TIME);
-    ssSetOutputPortFrameData(S, 0, FRAME_YES);
-    ssSetOutputPortMatrixDimensions(S, 0, DYNAMICALLY_SIZED, 1);
     ssSetOutputPortDataType(S, 0, SS_DOUBLE);
     
     // number of sample times
@@ -77,35 +79,16 @@ static void mdlInitializeSampleTimes(SimStruct *S)
     ssSetModelReferenceSampleTimeDefaultInheritance(S);  
 }
 
-#if defined(MATLAB_MEX_FILE)
-#define MDL_SET_INPUT_PORT_DIMENSION_INFO
-static void mdlSetInputPortDimensionInfo(
-        SimStruct *S, int_T port, const DimsInfo_T *dimsInfo)
-{
-    if(!ssSetInputPortDimensionInfo(S, port, dimsInfo)) return;
-    if (port == 0) {
-        ssSetOutputPortDimensionInfo(S, port, dimsInfo);
-    }
-}
-
-# define MDL_SET_OUTPUT_PORT_DIMENSION_INFO
-static void mdlSetOutputPortDimensionInfo(
-        SimStruct *S, int_T port, const DimsInfo_T *dimsInfo)
-{
-    if(!ssSetOutputPortDimensionInfo(S, port, dimsInfo)) return;
-}
-#endif
-
 #define MDL_START
 static void mdlStart(SimStruct *S)
 {
-    int bufflen = ssGetInputPortDimensions(S, 0)[0];
-    ssSetPWorkValue(S, 0, new SmoothBeat<double>(bufflen, PARAM2));
+    ssSetPWorkValue(S, 0, new RtFilter<double>(PARAM2a, PARAM2b, PARAM3a,
+            PARAM3b));
 }
 
 static void mdlOutputs(SimStruct *S, int_T tid)
 {
-    OBJECT->newx(INPUT1, OUTPUT1);
+    OUTPUT1 = OBJECT->newx(INPUT1);
 }
 
 static void mdlTerminate(SimStruct *S)

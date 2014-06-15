@@ -37,8 +37,14 @@ FrameLen = 2*floor(0.6*Fs)+1;
 TempCount = 30;
 
 %% Extraction
-beatlplen = floor(0.05*Fs);
+mawidth = floor(0.05*Fs);
+beatlpb = [1 zeros(1,mawidth-1) -1];
+beatlpa = [1 -1];
+beatlpd = (mawidth-1)/2;
+beatdeb = [1 -1];
+beatdea = 1;
+beatded = 0.5;
 stsegsize = floor(0.08*Fs)*2;
-jaythresh = floor(beatlplen*signal.gain*1.25/Fs);
+jaythresh = floor(mawidth*signal.gain*1.25/Fs);
 newL1 = floor(0.02*Fs);
 newL2 = floor(0.12*Fs);

@@ -37,6 +37,7 @@ public:
     RtFilterCoeff();
     ~RtFilterCoeff();
     void init(const type *coeffs, mwSize len);
+    void print();
 };
 
 template <class type>
@@ -59,10 +60,13 @@ protected:
     RtFilterCoeff<type> den;    // denominator coefficients
     RtFilterBuff<type> xmem;    // X buffer of the filter
     RtFilterBuff<type> ymem;    // Y buffer of the filter
+    bool divide;                // divide by leading coefficient
 public:
-    RtFilter(const type *b, mwSize nb, const type *a, mwSize na);
+    RtFilter(const type *b, mwSize nb, const type *a, mwSize na,
+            bool divide = false);
     ~RtFilter();
     type newx(type x);
+    void print();
 };
 
 /*=========================================================================
@@ -94,7 +98,7 @@ mwSize RtFilterCoeff<type>::count_nonzeros(const type *coeffs, mwSize len)
 {
     mwSize i, count = 0;
     for (i = 0; i < len; i++) {
-        if (abs(coeffs[i]) >= 1E-10) {
+        if (abs((double)coeffs[i]) >= (double)1E-10) {
             count++;
         }
     }
@@ -109,7 +113,7 @@ void RtFilterCoeff<type>::fill_coeffs(const type *coeffs, mwSize len)
 {
     mwSize i, count = 0;
     for (i = 0; i < len; i++) {
-        if (abs(coeffs[i]) >= 1E-10) {
+        if (abs((double)coeffs[i]) >= (double)1E-10) {
             val[count] = coeffs[i];
             idx[count] = i;
             count++;
@@ -127,6 +131,24 @@ void RtFilterCoeff<type>::init(const type *coeffs, mwSize len)
     this->val = new type[size];
     this->idx = new mwSize[size];
     fill_coeffs(coeffs, len);
+}
+
+/*=========================================================================
+ * Print the coefficients
+ *=======================================================================*/
+template <class type>
+void RtFilterCoeff<type>::print()
+{
+    mwSize i;
+    printf("[ ");
+    for (i = 0; i < size; i++) {
+        printf("%.2f ", (double)val[i]);
+    }
+    printf("] at [ ");
+    for (i = 0; i < size; i++) {
+        printf("%d ", idx[i]);
+    }
+    printf("]\n");
 }
 
 /*=========================================================================
@@ -164,12 +186,13 @@ void RtFilterBuff<type>::init(mwSize width)
  *=======================================================================*/
 template <class type>
 RtFilter<type>::RtFilter(const type *b, mwSize nb, const type *a,
-        mwSize na)
+        mwSize na, bool divide)
 {
     this->num.init(b, nb);
     this->den.init(a, na);
     this->xmem.init(nb);
     this->ymem.init(na);
+    this->divide = divide;
 }
 
 /*=========================================================================
@@ -208,7 +231,24 @@ type RtFilter<type>::newx(type x)
     // increment sample index
     ci++;
     
-    return acc;
+    // report result
+    if (divide) {
+        // divide by leading coefficient
+        return acc / den.val[0];
+    }
+    else return acc;
+}
+
+/*=========================================================================
+ * Print the filter coefficients
+ *=======================================================================*/
+template <class type>
+void RtFilter<type>::print()
+{
+    printf("Numerator:   ");
+    num.print();
+    printf("Denominator: ");
+    den.print();
 }
 
 #endif

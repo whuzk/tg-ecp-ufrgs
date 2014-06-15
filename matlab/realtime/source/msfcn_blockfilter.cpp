@@ -1,29 +1,35 @@
 /*=========================================================================
- * msfcn_diffbeat.cpp
+ * msfcn_blockfilter.cpp
  * 
- *  Title: S-Function block implementation of smoothing.
+ *  Title: S-Function block implementation of block filtering.
  *  Author:     Diego Sogari
  *  Modified:   11/June/2014
  *
  *=======================================================================*/
-#define S_FUNCTION_NAME  msfcn_diffbeat
+#define S_FUNCTION_NAME  msfcn_blockfilter
 #define S_FUNCTION_LEVEL 2
 
 #include "simstruc.h"
-#include "diffbeat.h"
+#include "blockfilter.h"
 
 #define NUM_INPUTS  1
 #define NUM_OUTPUTS 1
+#define NUM_PARAMS  4
 
-#define OBJECT  ((DiffBeat<double> *)ssGetPWorkValue(S, 0))
+#define OBJECT  ((BlockFilter<double> *)ssGetPWorkValue(S, 0))
 #define PARAM1  ((double)mxGetPr(ssGetSFcnParam(S, 0))[0])
+#define PARAM2a ((double *)mxGetPr(ssGetSFcnParam(S, 1)))
+#define PARAM2b ((int)mxGetNumberOfElements(ssGetSFcnParam(S, 1)))
+#define PARAM3a ((double *)mxGetPr(ssGetSFcnParam(S, 2)))
+#define PARAM3b ((int)mxGetNumberOfElements(ssGetSFcnParam(S, 2)))
+#define PARAM4  ((int)mxGetPr(ssGetSFcnParam(S, 3))[0])
 #define INPUT1  ((const real_T *)ssGetInputPortSignal(S, 0))
 #define OUTPUT1 ((real_T *)ssGetOutputPortSignal(S, 0))
 
 static void mdlInitializeSizes(SimStruct *S)
 {
     // number of parameters
-    ssSetNumSFcnParams(S, 1);
+    ssSetNumSFcnParams(S, NUM_PARAMS);
     if (ssGetNumSFcnParams(S) != ssGetSFcnParamsCount(S)) {
         return;
     }
@@ -99,7 +105,8 @@ static void mdlSetOutputPortDimensionInfo(
 static void mdlStart(SimStruct *S)
 {
     int bufflen = ssGetInputPortDimensions(S, 0)[0];
-    ssSetPWorkValue(S, 0, new DiffBeat<double>(bufflen));
+    ssSetPWorkValue(S, 0, new BlockFilter<double>(bufflen, PARAM2a,
+            PARAM2b, PARAM3a, PARAM3b, PARAM4));
 }
 
 static void mdlOutputs(SimStruct *S, int_T tid)
