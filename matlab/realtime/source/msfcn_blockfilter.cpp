@@ -46,13 +46,11 @@ static void mdlInitializeSizes(SimStruct *S)
     ssSetInputPortDirectFeedThrough(S, 0, 1);
     ssSetInputPortRequiredContiguous(S, 0, 1);
     ssSetInputPortSampleTime(S, 0, INHERITED_SAMPLE_TIME);
-    ssSetInputPortFrameData(S, 0, FRAME_YES);
     ssSetInputPortMatrixDimensions(S, 0, DYNAMICALLY_SIZED, 1);
     ssSetInputPortDataType(S, 0, SS_DOUBLE);
     
     // output port properties
     ssSetOutputPortSampleTime(S, 0, INHERITED_SAMPLE_TIME);
-    ssSetOutputPortFrameData(S, 0, FRAME_YES);
     ssSetOutputPortMatrixDimensions(S, 0, DYNAMICALLY_SIZED, 1);
     ssSetOutputPortDataType(S, 0, SS_DOUBLE);
     

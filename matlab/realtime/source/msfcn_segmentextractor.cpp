@@ -1,34 +1,33 @@
 /*=========================================================================
- * msfcn_beatframer.cpp
+ * msfcn_segmentextractor.cpp
  * 
- *  Title: S-Function block implementation of max/min searching.
+ *  Title: S-Function block implementation of block filtering w/o delay
  *  Author:     Diego Sogari
  *  Modified:   11/June/2014
  *
  *=======================================================================*/
-#define S_FUNCTION_NAME  msfcn_beatframer
+#define S_FUNCTION_NAME  msfcn_segmentextractor
 #define S_FUNCTION_LEVEL 2
 
 #include "simstruc.h"
-#include "beatframer.h"
+#include "segmentextractor.h"
 
-#define NUM_INPUTS  5
+#define NUM_INPUTS  3
 #define NUM_OUTPUTS 1
-#define NUM_PARAMS  2
+#define NUM_PARAMS  3
 
-#define OBJECT  ((BeatFramer<double> *)ssGetPWorkValue(S, 0))
+#define OBJECT  ((SegmentExtractor *)ssGetPWorkValue(S, 0))
 #define PARAM1  ((double)mxGetPr(ssGetSFcnParam(S, 0))[0])
 #define PARAM2  ((int)mxGetPr(ssGetSFcnParam(S, 1))[0])
+#define PARAM3  ((int)mxGetPr(ssGetSFcnParam(S, 2))[0])
 #define INPUT1  ((const real_T *)ssGetInputPortSignal(S, 0))
-#define INPUT2  ((const int_T *)ssGetInputPortSignal(S, 1))[0]
-#define INPUT3  ((const int_T *)ssGetInputPortSignal(S, 2))[0]
-#define INPUT4  ((const int_T *)ssGetInputPortSignal(S, 3))[0]
-#define INPUT5  ((const real_T *)ssGetInputPortSignal(S, 4))
-#define OUTPUT  ((real_T *)ssGetOutputPortSignal(S, 0))
+#define INPUT2  ((const int *)ssGetInputPortSignal(S, 1))[0]
+#define INPUT3  ((const int *)ssGetInputPortSignal(S, 2))[0]
+#define OUTPUT1 ((real_T *)ssGetOutputPortSignal(S, 0))
 
 static void mdlInitializeSizes(SimStruct *S)
 {
-    int i, framelen;
+    int i;
     
     // number of parameters
     ssSetNumSFcnParams(S, NUM_PARAMS);
@@ -46,7 +45,7 @@ static void mdlInitializeSizes(SimStruct *S)
     
     // input port properties
     for (i = 0; i < NUM_INPUTS; i++) {
-        if (i > 0 && i < NUM_INPUTS - 1) {
+        if (i > 0) {
             ssSetInputPortWidth(S, i, 1);
         }
         ssSetInputPortDirectFeedThrough(S, i, 1);
@@ -57,14 +56,11 @@ static void mdlInitializeSizes(SimStruct *S)
     ssSetInputPortDataType(S, 0, SS_DOUBLE);
     ssSetInputPortDataType(S, 1, SS_INT32);
     ssSetInputPortDataType(S, 2, SS_INT32);
-    ssSetInputPortDataType(S, 3, SS_INT32);
-    ssSetInputPortDataType(S, 4, SS_DOUBLE);
-    ssSetInputPortWidth(S, 4, 2);
     
     // output port properties
-    ssSetOutputPortDataType(S, 0, SS_DOUBLE);
     ssSetOutputPortSampleTime(S, 0, INHERITED_SAMPLE_TIME);
     ssSetOutputPortMatrixDimensions(S, 0, PARAM2, 1);
+    ssSetOutputPortDataType(S, 0, SS_DOUBLE);
     
     // number of sample times
     ssSetNumSampleTimes(S, 1);
@@ -112,13 +108,12 @@ static void mdlSetOutputPortDimensionInfo(
 static void mdlStart(SimStruct *S)
 {
     int bufflen = ssGetInputPortDimensions(S, 0)[0];
-    ssSetPWorkValue(S, 0, new BeatFramer<double>(bufflen, PARAM2));
+    ssSetPWorkValue(S, 0, new SegmentExtractor(bufflen, PARAM2, PARAM3));
 }
 
 static void mdlOutputs(SimStruct *S, int_T tid)
 {
-    BeatFramer<double> *obj = OBJECT;
-    obj->newx(INPUT1, OUTPUT, INPUT2, INPUT3, INPUT4, INPUT5);
+    OBJECT->newx(INPUT1, OUTPUT1, INPUT2, INPUT3);
 }
 
 static void mdlTerminate(SimStruct *S)

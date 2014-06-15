@@ -14,6 +14,7 @@
 
 #define NUM_INPUTS  1
 #define NUM_OUTPUTS 3
+#define NUM_PARAMS  2
 
 #define OBJECT  ((TemplateBuilder *)ssGetPWorkValue(S, 0))
 #define PARAM1  ((double)mxGetPr(ssGetSFcnParam(S, 0))[0])
@@ -28,7 +29,7 @@ static void mdlInitializeSizes(SimStruct *S)
     int i;
     
     // number of parameters
-    ssSetNumSFcnParams(S, 2);
+    ssSetNumSFcnParams(S, NUM_PARAMS);
     if (ssGetNumSFcnParams(S) != ssGetSFcnParamsCount(S)) {
         return;
     }
@@ -45,7 +46,6 @@ static void mdlInitializeSizes(SimStruct *S)
     ssSetInputPortDirectFeedThrough(S, 0, 1);
     ssSetInputPortRequiredContiguous(S, 0, 1);
     ssSetInputPortSampleTime(S, 0, INHERITED_SAMPLE_TIME);
-    ssSetInputPortFrameData(S, 0, FRAME_YES);
     ssSetInputPortMatrixDimensions(S, 0, DYNAMICALLY_SIZED, 1);
     ssSetInputPortDataType(S, 0, SS_DOUBLE);
     
@@ -56,7 +56,6 @@ static void mdlInitializeSizes(SimStruct *S)
         }
         ssSetOutputPortSampleTime(S, i, INHERITED_SAMPLE_TIME);
     }
-    ssSetOutputPortFrameData(S, 0, FRAME_YES);
     ssSetOutputPortMatrixDimensions(S, 0, DYNAMICALLY_SIZED, 1);
     ssSetOutputPortDataType(S, 0, SS_DOUBLE);
     ssSetOutputPortDataType(S, 1, SS_DOUBLE);
