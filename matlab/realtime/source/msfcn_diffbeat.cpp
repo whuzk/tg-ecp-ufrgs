@@ -1,34 +1,29 @@
 /*=========================================================================
- * msfcn_templatebuilder.cpp
+ * msfcn_diffbeat.cpp
  * 
- *  Title: S-Function block implementation of max/min searching.
+ *  Title: S-Function block implementation of smoothing.
  *  Author:     Diego Sogari
  *  Modified:   11/June/2014
  *
  *=======================================================================*/
-#define S_FUNCTION_NAME  msfcn_templatebuilder
+#define S_FUNCTION_NAME  msfcn_diffbeat
 #define S_FUNCTION_LEVEL 2
 
 #include "simstruc.h"
-#include "templatebuilder.h"
+#include "diffbeat.h"
 
 #define NUM_INPUTS  1
-#define NUM_OUTPUTS 3
+#define NUM_OUTPUTS 1
 
-#define OBJECT  ((TemplateBuilder *)ssGetPWorkValue(S, 0))
+#define OBJECT  ((DiffBeat<double> *)ssGetPWorkValue(S, 0))
 #define PARAM1  ((double)mxGetPr(ssGetSFcnParam(S, 0))[0])
-#define PARAM2  ((int)mxGetPr(ssGetSFcnParam(S, 1))[0])
 #define INPUT1  ((const real_T *)ssGetInputPortSignal(S, 0))
 #define OUTPUT1 ((real_T *)ssGetOutputPortSignal(S, 0))
-#define OUTPUT2 ((real_T *)ssGetOutputPortSignal(S, 1))[0]
-#define OUTPUT3 ((bool *)ssGetOutputPortSignal(S, 2))[0]
 
 static void mdlInitializeSizes(SimStruct *S)
 {
-    int i;
-    
     // number of parameters
-    ssSetNumSFcnParams(S, 2);
+    ssSetNumSFcnParams(S, 1);
     if (ssGetNumSFcnParams(S) != ssGetSFcnParamsCount(S)) {
         return;
     }
@@ -50,17 +45,10 @@ static void mdlInitializeSizes(SimStruct *S)
     ssSetInputPortDataType(S, 0, SS_DOUBLE);
     
     // output port properties
-    for (i = 0; i < NUM_OUTPUTS; i++) {
-        if (i > 0) {
-            ssSetOutputPortWidth(S, i, 1);
-        }
-        ssSetOutputPortSampleTime(S, i, INHERITED_SAMPLE_TIME);
-    }
+    ssSetOutputPortSampleTime(S, 0, INHERITED_SAMPLE_TIME);
     ssSetOutputPortFrameData(S, 0, FRAME_YES);
     ssSetOutputPortMatrixDimensions(S, 0, DYNAMICALLY_SIZED, 1);
     ssSetOutputPortDataType(S, 0, SS_DOUBLE);
-    ssSetOutputPortDataType(S, 1, SS_DOUBLE);
-    ssSetOutputPortDataType(S, 2, SS_BOOLEAN);
     
     // number of sample times
     ssSetNumSampleTimes(S, 1);
@@ -111,15 +99,12 @@ static void mdlSetOutputPortDimensionInfo(
 static void mdlStart(SimStruct *S)
 {
     int bufflen = ssGetInputPortDimensions(S, 0)[0];
-    ssSetPWorkValue(S, 0, new TemplateBuilder(bufflen, PARAM2));
+    ssSetPWorkValue(S, 0, new DiffBeat<double>(bufflen));
 }
 
 static void mdlOutputs(SimStruct *S, int_T tid)
 {
-    TemplateBuilder *obj = OBJECT;
-    obj->newx(INPUT1, OUTPUT1);
-    OUTPUT2 = obj->outputMeanRmsd();
-    OUTPUT3 = obj->outputIsArtifact();
+    OBJECT->newx(INPUT1, OUTPUT1);
 }
 
 static void mdlTerminate(SimStruct *S)

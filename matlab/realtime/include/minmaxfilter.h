@@ -17,6 +17,7 @@
  * Macros
  *=======================================================================*/
 #define ILOG2(x)    (int)(log10((double)x) / log10(2.0))
+#define LENLOG2(x)  (((x) <= 2) ? (x) : 1 << (1 + ILOG2((x) - 1)))
 #define VAL(k)      b.val[(first+(k))&(b.size-1)]
 #define IDX(k)      b.idx[(first+(k))&(b.size-1)]
 
@@ -40,7 +41,6 @@ class MinMaxFilter {
 private:
     unsigned int ci;    // current sample index
 protected:
-    double delay;       // filter delay (in samples)
     mwSize width;       // width of the filter window
     mwSize count;       // number of elements in the filter buffer
     mwSize first;       // index of the first element in the buffer
@@ -80,9 +80,7 @@ MinMaxBuff<type>::~MinMaxBuff()
 template <class type>
 void MinMaxBuff<type>::init(mwSize width)
 {
-    this->size = (width <= 2) ? width : 1 << (1 + ILOG2(width - 1));
-    delete[] this->val;
-    delete[] this->idx;
+    this->size = LENLOG2(width);
     this->val = new type[size];
     this->idx = new unsigned int[size];
     memset(val, 0, size * sizeof(type));
@@ -95,7 +93,6 @@ void MinMaxBuff<type>::init(mwSize width)
 template <class type>
 MinMaxFilter<type>::MinMaxFilter(mwSize width, bool ismax)
 {
-    this->delay = width / 2.0;
     this->width = width;
     this->count = 0;
     this->first = 0;

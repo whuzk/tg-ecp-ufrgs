@@ -35,3 +35,10 @@ L3 = floor(0.15*Fs);
 L4 = floor(0.08*Fs);
 FrameLen = 2*floor(0.6*Fs)+1;
 TempCount = 30;
+
+%% Extraction
+beatlplen = floor(0.05*Fs);
+stsegsize = floor(0.08*Fs)*2;
+jaythresh = floor(beatlplen*signal.gain*1.25/Fs);
+newL1 = floor(0.02*Fs);
+newL2 = floor(0.12*Fs);
