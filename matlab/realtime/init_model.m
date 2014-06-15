@@ -38,13 +38,12 @@ TempCount = 30;
 
 %% Extraction
 mawidth = floor(0.05*Fs);
-beatlpb = [1 zeros(1,mawidth-1) -1];
-beatlpa = [1 -1];
-beatlpd = (mawidth-1)/2;
-beatdeb = [1 -1];
-beatdea = 1;
-beatded = 0.5;
+beatfb = [1 zeros(1,mawidth) -1];
+beatfa = 1;
+beatfd = (mawidth+1)/2;
 stsegsize = floor(0.08*Fs)*2;
 jaythresh = floor(mawidth*signal.gain*1.25/Fs);
 newL1 = floor(0.02*Fs);
 newL2 = floor(0.12*Fs);
+HR = [100 110 120];
+JayMeasurePts = floor([0.12 0.112 0.104 0.1]*Fs);

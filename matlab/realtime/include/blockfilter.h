@@ -1,7 +1,7 @@
 /*=========================================================================
  * blockfilter.h
  * 
- *  Title: smoothing of a cardiac beat
+ *  Title: implementation of filtering on a block without delay
  *  Author:     Diego Sogari
  *  Modified:   12/June/2014
  *
@@ -9,7 +9,6 @@
 #ifndef BLOCKFILTER
 #define BLOCKFILTER
 
-#include <string.h>
 #include <math.h>
 #include "mex.h"
 #include "rtfilter.h"
@@ -19,8 +18,6 @@
  *=======================================================================*/
 template <class type>
 class BlockFilter {
-private:
-    type *create_numerator(int len);
 protected:
     mwSize bufferLen;
     RtFilter<type> *filter;
@@ -29,7 +26,7 @@ public:
     BlockFilter(mwSize bufferLen, const type *b, mwSize nb,
             const type *a, mwSize na, int delay);
     ~BlockFilter();
-    void newx(const double *buffer, double *outbuffer);
+    void newx(const type *buffer, type *outbuffer);
 };
 
 /*=========================================================================
@@ -57,7 +54,7 @@ BlockFilter<type>::~BlockFilter()
  * Update filter memory with an incoming sample
  *=======================================================================*/
 template <class type>
-void BlockFilter<type>::newx(const double *buffer, double *outbuffer)
+void BlockFilter<type>::newx(const type *buffer, type *outbuffer)
 {
     mwSize i;
     
