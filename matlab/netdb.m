@@ -6,7 +6,7 @@ records = java_array('java.lang.String',11);
 for index = 3:size(list)
     fileName = list(index).name;
   
-   if(not(isequal('extracted_e0403.mat', fileName)))
+   if(not(isequal('e0403.mat', fileName)))
         strcat(diretorio,fileName);
         matObj = matfile(strcat(diretorio,fileName));
         varlist = who(matObj);

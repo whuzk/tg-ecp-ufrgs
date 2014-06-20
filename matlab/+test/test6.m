@@ -1,6 +1,5 @@
 clear all;
-%exame = load('C:\physiobank\database\edb\extracted_e0104.mat');
-exame = load('v1RochaSet.mat');
+exame = load('matfiles\v1RochaSet.mat');
 x = exame.V1Rocha(:,1:14)';
 t = exame.V1Rocha(:,15)';
 normal = 0;
