@@ -202,11 +202,11 @@ void resamp(double *y, double *x, mwSize Lx, int p, int q)
     
     // perform the resampling
     Ly = (int)ceil(((Lx - 1) * p + filterLen) / (double)q);
-    memset(resampBuf, 0, filterLen * sizeof(double));
     if (Ly > resampLen) {
         mexPrintf("Warning: Ly > resampLen\n");
         Ly = resampLen;
     }
+    memset(resampBuf, 0, Ly * sizeof(double));
     upfirdn(resampBuf, Ly, x, Lx, filterBuf, filterLen, p, q);
     
     // remove delay and write to output
