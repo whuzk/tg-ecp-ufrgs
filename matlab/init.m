@@ -1,9 +1,9 @@
 % init.m
-%   Inicializaçao do ambiente de trabalho.
+%   Inicializa?ao do ambiente de trabalho.
 %
 global leadnames measures
 
-% nomde das derivaçoes
+% nomde das deriva?oes
 leadnames = {
     'D1' 'D2' 'D3' 'MLI' 'MLII' 'MLIII' 'aVR' 'aVL' 'aVF' ...
     'V1' 'V2' 'V3' 'V4' 'V5' 'V6'
@@ -20,7 +20,7 @@ measures = {
 };
 
 % registros de ecg
-x100 = load('C:\physiobank\database\mitdb\100.mat');
-e0103 = load('C:\physiobank\database\edb\e0103.mat');
-e0104 = load('C:\physiobank\database\edb\e0104.mat');
-e0105 = load('C:\physiobank\database\edb\e0105.mat');
+%x100 = load('C:\physiobank\database\mitdb\100.mat');
+%e0103 = load('C:\physiobank\database\edb\e0103.mat');
+%e0104 = load('C:\physiobank\database\edb\e0104.mat');
+%e0105 = load('C:\physiobank\database\edb\e0105.mat');
