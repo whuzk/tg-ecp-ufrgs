@@ -9,7 +9,7 @@ VP = length(find( Known &  Predicted));     % verdadeiros positivos
 VN = length(find(~Known & ~Predicted));     % verdadeiros negativos
 FP = length(find(~Known &  Predicted));     % falsos positivos
 FN = length(find( Known & ~Predicted));     % falsos negativos
-TT = VP + FN;                               % total conhecido
+TT = length(Known);                         % total conhecido
 
 Result = [
     VP/(VP+FN)      % sensibilidade
