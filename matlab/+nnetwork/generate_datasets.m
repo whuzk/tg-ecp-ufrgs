@@ -1,8 +1,8 @@
 import utils.*
 global leadnames
 
-%basedir = 'C:\physiobank\database\edb\extracted\'; 
-basedir = '/Users/diegosogari/Documents/MATLAB/extracted/';
+basedir = 'C:\physiobank\database\edb\extracted\'; 
+savedir = 'C:\physiobank\database\';
 neglect = {'e0403'};
 
 for i = 3:length(leadnames)
@@ -12,3 +12,7 @@ for i = 3:length(leadnames)
     Mohebbi.(lead) = get_lead_dataset(basedir, lead, 'Mohebbi', neglect);
     Gopalak.(lead) = get_lead_dataset(basedir, lead, 'Gopalak', neglect);
 end
+
+save([savedir 'rocha_datasets.mat'], '-struct', 'Rocha');
+save([savedir 'mohebbi_datasets.mat'], '-struct', 'Mohebbi');
+save([savedir 'gopalak_datasets.mat'], '-struct', 'Gopalak');
