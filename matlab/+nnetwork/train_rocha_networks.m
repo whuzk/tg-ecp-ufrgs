@@ -14,7 +14,7 @@ transfcn = 'tansig';
 
 for i = 1:length(leadnames)
     lead = leadnames{i};
-    if ~isfield(datasets, lead) || isempty(datasets.(lead))
+    if ~isfield(datasets, lead)
         continue;
     end
     disp(['Generating networks for lead ' lead '...']);

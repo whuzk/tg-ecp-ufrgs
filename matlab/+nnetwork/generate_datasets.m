@@ -1,18 +1,13 @@
-import utils.*
+function Result = generate_datasets(basedir, methodname, ...
+    recordmap, discard, countmap, ratio)
 global leadnames
 
-basedir = 'C:\physiobank\database\edb\extracted\'; 
-savedir = 'C:\physiobank\database\';
-neglect = {'e0403'};
-
-for i = 3:length(leadnames)
+for i = 1:length(leadnames)
     lead = leadnames{i};
+    if countmap(lead) == 0
+        continue;
+    end
     disp(['Processing lead ' lead '...']);
-    Rocha.(lead) = get_lead_dataset(basedir, lead, 'Rocha', neglect);
-    Mohebbi.(lead) = get_lead_dataset(basedir, lead, 'Mohebbi', neglect);
-    Gopalak.(lead) = get_lead_dataset(basedir, lead, 'Gopalak', neglect);
+    Result.(lead) = nnetwork.generate_lead_dataset(basedir, lead, ...
+        methodname, recordmap(lead), discard, countmap(lead), ratio);
 end
-
-save([savedir 'rocha_datasets.mat'], '-struct', 'Rocha');
-save([savedir 'mohebbi_datasets.mat'], '-struct', 'Mohebbi');
-save([savedir 'gopalak_datasets.mat'], '-struct', 'Gopalak');
