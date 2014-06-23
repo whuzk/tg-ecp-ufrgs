@@ -2,8 +2,12 @@
 signal = utils.interpret_ecg(e0103, 1);
 data = int16(signal.data - signal.inival);
 simin = timeseries(data, signal.time);
+leadname = signal.lead;
 Fs = signal.fs;
+Ts = 1/Fs;
 Fm = 50;
+leadcount = length(leadnames);
+leadindex = find(strcmp(leadname, leadnames));
 
 %% QRS filters
 [qrsbl,qrsal,qrsgl,qrsdl] = intfdesign.lowpass('N,F3db',2,11,Fs);

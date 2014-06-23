@@ -23,10 +23,10 @@ for i = 1:length(leadnames)
     t1 = 2*(datasets.(lead)(:,end-1)' > 0)-1;
     t2 = 2*(datasets.(lead)(:,end-1)' < 0)-1;
     [net1,tr1] = train_network(x, t1, layersmap(lead), trainfcn, transfcn);
-    [net2,tr2] = train_network(x, t2, layersmap(lead), trainfcn, transfcn);
     compute_statistics(t1 > 0, net1(x) > 0)
+    [net2,tr2] = train_network(x, t2, layersmap(lead), trainfcn, transfcn);
     compute_statistics(t2 > 0, net2(x) > 0)
-    networks.(lead).nets = [net1 net2];
+    networks.(lead).nets = {net1 net2};
     networks.(lead).recs = [tr1 tr2];
 end
 save(savepath, '-struct', 'networks');

@@ -22,7 +22,7 @@ for i = 1:length(leadnames)
     [net,tr] = train_network(x, [t; ~t], 20, trainfcn, transfcn);
     y = net(x);
     compute_statistics(t, y(1,:) > y(2,:))
-    networks.(lead).nets = net;
+    networks.(lead).nets = {net};
     networks.(lead).recs = tr;
 end
 save(savepath, '-struct', 'networks');
