@@ -2,6 +2,7 @@ function [net,tr] = train_network(inputs, targets, layers, trainfcn, transfcn)
 
 net = feedforwardnet(layers, trainfcn);
 net.layers{:}.transferFcn = transfcn;
+net.inputs{1}.processFcns = {'mapstd'};
 
 net.divideFcn = 'dividerand';
 net.divideMode = 'sample';
