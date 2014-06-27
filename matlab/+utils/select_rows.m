@@ -1,58 +1,59 @@
-function Result = select_rows(dataset, selcount, ratio)
+function Result = select_rows(dataset, selcount, ratio, twave)
 
-if isempty(ratio)
+if length(ratio) == 1
     if size(dataset,1) < selcount
-        error('number of detected beats is less than expected: %d', rowcount);
+        error('number of detected beats is less than expected: %d < %d',...
+            size(dataset,1), selcount);
     end
     Result = sort(randperm(size(dataset,1), selcount));
     
-elseif length(ratio) == 1
-    normalcount = ceil((1-ratio)*selcount);
-    ischemiccount = floor(ratio*selcount);
+elseif length(ratio) == 2
+    normalcount = ceil(ratio(1)*selcount);
+    ischemiccount = selcount - normalcount;
     
-    normal = find(dataset(:,end-1) == 0 & dataset(:,end) == 0);
-    ischemic = find(dataset(:,end-1) ~= 0 | dataset(:,end) ~= 0);
+    diagidx = size(dataset,2) - double(~twave);
+    normal = find(dataset(:,diagidx) == 0);
+    ischemic = find(dataset(:,diagidx) ~= 0);
     
     if length(normal) < normalcount
-        error('number of normal beats is less than expected: %d', length(normal));
+        error('number of normal beats is less than expected: %d < %d', ...
+            length(normal), normalcount);
     elseif length(ischemic) < ischemiccount
-        error('number of ischemic beats is less than expected: %d', length(ischemic));
+        error('number of ischemic beats is less than expected: %d < %d', ...
+            length(ischemic), ischemiccount);
     end
     
     indices1 = randperm(length(normal), normalcount);
     indices2 = randperm(length(ischemic), ischemiccount);
     Result = unique([normal(indices1); ischemic(indices2)]);
     
-elseif length(ratio) == 2
-    normalcount = ceil((1-ratio(1))*selcount);
-    ischemiccount = floor(ratio(1)*selcount);
-    sttcount = floor(ratio(2)*ischemiccount);
-    stcount = ceil((ischemiccount-sttcount)/2);
-    tcount = ischemiccount - sttcount - stcount;
+elseif length(ratio) == 3
+    normalcount = ceil(ratio(1)*selcount);
+    ischemiccount = selcount - normalcount;
+    elevcount = ceil(ratio(2)/(ratio(2)+ratio(3))*ischemiccount);
+    depcount = ischemiccount - elevcount;
     
-    normal = find(dataset(:,end-1) == 0 & dataset(:,end) == 0);
-    stchange = find(dataset(:,end-1) ~= 0 & dataset(:,end) == 0);
-    tchange = find(dataset(:,end-1) == 0 & dataset(:,end) ~= 0);
-    sttchange = find(dataset(:,end-1) ~= 0 & dataset(:,end) ~= 0);
+    diagidx = size(dataset,2) - double(~twave);
+    normal = find(dataset(:,diagidx) == 0);
+    elev = find(dataset(:,diagidx) > 0);
+    dep = find(dataset(:,diagidx) < 0);
     
     if length(normal) < normalcount
-        error('number of normal beats is less than expected: %d', length(normal));
-    elseif length(stchange) < stcount
-        error('number of beats with ST change is less than expected: %d', length(stchange));
-    elseif length(tchange) < tcount
-        error('number of beats with T change is less than expected: %d', length(tchange));
-    elseif length(sttchange) < sttcount
-        error('number of beats with ST-T change is less than expected: %d', length(sttchange));
+        error('number of normal beats is less than expected: %d < %d', ...
+            length(normal), normalcount);
+    elseif length(elev) < elevcount
+        error('number of beats with elevation is less than expected: %d < %d', ...
+            length(elev), elevcount);
+    elseif length(dep) < depcount
+        error('number of beats with depression is less than expected: %d < %d', ...
+            length(dep), depcount);
     end
     
     indices1 = randperm(length(normal), normalcount);
-    indices2 = randperm(length(stchange), stcount);
-    indices3 = randperm(length(tchange), tcount);
-    indices4 = randperm(length(sttchange), sttcount);
-    
-    Result = unique([normal(indices1); stchange(indices2); ...
-        tchange(indices3); sttchange(indices4)]);
+    indices2 = randperm(length(elev), elevcount);
+    indices3 = randperm(length(dep), depcount);
+    Result = unique([normal(indices1); elev(indices2); dep(indices3)]);
     
 else
-    error('ratio must be a vector of length <= 2');
+    error('length of ratio must be between 1 and 3');
 end

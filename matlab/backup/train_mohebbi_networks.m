@@ -17,9 +17,10 @@ for i = 1:length(leadnames)
     end
     disp(['Generating networks for lead ' lead '...']);
     
+    layers = randi([10 20],1);
     x = datasets.(lead)(:,1:end-2)';
     t = datasets.(lead)(:,end-1)' ~= 0 | datasets.(lead)(:,end)' ~= 0;
-    [net,tr] = train_network(x, [t; ~t], 20, trainfcn, transfcn);
+    [net,tr] = train_network(x, [t; ~t], layers, trainfcn, transfcn);
     y = net(x);
     compute_statistics(t, y(1,:) > y(2,:))
     networks.(lead).nets = {net};

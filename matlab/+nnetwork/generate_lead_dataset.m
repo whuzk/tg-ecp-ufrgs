@@ -1,5 +1,5 @@
-function Result = generate_lead_dataset(basedir, leadname, methodname, ...
-    records, discard, selcount, ratio)
+function [inputs,targets] = generate_lead_dataset(basedir, leadname, ...
+    methodname, records, discard, selcount, ratio, twave)
 
 files = dir([basedir '*.mat']);
 list = cell(1,length(files));
@@ -34,5 +34,16 @@ for i = 1:length(list)
     dataset(ibegin:iend,:) = list{i};
 end
 
-indices = utils.select_rows(dataset, selcount, ratio);
-Result = dataset(indices,:);
+if isempty(selcount)
+    indices = true(rowcount,1);
+else
+    indices = utils.select_rows(dataset, selcount, ratio, twave);
+end
+
+inputs = dataset(indices,1:end-2)';
+idx = colcount - double(~twave);
+targets = [
+    dataset(indices,idx)' == 0
+    dataset(indices,idx)' > 0
+    dataset(indices,idx)' < 0
+];
