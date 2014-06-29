@@ -14,3 +14,5 @@ GopalakTNet = train_networks(edbleadnames, ...
     GopalakTSet, 'trainlm', 'tansig', 'mapstd');
 
 save(savepath, 'RochaNet', 'MohebbiNet', 'GopalakSTNet', 'GopalakTNet');
+clear RochaNet MohebbiNet GopalakSTNet GopalakTNet
+clear RochaSet MohebbiSet GopalakSTSet GopalakTSet
