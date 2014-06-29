@@ -1,11 +1,8 @@
 % init.m
 %   Inicializa?ao do ambiente de trabalho.
 %
-global basedir methods leadnames edbleadnames
+global methods leadnames edbleadnames
 global stclasses tclasses classes measures
-
-% caminho da base
-basedir = 'C:\physiobank\database\edb\';
 
 % nome dos metodos
 methods = {

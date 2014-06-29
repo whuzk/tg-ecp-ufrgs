@@ -1,5 +1,5 @@
 function [inputs,targets] = generate_lead_dataset(basedir, leadname, ...
-    methodname, records, discard, selcount, ratio, twave)
+    methodname, records, discard, selcount, ratio, feature)
 
 files = dir([basedir '*.mat']);
 list = cell(1,length(files));
@@ -37,13 +37,8 @@ end
 if isempty(selcount)
     indices = true(rowcount,1);
 else
-    indices = utils.select_rows(dataset, selcount, ratio, twave);
+    indices = selection.select_rows(dataset, selcount, ratio, feature);
 end
 
 inputs = dataset(indices,1:end-2)';
-idx = colcount - double(~twave);
-targets = [
-    dataset(indices,idx)' == 0
-    dataset(indices,idx)' > 0
-    dataset(indices,idx)' < 0
-];
+targets = 2*(dataset(indices,end-1+feature)'~=0)-1;
