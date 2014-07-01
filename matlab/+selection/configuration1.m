@@ -15,3 +15,4 @@ GopalakTSet = generate_datasets(edbleadnames, basedir, 'Gopalak', ...
     gopalakrecordmap, true, gopalakcountmap, tratiomap, 1);
 
 save(savepath, 'RochaSet', 'MohebbiSet', 'GopalakSTSet', 'GopalakTSet');
+clear RochaSet MohebbiSet GopalakSTSet GopalakTSet

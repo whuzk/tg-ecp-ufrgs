@@ -1,21 +1,15 @@
-import nnetwork.*
-
 tic;
-configuration1;
+selection.configuration1;
+selection.configuration2;
+selection.configuration3;
+selection.configuration4;
+selection.configuration5;
 toc;
 
 tic;
-configuration2;
-toc;
-
-tic;
-configuration3;
-toc;
-
-tic;
-configuration4;
-toc;
-
-tic;
-configuration5;
+nnetwork.configuration1;
+nnetwork.configuration2;
+nnetwork.configuration3;
+nnetwork.configuration4;
+nnetwork.configuration5;
 toc;
