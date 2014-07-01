@@ -12,9 +12,8 @@ end
 
 function Result = get_stat_table(networks)
 global measures
-[stats,names] = get_statistics(networks);
-Result = array2table(stats, 'VariableNames', measures);
-Result.LeadName = names;
+[stats,LeadName] = get_statistics(networks);
+Result = [table(LeadName) array2table(stats, 'VariableNames', measures)];
 
 function [stats,names] = get_statistics(networks)
 fields = fieldnames(networks);

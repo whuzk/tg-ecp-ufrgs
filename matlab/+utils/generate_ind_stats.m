@@ -20,9 +20,8 @@ end
 
 function Result = get_stat_table(basedir, i, j, method)
 global measures
-[stats,names] = get_statistics(basedir, i, j, method, 3);
-Result = array2table(stats, 'VariableNames', measures);
-Result.RecordName = names;
+[stats,RecordName] = get_statistics(basedir, i, j, method, 3);
+Result = [table(RecordName) array2table(stats, 'VariableNames', measures)];
 
 function [stats,names] = get_statistics(basedir, feature, channel, ...
     methodname, max_attempts)

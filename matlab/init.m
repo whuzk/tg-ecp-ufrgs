@@ -50,7 +50,7 @@ measures = {
     'PositivePred'
     'NegativePred'
     'Accuracy'
-    'FalseDetection'
+    'FailureRate'
 };
 
 % registros de ecg
