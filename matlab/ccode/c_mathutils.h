@@ -13,9 +13,13 @@
 #include <math.h>
 #include "mex.h"
 
+#ifndef PI
 #define PI          3.1415926535897932384626433832795
+#endif
 #define ILOG2(x)    (int)(log10((double)x) / log10(2.0))
 #define SIGN(x)     (((double)x) >= 0.0 ? 0 : 1)
+#define MAX(a,b)    ((a) > (b) ? (a) : (b))
+#define MIN(a,b)    ((a) < (b) ? (a) : (b))
 
 /*=========================================================================
  * Count zeros of an integer array

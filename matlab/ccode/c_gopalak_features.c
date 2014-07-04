@@ -20,6 +20,7 @@
 #include <string.h>
 #include <math.h>
 #include "mex.h"
+#include "blas.h"
 #include "c_upfirdn.h"
 #include "c_hermcoeff.h"
 #include "c_mathutils.h"
@@ -86,7 +87,7 @@ void resamp(double *y, double *x, mwSize Lx, int p, int q)
     
     // compute parameters
     rational(p / (double)q, &p, &q, 1.0e-5);
-    pqmax = max(p, q);
+    pqmax = MAX(p, q);
     wc = PI / (double)pqmax;
     M2 = (int)(filterLen - 1) >> 1;
     
@@ -121,7 +122,7 @@ void exctractSegment()
 {
     mwSize rr, istart;
     
-    rr = min(frameSize, (mwSize)rrList[bi]);
+    rr = MIN(frameSize, (mwSize)rrList[bi]);
     if (rr % 2 != 0) {
         rr--;
     }
@@ -137,9 +138,9 @@ void exctractSegment()
  *=======================================================================*/
 void hermiteExpansion()
 {
-    size_t m = NUM_HERM_COEF;
-    size_t p = SEGMENT_SIZE;
-    size_t n = 1;
+    ptrdiff_t m = NUM_HERM_COEF;
+    ptrdiff_t p = SEGMENT_SIZE;
+    ptrdiff_t n = 1;
     char *chn = "N";
     double one = 1.0;
     double zero = 0.0;
@@ -229,7 +230,7 @@ void handleInputs( int nrhs, const mxArray *prhs[],
     *ncols = (mwSize)mxGetN(prhs[0]);
     
     // make sure the input argument 2 has compatible dimensions
-    if (max(mxGetM(prhs[1]), mxGetN(prhs[1])) != *ncols) {
+    if (MAX(mxGetM(prhs[1]), mxGetN(prhs[1])) != *ncols) {
         mexErrMsgIdAndTxt(
             "EcgToolbox:c_gopalak_features:badDimensions",
             "Inputs #1 and #2 must have compatible dimensions.");

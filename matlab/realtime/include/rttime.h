@@ -36,6 +36,9 @@
     }
 #endif
 
+#define MAX(a,b)    ((a) > (b) ? (a) : (b))
+#define MIN(a,b)    ((a) < (b) ? (a) : (b))
+
 /*=========================================================================
  * Type definitions
  *=======================================================================*/
@@ -88,7 +91,7 @@ double RtTime::update(time_T simTime)
    
    /* Wait to reach the desired time */
    execution = t0 - previousState;
-   while (diff < (dt - min(dt, execution))) {
+   while (diff < (dt - MIN(dt, execution))) {
        current = hightimer();
        /* Look for wrapup */
        if (current < previous){

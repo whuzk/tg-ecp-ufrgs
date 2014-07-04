@@ -27,6 +27,7 @@
 #include <string.h>
 #include <math.h>
 #include "mex.h"
+#include "blas.h"
 #include "c_upfirdn.h"
 #include "c_hermcoeff.h"
 #include "c_intfilter.h"
@@ -201,7 +202,7 @@ void resamp(double *y, double *x, mwSize Lx, int p, int q)
     
     // compute parameters
     rational(p / (double)q, &p, &q, 1.0e-5);
-    pqmax = max(p, q);
+    pqmax = MAX(p, q);
     wc = PI / (double)pqmax;
     M2 = (int)(filterLen - 1) >> 1;
     
@@ -262,9 +263,9 @@ void exctractSegments()
  *=======================================================================*/
 void hermiteExpansion()
 {
-    size_t m = NUM_HERM_COEF;
-    size_t p = SEGMENT_SIZE;
-    size_t n = 1;
+    ptrdiff_t m = NUM_HERM_COEF;
+    ptrdiff_t p = SEGMENT_SIZE;
+    ptrdiff_t n = 1;
     char *chn = "N";
     double one = 1.0;
     double zero = 0.0;
@@ -373,7 +374,7 @@ void handleInputs( int nrhs, const mxArray *prhs[],
     
     // make sure the input arguments 2-5 have compatible dimensions
     for (i = 1; i < 5; i++) {
-        if (max(mxGetM(prhs[i]), mxGetN(prhs[i])) != *ncols) {
+        if (MAX(mxGetM(prhs[i]), mxGetN(prhs[i])) != *ncols) {
             mexErrMsgIdAndTxt(
                 "EcgToolbox:c_rocha_features:badDimensions",
                 "Inputs #1 and #%d must have compatible dimensions.", i + 1);

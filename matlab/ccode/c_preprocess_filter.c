@@ -144,7 +144,7 @@ short tpkdef(short sample)
 short tpksqr(short sample)
 {
     int intsample = (int)sample * sample;
-    return min(SHRT_MAX, intsample >> 3);
+    return MIN(SHRT_MAX, intsample >> 3);
 }
 
 /*=========================================================================
@@ -630,7 +630,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     handleOutputs(nlhs, plhs, nrows, ncols);
     
     // calculate the length of the signal
-    inputLen = max(nrows,ncols);
+    inputLen = MAX(nrows,ncols);
     
     // make some initializations
     init();

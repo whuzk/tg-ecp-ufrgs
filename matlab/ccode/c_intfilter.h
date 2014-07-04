@@ -21,11 +21,6 @@
 #include "c_mathutils.h"
 
 /*=========================================================================
- * Constants
- *=======================================================================*/
-#define M_PI    3.1415926535897932384626433832795
-
-/*=========================================================================
  * Type definitions
  *=======================================================================*/
 typedef struct {
@@ -311,6 +306,7 @@ double get_m(int N, double Wc, char *senseStr)
     else if (strcmp(senseStr, "nom") == 0) {
         return 2.0 / Wc;
     }
+    else return 0.0;
 }
 
 /*=========================================================================
@@ -498,7 +494,7 @@ void design_basic_de(intfobject *filter, int N, int M)
     conv(ntemp, nsize, mtemp, msize, btemp);
     
     // calculate gain and delay
-    gain = 1 << max(N, M);
+    gain = 1 << MAX(N, M);
     delay = (N + M) / 2.0;
     
     // initialize the filter object
@@ -734,7 +730,7 @@ bool design_bandpass(intfobject *filter, double Fs, const char *specStr, ...)
     // design the filter
     temp = get_m(N, Bw / 2.0, sense);
     m = (int)(ceil(temp * Wc / 2.0) / Wc * 2.0);
-    design_basic_bp(filter, N, m, M_PI * Wc);
+    design_basic_bp(filter, N, m, PI * Wc);
     
     return true;
 }

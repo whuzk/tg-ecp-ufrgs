@@ -170,7 +170,7 @@ void resamp(double *y, double *x, mwSize Lx, int p, int q)
     
     // compute parameters
     rational(p / (double)q, &p, &q, 1.0e-5);
-    pqmax = max(p, q);
+    pqmax = MAX(p, q);
     wc = PI / (double)pqmax;
     M2 = (int)(filterLen - 1) >> 1;
     
@@ -304,13 +304,13 @@ void handleInputs( int nrhs, const mxArray *prhs[],
     *ncols = (mwSize)mxGetN(prhs[0]);
     
     // make sure the input argument 2 has compatible dimensions
-    if (max(mxGetM(prhs[1]), mxGetN(prhs[1])) != *nrows) {
+    if (MAX(mxGetM(prhs[1]), mxGetN(prhs[1])) != *nrows) {
         mexErrMsgIdAndTxt(
             "EcgToolbox:c_mohebbi_features:badDimensions",
             "Input #1 and #2 must have compatible dimensions.");
     }
     // make sure the input argument 3 has compatible dimensions
-    if (max(mxGetM(prhs[2]), mxGetN(prhs[2])) != *ncols) {
+    if (MAX(mxGetM(prhs[2]), mxGetN(prhs[2])) != *ncols) {
         mexErrMsgIdAndTxt(
             "EcgToolbox:c_mohebbi_features:badDimensions",
             "Inputs #1 and #3 must have compatible dimensions.");

@@ -264,11 +264,11 @@ bool evaluatePeak()
 {
     if (trainCountDown > 0) {
         if (peakAmp >= sigThreshold) {
-            signalLevel = max(signalLevel, peakAmp);
+            signalLevel = MAX(signalLevel, peakAmp);
             lastQrsIdx = peakIdx;
         }
         else {
-            noiseLevel = max(noiseLevel, peakAmp);
+            noiseLevel = MAX(noiseLevel, peakAmp);
         }
         return false;
     }
@@ -785,8 +785,8 @@ void removeBaseline()
     mwSize i, startIdx, endIdx;
     
     // calculate start and end points
-    startIdx = max(1 - bufLen, Ponset - (NUM_BL_SAMPLES >> 1));
-    endIdx = min(0, Toffset + (NUM_BL_SAMPLES >> 1));
+    startIdx = MAX(1 - bufLen, Ponset - (NUM_BL_SAMPLES >> 1));
+    endIdx = MIN(0, Toffset + (NUM_BL_SAMPLES >> 1));
     
     // average of first BL_NUM_PTS samples
     mean = 0.0;
@@ -825,9 +825,9 @@ void frameBeat()
     half = frameSize >> 1;
     beatsize = Toffset - Ponset + 1;
     r = Rpeak - Ponset + 1;
-    pad = max(0, half - r + 1);
-    cut1 = max(0, r - 1 - half);
-    cut2 = max(0, beatsize - r - half);
+    pad = MAX(0, half - r + 1);
+    cut1 = MAX(0, r - 1 - half);
+    cut2 = MAX(0, beatsize - r - half);
     
     // update start and end indices
     startIdx = Ponset + cut1;
@@ -933,13 +933,13 @@ void updateOutputs()
 
     // save fiducial marks
     center = (frameSize >> 1) + 1;
-    fdp(bi,0) = max(1, center - (Rpeak - Ponset));
-    fdp(bi,1) = max(1, center - (Rpeak - Ppeak));
-    fdp(bi,2) = max(1, center - (Rpeak - Ronset));
+    fdp(bi,0) = MAX(1, center - (Rpeak - Ponset));
+    fdp(bi,1) = MAX(1, center - (Rpeak - Ppeak));
+    fdp(bi,2) = MAX(1, center - (Rpeak - Ronset));
     fdp(bi,3) = center;
-    fdp(bi,4) = min(frameSize, center + (Roffset - Rpeak));
-    fdp(bi,5) = min(frameSize, center + (Tpeak - Rpeak));
-    fdp(bi,6) = min(frameSize, center + (Toffset - Rpeak));
+    fdp(bi,4) = MIN(frameSize, center + (Roffset - Rpeak));
+    fdp(bi,5) = MIN(frameSize, center + (Tpeak - Rpeak));
+    fdp(bi,6) = MIN(frameSize, center + (Toffset - Rpeak));
     
     // save beat
     memcpy(&beat(bi, 0), beatBuf, frameSize * sizeof(double));
@@ -1231,7 +1231,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     handleInputs(nrhs, prhs, &nrows, &ncols);
     
     // calculate the length of the signal
-    inputLen = max(nrows,ncols);
+    inputLen = MAX(nrows,ncols);
     
     // calculate the frame size
     frameSize = 2 * (int)(HALF_FRAME * sampFreq) + 1;
