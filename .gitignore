@@ -2,8 +2,11 @@
 *.acr
 *.alg
 *.aux
+*.asv
 *.bbl
 *.blg
+*.brf
+*.db
 *.dvi
 *.fdb_latexmk
 *.glg
@@ -31,6 +34,4 @@
 *.vrb
 *.xdy
 *.tdo
-*.asv
-*.db
 document.pdf
