@@ -1,0 +1,55 @@
+% !TEX root = ../monografia.tex
+% !TeX spellcheck = pt_BR
+
+% ----------------------------------------------------------
+\chapter[Introdução]{Introdução}
+\thispagestyle{empty}
+\label{chap:intro}
+% ----------------------------------------------------------
+
+O eletrocardiograma fornece aos especialistas da área de cardiologia informações de extrema relevância para o diagnóstico de doenças cardíacas como a isquemia. Ainda, por mais acurado que seja o diagnóstico do cardiologista, há situações em que se necessita de uma análise automatizada do eletrocardiograma.
+
+Por exemplo, se um paciente está sob monitoramento contínuo através de um equipamento Holter, ele permanecerá com o equipamento por no mínimo 24 horas. Em tal situação, a duração do registro eletrocardiográfico é tamanha que o especialista dificilmente terá condições de analisá-lo na íntegra. Um computador deverá então processar o registro previamente e destacar áreas de interesse que possam ser inspecionadas com mais minúcia pelo cardiologista.
+
+Outra situação em que se poderia fazer uso da tecnologia para auxiliar a tomada de decisão médica é no caso de competições esportivas. Frequentemente, atletas estão dispostos a ultrapassar seus limites na tentativa de quebrar um recorde, ou vencer uma competição. Nestes casos, é possível instalar nos atletas um dispositivo que registre a atividade elétrica do seu coração e envie os dados a uma central de monitoramento. Nesta central, um ou mais especialistas terão que analisar um volume enorme de eletrocardiogramas em tempo real, o que pode não ser factível. Aqui a automatização do processo de análise facilita a identificação de atletas que estejam à beira da exaustão e, sobretudo, de uma complicação cardíaca grave.
+
+Estes são apenas alguns exemplos que ilustram a necessidade de automatizar a análise de eletrocardiogramas e levam, então, a que se estude métodos de detecção automática de patologias cardíacas. Notoriamente, entre estas patologias, está a isquemia.
+
+Utilizando-se unicamente do eletrocardiograma como objeto sob análise e valendo-se de ferramentas matemáticas e computacionais capazes de extrair-lhe informações, diversos métodos foram propostos na literatura biomédica com vistas à detecção automática da isquemia cardíaca \cite{Rocha2010, Mohebbi2007, Gopalakrishnan2004, Papaloukas2001, Garcia2000, Goletsis2004, Afsar2007, Andreao2004, Badilini1992, Milosavljevic2006, Pang2005, Stamkopoulos1997}. Dada uma especificação de sistema para realizar o procedimento de detecção, é importante escolher um método que se adeque às características do sistema e que apresente um bom desempenho uma vez implantado.
+
+Neste capítulo será apresentada a motivação para o estudo desses métodos. Serão abordados conceitos relativos à isquemia cardíaca e o porquê de seu diagnóstico e tratamento serem tão importantes para a manutenção da saúde humana. Consecutivamente serão introduzidos os objetivos desta monografia e, finalmente, a sua estrutura.
+
+\section{Motivação}
+
+A isquemia cardíaca manifesta-se como consequência direta da doença coronariana, que é caracterizada pelo estreitamento das artérias coronárias. A causa principal desse estreitamento é a aterosclerose (doença inflamatória crônica). A palavra \emph{isquemia} origina-se do grego e significa ``constrição sanguínea''. Em outras palavras, uma obstrução em uma artéria coronária causa falta de suprimento sanguíneo ao músculo do coração (miocárdio).
+
+A falta de sangue no tecido cardíaco provoca má oxigenação do tecido e pode levar à morte das células (necrose) no local \cite{Dubin2000}. Ao processo de necrose de parte do músculo cardíaco dá-se o nome de infarto do miocárdio (conhecido também como ataque cardíaco). Quando parte do tecido do miocárdio está sob a condição de infarto, ela deixa de responder aos estímulos elétricos do coração, assim como deixa de transmitir esses estímulos às áreas não afetadas. Dessa maneira, há um grande risco de parada cardíaca e morte nas pessoas acometidas de isquemia cardíaca.
+
+Essa manifestação patológica pode ser silenciosa, sem evidência de sintomas, ou pode ainda causar dor no peito (conhecida como \emph{angina pectoris}). Em algumas situações, isquemias desencadeiam ritmos cardíacos anormais (arritmias), que por sua vez podem levar a desmaios e até à morte súbita. Considerando os perigos apresentados pela isquemia cardíaca, seu diagnóstico precoce e o tratamento da doença coronariana são fundamentais para evitar consequências graves na saúde do paciente. 
+
+Monitorar constantemente o coração do paciente quando há suspeita de doença coronariana ou existência de isquemia cardíaca é uma medida muito importante a ser tomada para evitar complicações de maior gravidade. Geralmente o monitoramento é feito por um eletrocardiógrafo, em um procedimento chamado de eletrocardiograma. O eletrocardiograma, referido doravante como ECG, é um procedimento não-invasivo que registra a atividade elétrica do coração. Há mais de 80 anos o ECG é utilizado como base de diagnóstico de cardiopatias. O procedimento de aquisição do ECG é simples, barato e pode ser aplicado constantemente. O ECG pode ser utilizado tanto no diagnóstico de arritmias e isquemias, quanto no de outras doenças que afetam o coração direta ou indiretamente \cite{Fisch2000}, o que o torna extremamente versátil.
+
+A saúde pública brasileira sofre de baixa disponibilidade de leitos e alta demanda de pacientes. O Ministério da Saúde estabelece que deva haver 2,5 leitos disponíveis ao SUS para cada 1000 habitantes \cite{IBGE2009}, \cite{IBGE2009}, \cite{Brasil2002}. Entretanto, este indicador (número de leitos por mil habitantes) apresenta um índice de 1,6 no Brasil, sendo 1,5 para a região Norte do país e um máximo de 1,9 para a região Sul. O que significa que existem muitas pessoas necessitando de atendimento, entretanto a rede pública não é capaz de atender a todos.
+
+Este quadro apresenta inúmeras implicações, como as já conhecidas filas de espera grandes e atendimentos realizados em espaços inapropriados. Além disso, a baixa disponibilidade de leitos e alta demanda de pacientes implicam, comumente, na saída precoce de pacientes dos hospitais. Nesta situação, o paciente acaba retornando às suas atividades sem estar completamente restabelecido, de modo que outro paciente, aparentemente necessitando de maiores cuidados médicos, possa usufruir de seu antigo leito.
+
+Uma forma de resolver este problema é o uso do \emph{homecare}, palavra oriunda da língua inglesa, significando ``cuidado em domicílio''. O homecare é uma alternativa ao tradicional atendimento em hospitais. Ao invés de ser internado em um hospital, o paciente recebe cuidados em casa, onde possui leito à sua disposição. Ademais, essa forma de atendimento reduz gastos públicos com internação e reduz a lotação de leitos hospitalares. Os avanços tecnológicos atuais, especialmente no campo das telecomunicações, permitem que se faça ainda um monitoramento remoto do paciente, ou seja, que os sinais do paciente possam ser analisados a partir de um local que não o do próprio paciente. O uso desse tipo de tecnologia na medicina, aliado ao homecare, caracteriza o \emph{telehomecare} \cite{Augustyniak2009}.
+
+Finalmente, o contexto da saúde pública brasileira e o da saúde mundial demonstram que necessita-se cada vez mais de alternativas de atendimento e, além disso, de prevenção da doença coronariana. Uma boa alternativa é a utilização do \emph{telehomecare}, para no caso das cardiopatias monitorar os sinais cardíacos de um paciente via ECG. Aliado a isso, métodos de análise automática de ECG podem acelerar e facilitar a tomada de decisão dos médicos e especialistas.
+
+
+\section{Objetivos}
+Dados três métodos de detecção de isquemia cardíaca propostos em artigos científicos, os objetivos deste trabalho são:
+\begin{enumerate}
+    \item corroborar ou refutar os valores de medidas de confiabilidade (sobretudo a sensibilidade e a preditividade positiva), obtidos pelos autores dos métodos;
+    \item comprovar o fato de que os métodos podem ser utilizados num sistema de monitoramento cardíaco com suporte à tomada de decisão médica; e
+    \item determinar o melhor método para ser implantado num sistema como o do item 2. Isto é, eleger o método mais confiável.
+\end{enumerate}
+
+
+\section{Estrutura}
+Este trabalho está dividido logicamente em três partes: a primeira parte trata dos fundamentos necessários para a compreensão do conteúdo do trabalho e comporta os capítulos \ref{chap:chapter2} ao \ref{chap:chapter4}; a segunda parte aborda os métodos de detecção de isquemia cardíaca e a implementação dos métodos, sendo composta dos capítulos \ref{chap:chapter5} e \ref{chap:chapter6}; a terceira e última parte contém os capítulos \ref{chap:chapter7} e \ref{chap:chapter8}, em que se discute os resultados dos testes e dá-se uma conclusão geral.
+
+Primeiramente no capítulo \ref{chap:chapter2} serão discutidos conceitos básicos de cardiologia necessários para a compreensão da tarefa de análise de ECGs. Em seguida, no capítulo \ref{chap:chapter3}, serão vistos tópicos sobre a representação e decomposição de sinais discretos, assim como a questão do projeto de filtros digitais, necessária para a realização da parte de pré-processamento dos métodos. O capítulo \ref{chap:chapter4} introduz as métricas de avaliação utilizadas na comparação dos métodos.
+
+O capítulo \ref{chap:chapter5} dá uma visão geral sobre os métodos e procura categorizá-los de acordo com suas características comuns. O capítulo \ref{chap:chapter6} fala sobre o projeto e a implementação de cada etapa dos métodos estudados. No capítulo \ref{chap:chapter8} os resultados são apresentados, enquanto no capítulo \ref{chap:chapter9} é dada conclusão.

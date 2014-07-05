@@ -1,0 +1,56 @@
+% !TEX root = ../monografia.tex
+% !TeX spellcheck = pt_BR
+
+% ----------------------------------------------------------
+\chapter[Avaliação de desempenho]{Avaliação de desempenho}
+\thispagestyle{empty}
+\label{chap:chapter4}
+% ----------------------------------------------------------
+A fim de avaliar os métodos de detecção de isquemia, necessita-se estabelecer métricas de avaliação. Interessa-se principalmente pela confiabilidade dos métodos, isto é, sua capacidade de classificar corretamente batimentos cardíacos em isquêmicos ou não isquêmicos. A seguir será apresentada a tradicional matriz confusão e dela serão derivadas seis métricas de avaliação de confiabilidade.
+
+\section{Matriz de confusão}
+Uma metodologia bastante popular de avaliação é por meio da \textbf{matriz de confusão}, um tipo especial de tabela de contingência\footnote{tabelas de contingência são usadas para registrar observações independentes de duas ou mais variáveis aleatórias.}. Ela separa os resultados de um teste diagnóstico em quatro categorias, que são as possíveis combinações de resultado positivo ou negativo no teste avaliado, com resultado positivo ou negativo num diagnóstico de referência, sendo este proveniente do conhecimento de especialistas. A tabela \ref{tab:confmatrix} mostra o formato geral da matriz de confusão.
+
+\begin{table}[ht!]
+    \centering
+    \input{tables/confusion-matrix.tex}
+    \caption[Matriz de confusão para testes diagnósticos]{Matriz de confusão para testes diagnósticos.}
+    \label{tab:confmatrix}
+\end{table}
+
+Para o trabalho desenvolvido, assim como para os métodos de detecção de isquemia originalmente propostos, o diagnóstico de referência está armazenado juntamente com os registros de ECG sob a forma de anotações. As anotações fornecem a localização dos batimentos cardíacos no tempo de gravação e dizem se um batimento foi considerado por cardiologistas como isquêmico ou não. Na verdade, as anotações referentes a isquemia estão organizadas de acordo com \textbf{episódios isquêmicos}. Os episódios têm início quando uma quantidade mínima de batimentos apresenta uma característica comum representando sintoma de isquemia e se estendem até o momento em que esta característica se torna ausente. Quatro tipos possíveis de característica sinalizam ocorrência de episódio isquêmico: elevação do segmento ST (denotada pelo símbolo ``ST+''), depressão do segmento ST (``ST-''), elevação da onda T (``T+'') e depressão da onda T (``T-'').
+
+\section{Sensibilidade e Especificidade}
+A sensibilidade é a capacidade do teste fornecer verdadeiros positivos (interpretação correta de ocorrência de isquemia) entre os batimentos verdadeiramente isquêmicos. Ela é obtida por
+\begin{equation}
+    SE = \dfrac{VP}{VP+FN}.
+\end{equation}
+No contexto de epidemiologia\footnote{epidemiologia é a ciência que estuda a distribuição de fenômenos patológicos e suas causas, nos seres humanos.}, sabe-se que um teste diagnóstico é sensível se ele raramente deixa de identificar indivíduos doentes. Este fato é importante na detecção de isquemia pois se deseja que, no melhor caso, todas as ocorrências de batimento isquêmico sejam identificadas.
+
+A especificidade, por outro lado, é a capacidade do teste obter verdadeiros negativos (interpretação correta de ausência de isquemia) entre os batimentos verdadeiramente não isquêmicos. Ainda no contexto de epidemiologia, um teste é específico se ele raramente comete equívoco em identificar indivíduos sadios. A fórmula para o cálculo da especificidade é
+\begin{equation}
+    ES = \frac{VN}{VN+FP}.
+\end{equation}
+
+\section{Valores Preditivos Positivo e Negativo}
+O valor preditivo positivo (também chamado de precisão ou preditividade positiva) é a razão entre os verdadeiros positivos e os diagnosticados como positivos pelo teste. Ele pode ser entendido como a probabilidade de um resultado positivo do teste refletir efetivamente a condição testada. Sua expressão é
+\begin{equation}
+    PP = \frac{VP}{VP+FP}.
+\end{equation}
+Em contrapartida, o valor preditivo negativo (ou preditividade negativa) é a proporção de verdadeiros negativos em relação aos diagnosticados como negativos pelo teste. Pode ser entendido como a probabilidade de um resultado negativo do teste refletir efetivamente a ausência da condição. Sua expressão é
+\begin{equation}
+    PN = \frac{VN}{VN+FN}.
+\end{equation}
+
+Os valores preditivos não se mantêm constantes para toda instância de teste realizada. Eles dependem da prevalência da doença na população. Se a prevalência for baixa, isto é, se relativamente poucos indivíduos se encontrarem doentes, obterá-se muitos falsos positivos, mesmo que o teste tenha especificidade alta. Reciprocamente, se a prevalência for alta, pode-se esperar um maior número de falsos negativos, ainda que o teste seja sensível. Portanto, quanto menor a prevalência, menor o PP e maior o PN, sendo a relação inversa também válida.
+
+\section{Acurácia e Taxa de Falha}
+A acurácia é a proporção de acertos na população e fornece uma medida do quão próximo o resultado do teste está do diagnóstico de referência. Ela é calculada por
+\begin{equation}
+    AC = \frac{VP+VN}{N}.
+\end{equation}
+
+A taxa de falha é a proporção de erros na população e fornece uma medida geral de falha do teste. Ela é dada por
+\begin{equation}
+    TF = \frac{FP+FN}{N}.
+\end{equation}

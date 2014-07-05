@@ -1,0 +1,92 @@
+% !TEX root = ../monografia.tex
+% !TeX spellcheck = pt_BR
+
+% ----------------------------------------------------------
+\chapter[Testes e resultados]{Testes e resultados}
+\thispagestyle{empty}
+\label{chap:chapter7}
+% ----------------------------------------------------------
+
+Aqui serão apresentados os resultados dos testes realizados. Quer-se num primeiro momento verificar se as medidas obtidas são compatíveis com aquelas apontadas pelos autores. A tabela \ref{tab:origstats} resume os valores das medidas originais de confiabilidade dos métodos de detecção de isquemia. A seguir será visto o desempenho dos métodos para instâncias de teste em que as redes neurais foram treinadas para cada registro de ECG individualmente. Subsequentemente, verá-se como os métodos se comportam em instâncias de teste onde o treinamento é feito utilizando conjuntos amplos de batimentos cardíacos, obtidos de diversos registros da base. Por fim, apresentar-se-á algumas informações adicionais sobre os testes.
+
+\begin{table}[ht!]
+    \centering
+    \input{tables/proposed-statistics.tex}
+    \caption[Estatísticas obtidas pelos autores em seus artigos]{Estatísticas obtidas pelos autores em seus artigos.}
+    \label{tab:origstats}
+\end{table}
+
+
+\section{Estatísticas individuais}
+
+A tabela \ref{tab:indstats_table1} é um arranjo com as medidas de confiabilidade obtidas para cada ECG usando redes neurais treinadas somente com os dados extraídos do ECG em questão. De acordo com o que foi discutido no capítulo \ref{chap:chapter6}, estes valores fornecem um critério para determinar quais dos registros tiveram maior sucesso na etapa de extração. No caso da tabela \ref{tab:indstats_table1}, os registros eliminados seriam: e0136, e0139, e0170, e0204, e0208, e2011, e0213, e0415, e0418, e0602, e0609, e0615, e0808, e0818 e e1302. Estes são, portanto, os que fornecem dados inconsistentes para um treinamento de redes neurais mais abrangente (no método de Rocha et al., para o canal 0). Os valores NaN indicam que a característica observada não estava presente.
+
+\printmetricslongtable{indstats_table1}{data/indstats_table1.csv}{RecordName}{Nome do registro}{Estatísticas individuais do método de Rocha et al. para o canal 0}{Estatísticas individuais do método de Rocha et al. para o canal 0.}
+
+Por causa do número elevado de registros na base (90), percebe-se que é impraticável mostrar aqui as tabelas de todas as instâncias de teste. Assim, as tabelas \ref{tab:indstats_average1} e \ref{tab:indstats_average2} fornecem as estatísticas médias obtidas para o primeiro e segundo canais dos registros de ECG, respectivamente. Elas foram colocadas apenas para o leitor ter uma noção do desempenho geral apresentado pelos métodos, mas a rigor não serve como fonte de comparação. O que importa é que, uma vez obtidas as estatísticas individuais, pode-se então gerar as listas de ECGs que serão utilizadas na seleção dos dados, de acordo com as configurações de seleção introduzidas no capítulo anterior.
+
+\printmetricstable{indstats_average1}{data/indstats_average1.csv}{TableName}{Instância de teste}{Médias das estatísticas individuais para o canal 0}{Médias das estatísticas individuais para o canal 0.}
+
+\printmetricstable{indstats_average2}{data/indstats_average2.csv}{TableName}{Instância de teste}{Médias das estatísticas individuais para o canal 1}{Médias das estatísticas individuais para o canal 1.}
+
+\section{Estatísticas coletivas}
+
+Aqui serão mostradas as tabelas de medidas obtidas para o caso coletivo. Todas as tabelas, exceto a \ref{tab:colstats_table1}, apresentam resultados médios levando em conta todas as derivações.
+
+\subsection*{Configuração 1}
+A tabela \ref{tab:colstats_table1} contém os resultados de cada derivação para o método de Rocha et al. na primeira configuração. Esta configuração de seleção é aquela proposta originalmente pelos autores. A derivação D3 tem resultado bom porque possui apenas um exemplar na base. As demais têm medidas de sensibilidade e preditividade positiva bem abaixo do esperado (a tabela \ref{tab:origstats} informava valores acima de 98\%).
+
+\printmetricstable{colstats_table1}{data/colstats_table1.csv}{LeadName}{Nome da derivação}{Estatísticas coletivas do método de Rocha et al. para a configuração 1}{Estatísticas coletivas do método de Rocha et al. para a configuração 1.}
+
+A tabela \ref{tab:colstats_average1} mostra o resultado médio para as 4 instâncias de teste nesta mesma configuração. Vê-se que os valores estão abaixo do esperado também para os outros dois métodos. Em especial, o de Gopalakrishnan et al. apresenta valores de sensibilidade bastante ruins. Acredita-se que isto aconteceu devido ao número extremamente limitado de batimentos usados no treinamento (236).
+
+\printmetricstable{colstats_average1}{data/colstats_average1.csv}{TableName}{Instância de teste}{Médias das estatísticas coletivas da configuração 1}{Médias das estatísticas coletivas da configuração 1.}
+
+\subsection*{Configuração 2}
+Nesta configuração foram selecionados somente ECGs que tiveram resultado bom no caso individual. Portanto, espera-se que as medidas estejam superiores àquelas da tabela anterior. De fato isto ocorre para o primeiro e terceiro métodos, que apresentaram sensibilidade acima de 80\%, conforme pode ser visto na tabela \ref{tab:colstats_average2}. O de Mohebbi e Moghadam teve valores ligeiramente menores. Acredita-se que isto tenha acontecido porque a seleção original do método já incluia ECGs ``bons'', além de considerar relativamente menos batimentos, o que facilitava o ajuste das redes. Aqui, o de Gopalakrishnan et al. se destaca com valores de 88\% de SE e 91\% de PP.
+
+\printmetricstable{colstats_average2}{data/colstats_average2.csv}{TableName}{Instância de teste}{Médias das estatísticas coletivas da configuração 2}{Médias das estatísticas coletivas da configuração 2.}
+
+\subsection*{Configuração 3}
+Na configuração 3 foi feita uma combinação entre as listas de ECG, de modo a utilizar os mesmos registros para todos os métodos. Somente foi feita separação entre as características ST e T. A tabela \ref{tab:colstats_average3} apresenta os valores obtidos. Não há grandes diferenças em relação à anterior. Apenas nota-se que o método de Mohebbi e Moghadam teve resultado bem menor, com 74\% de sensibilidade. O método de Gopalakrishnan et al. teve ligeiro aumento para cerca de 89\%, enquanto o de Rocha et al. permaneceu praticamente inalterado.
+
+\printmetricstable{colstats_average3}{data/colstats_average3.csv}{TableName}{Instância de teste}{Médias das estatísticas coletivas da configuração 3}{Médias das estatísticas coletivas da configuração 3.}
+
+\subsection*{Configuração 4}
+Aqui foram usadas as mesmas listas do caso anterior, só que com número limitado de batimentos, em vez de considerar todos os batimentos de cada registro selecionado. De acordo com a tabela \ref{tab:colstats_average4}, os métodos de Mohebbi e Moghadam e de Gopalakrishnan et al. para a característica T tiveram resultado bastante deteriorado, enquanto os métodos de Rocha et al. e de Gopalakrishnan et al. para a característica ST pioraram em pouco menos de 5\% no quesito sensibilidade. A tabela \ref{tab:selstats_config4} mostra como ficaram as quantidades de batimentos selecionados e a proporção de ocorrência da característica observada.
+
+\printmetricstable{colstats_average4}{data/colstats_average4.csv}{TableName}{Instância de teste}{Médias das estatísticas coletivas da configuração 4}{Médias das estatísticas coletivas da configuração 4.}
+
+\begin{table}[ht!]
+    \centering
+    \input{tables/selstats-config4.tex}
+    \caption[Parâmetros de seleção dos dados na configuração 4]{Parâmetros de seleção dos dados na configuração 4.}
+    \label{tab:selstats_config4}
+\end{table}
+
+\subsection*{Configuração 5}
+Esta é a configuração em que todos os dados extraídos da base são utilizados no treinamento. Espera-se obter os piores resultados até agora. Por outro lado, eles devem mostrar de maneira mais realista o desempenho de um método face a um conjunto diverso de características extraídas. Isto significa, por exemplo, que se o método for testado em outra base de ECGs, ou dentro de um contexto clínico real, as chances de obter resultados bons serão maiores para aqueles métodos que tiverem sucesso nesta instância de teste.
+
+Na tabela \ref{tab:colstats_average5}, vê-se claramente que o método de Gopalakrishnan et al. se destaca dos demais, mantendo de maneira resiliente o valor de sensibilidade acima dos 83\%, e o de preditividade positiva em 89\%. Isto vale para a característica ST, mas não para T. No fim das contas não há problema nisso, pois o que vale é o máximo entre os dois (lembre que neste método a condição de isquemia é dada pelo OU lógico entre o resultado das duas redes).
+
+\printmetricstable{colstats_average5}{data/colstats_average5.csv}{TableName}{Instância de teste}{Médias das estatísticas coletivas da configuração 5}{Médias das estatísticas coletivas da configuração 5.}
+
+\section{Informações adicionais}
+
+A tabela \ref{tab:nntimes} apresenta alguns dados sobre o treinamento das redes neurais nas várias configurações e também no caso individual. O motivo de ter-se realizado somente uma tentativa para o caso coletivo é que o tempo de treinamento é grande, e não se conseguiria concluir o trabalho em tempo hábil caso se fizesse mais tentativas. A título de curiosidade, o tempo para processar todos os ECGs e extrair as características foi cerca de 4 minutos, enquanto o tempo para construir os conjuntos de dados após a extração foi cerca de 24 minutos.
+
+\begin{table}[ht!]
+    \centering
+    \input{tables/training-times.tex}
+    \caption[Tempo total de execução para treinamento das redes neurais]{Tempo total de execução para treinamento das redes neurais.}
+    \label{tab:nntimes}
+\end{table}
+
+A tabela \ref{tab:filestats} mostra algumas informações sobre a quantidade de código escrito ao longo do desenvolvimento. Os arquivos em C++, em conjunto com um modelo criado no Simulink, fornecem um ferramental valioso para simulação dos métodos de detecção em tempo real. Infelizmente, faltou tempo e espaço para incluí-los nesta monografia. Contudo, o leitor está convidado a fazer o \emph{download} do repositório do GitHub (\url{https://github.com/dsogari/tg-ecp-ufrgs}) e passar os olhos no modelo Simulink, dentro da pasta ``realtime''. A versão de MATLAB utilizada foi a R2014a (a mais recente até o momento de entrega da monografia).
+
+\begin{table}[ht!]
+    \centering
+    \input{tables/files-and-lines-of-code.tex}
+    \caption[Número de arquivos e de linhas de código por tipo de arquivo]{Número de arquivos e de linhas de código por tipo de arquivo.}
+    \label{tab:filestats}
+\end{table}

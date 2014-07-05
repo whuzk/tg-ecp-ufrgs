@@ -1,0 +1,110 @@
+\ProvidesPackage{mystyle}
+
+% ----------------------------------------------------------
+\settrimmedsize{297mm}{210mm}{*}    
+\setlrmarginsandblock{3cm}{2cm}{*}
+\setulmarginsandblock{3cm}{2cm}{*}
+
+% ----------------------------------------------------------
+% Pacotes fundamentais 
+% ----------------------------------------------------------
+\usepackage{styles/infufrgs}        % estilo da inf
+\usepackage[T1]{fontenc}            % selecao de codigos de fonte
+\usepackage[utf8]{inputenc}         % codificacao do documento
+\usepackage{lastpage}               % Usado pela Ficha catalográfica
+\usepackage{indentfirst}            % Indenta o primeiro parágrafo de cada seção.
+\usepackage{color}                  % Controle das cores
+\usepackage{graphicx}               % Inclusão de gráficos
+\usepackage{epstopdf}               % uso de figuras no formato eps
+\usepackage[framed]{styles/mcode}   % uso de codigo MATLAB
+\usepackage{microtype}              % para melhorias de justificação
+\usepackage[version=3]{mhchem}
+\usepackage{multirow}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{url}
+\usepackage{amsmath}
+\usepackage{mathpazo,lipsum}
+\usepackage{pdfpages}
+\usepackage{mathptmx}              % fonte Adobe Times nas fórmulas
+\usepackage[brazilian,hyperpageref]{backref}    % citações na bib
+\usepackage[alf]{abntex2cite}      % citações padrão ABNT
+\usepackage{styles/mytables}       % estilo de tabelas
+\usepackage{enumerate}             % listas enumeradas
+\usepackage{subcaption}            % sub-figuras
+\usepackage{slashbox}              % barra diagonal em tabelas
+
+% ----------------------------------------------------------
+% Configuraçoes dos pacotes
+% ----------------------------------------------------------
+\restylefloat{figure}
+\newcommand{\specialcell}[2][c]{%
+  \begin{tabular}[#1]{@{}c@{}}#2\end{tabular}}
+\newcommand{\specialcellleft}[2][l]{%
+  \begin{tabular}[#1]{@{}l@{}}#2\end{tabular}}
+\makeatletter
+\newcommand{\mypm}{\mathbin{\mathpalette\@mypm\relax}}
+\newcommand{\@mypm}[2]{\ooalign{%
+  \raisebox{.1\height}{$#1+$}\cr
+  \smash{\raisebox{-.6\height}{$#1-$}}\cr}}
+\makeatother
+\graphicspath{{pic//}}
+% Configurações do pacote backref
+% Usado sem a opção hyperpageref de backref
+\renewcommand{\backrefpagesname}{Citado na(s) página(s):~}
+% Texto padrão antes do número das páginas
+\renewcommand{\backref}{}
+% Define os textos da citação
+\renewcommand*{\backrefalt}[4]{
+    \ifcase #1 %
+        Nenhuma citação no texto.%
+    \or
+        Citado na página #2.%
+    \else
+        Citado #1 vezes nas páginas #2.%
+    \fi}
+\setlist[itemize]{labelindent=\parindent}
+\setlist[enumerate]{labelindent=\parindent}
+\setlist[description]{labelindent=\parindent}
+\newtheorem{mydef}{Definição}
+\renewcommand\lstlistlistingname{Lista de códigos-fonte}
+\renewcommand\lstlistingname{Código-fonte}
+\newcommand{\ordf}{\textordfeminine~}
+\newcommand{\ordm}{\textordmasculine~}
+
+% ----------------------------------------------------------
+% Configurações de aparência do PDF final
+% ----------------------------------------------------------
+% alterando o aspecto da cor azul
+%\definecolor{blue}{RGB}{41,5,195}
+\definecolor{blue}{RGB}{0,0,0}
+
+% informações do PDF
+\makeatletter
+\hypersetup{
+        %pagebackref=true,
+        pdftitle={\@title}, 
+        pdfauthor={\@author},
+        pdfsubject={\imprimirpreambulo},
+        pdfcreator={LaTeX with abnTeX2},
+        pdfkeywords={abnt}{latex}{abntex}{abntex2}{trabalho acadêmico}, 
+        colorlinks=true,            % false: boxed links; true: colored links
+        linkcolor=blue,             % color of internal links
+        citecolor=blue,             % color of links to bibliography
+        filecolor=magenta,              % color of file links
+        urlcolor=blue,
+        bookmarksdepth=4
+}
+\makeatother
+
+% ----------------------------------------------------------
+% Espaçamentos entre linhas e parágrafos 
+% ----------------------------------------------------------
+% O tamanho do parágrafo é dado por:
+\setlength{\parindent}{0.6cm}
+% Controle do espaçamento entre um parágrafo e outro:
+%\setlength{\parskip}{0.2cm}  % tente também \onelineskip
+\setlength{\parskip}{6pt}

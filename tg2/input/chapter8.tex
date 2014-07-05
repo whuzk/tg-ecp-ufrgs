@@ -1,0 +1,26 @@
+% !TEX root = ../monografia.tex
+% !TeX spellcheck = pt_BR
+
+% ----------------------------------------------------------
+\chapter[Conclusão]{Conclusão}
+\thispagestyle{empty}
+\label{chap:chapter8}
+% ----------------------------------------------------------
+
+\section{Conclusão geral sobre os métodos}
+Com base nas informações do capítulo \ref{chap:chapter7}, pode-se chegar à conclusão de que o método de Gopalakrishnan et al. fornece os melhores resultados em termos de métricas de confiabilidade. Viu-se que as medidas de sensibilidade e preditividade positiva deste método estão sempre acima das dos outros métodos. A única exceção é na configuração 1, em que o método de Rocha et al. leva vantagem. Aliás, o método de Rocha et al. seria o segundo melhor, enquanto o de Mohebbi e Moghadam ficaria em última posição.
+
+Não se pode deixar de lado o fato de que, nos testes realizados, todos os resultados ficaram aquém daqueles obtidos originalmente pelos autores dos métodos. Isso faz com que a conclusão do trabalho fique de certa forma descreditada. Mesmo assim, com base nos resultados obtidos, e sabendo que é de extrema dificuldade reproduzir um experimento científico como este de igual para igual, quer-se advogar esta conclusão como honesta e verdadeira.
+
+Assim, para fins práticos, o método de Gopalakrishnan et. al parece apresentar os melhores resultados de confiabilidade, tornando-o, dentre os três métodos avaliados, o mais confiável. Sugere-se portanto o seu uso em um sistema de monitoramento cardíaco com suporte à tomada de decisão médica, em detrimento do uso dos métodos de Rocha et al. e de Mohebbi e Moghadam. Adicionalmente, há que se mencionar o fato de que o método de Gopalakrishnan et. al é também o método mais simples de implementar, conforme foi discutido ao longo do trabalho.
+
+\section{Contribuição da pesquisa}
+
+É necessário ressaltar a importância da utilização da técnica de expansão em funções de Hermite, por ela estar presente em dois dos métodos com maior confiabilidade. Também merece destaque a implementação dos procedimentos de detecção de batimentos cardíacos, de detecção de pontos de interesse e de construção de \emph{template}.
+
+Em especial, a construção de \emph{template} é importante não apenas porque permite fácil eliminação de artefatos, mas porque é a técnica empregada originalmente pelos criadores do banco de ECGs \emph{European ST-T}. Os especialistas responsáveis pela análise dos batimentos cardíacos tiveram acesso a um modelo de batimento construído com os primeiros 30 segundos de ECG, e fizeram as anotações de desvio de segmento ST e de onda T com base nesse modelo. Daí a importância do uso de \emph{template} na detecção de isquemia usando esta base de dados.
+
+
+\section{Trabalhos Futuros}
+
+Futuramente, pensa-se em implementar o método selecionado num dispositivo móvel do tipo \emph{smartphone}, com o intuito de testar efetivamente o método e detectar a doença num paciente.

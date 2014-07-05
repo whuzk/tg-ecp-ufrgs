@@ -1,0 +1,122 @@
+%-------------------------------------------------------------------------------
+% Configuração de estilo das tabelas
+%-------------------------------------------------------------------------------
+\ProvidesPackage{mytables}
+
+%-------------------------------------------------------------------------------
+% Uso de pacotes
+%-------------------------------------------------------------------------------
+\usepackage{multirow}           % combinação de linhas em tabelas
+\usepackage{booktabs}           % formataçao profissional de tabelas
+\usepackage{longtable}          % tabelas grandes
+\usepackage{datatool}           % importaçao de bases de dados
+\usepackage{siunitx}            % apresentacao de unidades de medida
+\usepackage{tablefootnote}      % notas de rodape em tabelas
+
+%-------------------------------------------------------------------------------
+% Definiçoes
+%-------------------------------------------------------------------------------
+\renewcommand{\dtldisplaystarttab}{\toprule}
+\renewcommand{\dtldisplayafterhead}{\midrule}
+\renewcommand{\dtldisplayendtab}{\\\bottomrule}
+
+%-------------------------------------------------------------------------------
+% Tabela de arquivo CSV
+%-------------------------------------------------------------------------------
+\newcommand{\csvtable}[4][]{ %
+    \DTLloaddb[headers={#1}]{#2}{#3}
+    \begin{table}[ht]
+    \caption{#4}
+    \centering
+    \DTLdisplaydb{#2}
+    \label{tab:#2}
+    \end{table}
+}
+
+%-------------------------------------------------------------------------------
+% Formatacao de valores percentuais
+%-------------------------------------------------------------------------------
+\newcommand{\percent}[2]{ %
+    \DTLifnumerical{#1}{
+        \DTLmul{#1}{#1}{100}
+        \num[
+            round-integer-to-decimal,
+            round-mode=places,
+            round-precision=#2
+        ]{#1}
+    }{#1}
+}
+
+%-------------------------------------------------------------------------------
+% Tabela de medidas
+%-------------------------------------------------------------------------------
+\newcommand{\printmetricstable}[6]{ %
+    \DTLloaddb{#1}{#2}
+    \DTLsetheader{#1}{#3}{#4}
+    \DTLsetheader{#1}{Sensitivity}{SE (\%)}
+    \DTLsetheader{#1}{Specificity}{ES (\%)}
+    \DTLsetheader{#1}{PositivePred}{PP (\%)}
+    \DTLsetheader{#1}{NegativePred}{PN (\%)}
+    \DTLsetheader{#1}{Accuracy}{AC (\%)}
+    \DTLsetheader{#1}{FailureRate}{TF (\%)}
+    \begin{table}[ht!]
+        \centering
+        \begin{tabular}{lcccccc}
+            \toprule
+            \gdef\doamp{\gdef\doamp{&}}
+            \dtlforeachkey(\theKey,\theCol,\theType,\theHead)\in{#1}\do
+            {\doamp\bfseries\theHead}\\
+            \midrule
+            \DTLforeach{#1}{}{%
+                \DTLiffirstrow{}{\\}%
+                \gdef\doamp{\gdef\doamp{&}}
+                \DTLforeachkeyinrow{\thisValue}{\doamp\thisValue}
+            }\\
+            \bottomrule
+        \end{tabular}
+        \caption[#5]{#6}
+        \label{tab:#1}
+    \end{table}
+}
+
+%-------------------------------------------------------------------------------
+% Tabela de medidas (longa)
+%-------------------------------------------------------------------------------
+\newcommand{\printmetricslongtable}[6]{ %
+    \DTLloaddb{#1}{#2}
+    \DTLsetheader{#1}{#3}{#4}
+    \DTLsetheader{#1}{Sensitivity}{SE (\%)}
+    \DTLsetheader{#1}{Specificity}{ES (\%)}
+    \DTLsetheader{#1}{PositivePred}{PP (\%)}
+    \DTLsetheader{#1}{NegativePred}{PN (\%)}
+    \DTLsetheader{#1}{Accuracy}{AC (\%)}
+    \DTLsetheader{#1}{FailureRate}{TF (\%)}
+    \begin{small}
+    \begin{longtable}{lcccccc}
+        \caption[#5]{#6}\\
+        \toprule
+        \gdef\doamp{\gdef\doamp{&}}
+        \dtlforeachkey(\theKey,\theCol,\theType,\theHead)\in{#1}\do
+        {\doamp\bfseries\theHead}\\
+        \midrule
+        \endfirsthead
+        \caption[]{(continuada)}\\
+        \toprule
+        \gdef\doamp{\gdef\doamp{&}}
+        \dtlforeachkey(\theKey,\theCol,\theType,\theHead)\in{#1}\do
+        {\doamp\bfseries\theHead}\\
+        \midrule
+        \endhead
+        \bottomrule
+        \endfoot
+        \bottomrule
+        \label{tab:#1}
+        \endlastfoot
+        \DTLforeach{#1}{}{%
+            \DTLiffirstrow{}{\\}%
+            \gdef\doamp{\gdef\doamp{&}}
+            \DTLforeachkeyinrow{\thisValue}{\doamp\thisValue}
+        }\\
+    \end{longtable}
+    \end{small}
+}

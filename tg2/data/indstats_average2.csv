@@ -1,0 +1,5 @@
+TableName,Sensitivity,Specificity,PositivePred,NegativePred,Accuracy,FailureRate
+Rocha/ST,87.2,98.6,91.9,98.1,97.8,2.2
+Mohebbi/ST,79.3,98.2,86.9,97.3,96.8,3.2
+Gopalak/ST,92.0,98.9,93.5,98.7,98.4,1.6
+Gopalak/T,86.9,99.0,91.3,98.8,98.5,1.5
