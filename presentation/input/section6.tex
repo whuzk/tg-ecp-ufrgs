@@ -34,8 +34,8 @@
         \column{0.5\textwidth}
         \begin{tikzpicture}
             \node[anchor=south west,inner sep=0] at (0,0) {\includegraphics[width=\textwidth]{figures/baseline.pdf}};
-            \draw<2->[red,thick] (0.0,1.1) -- (6.0,1.4);
-            \draw<3>[red,thick,->] (4.5,1.0) arc (-180:-90:1.5);
+            \visible<2->{\draw[red,thick] (0.0,1.1) -- (6.0,1.4);}
+            \visible<3>{\draw[red,thick,->] (4.5,1.0) arc (-180:-90:1.5);}
         \end{tikzpicture}
         \vskip30pt\null
         \column{0.5\textwidth}
