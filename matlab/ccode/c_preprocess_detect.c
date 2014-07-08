@@ -670,7 +670,7 @@ mwSize special_search(mwSize test, mwSize def)
 {
     int y1 = mdb(test);
     int y2 = mdb(def);
-    if (SIGN(y1) != SIGN(y2) && abs(y1) >= abs(y2 >> 2)) {
+    if (SIGN(y1) != SIGN(y2) && abs(y1) >= abs(y2 / 5)) {
         return test;
     }
     else return def;

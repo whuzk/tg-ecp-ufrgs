@@ -2,5 +2,14 @@
 % !TeX spellcheck = pt_BR
 
 \begin{frame}
-    
+   \begin{tikzpicture}[node distance = 2cm, auto]
+       \node (init) {};
+       \node [thick,draw,diamond,aspect=2,inner sep=0pt,below of=init] (questions) {Perguntas?};
+       \node [thick,draw,rectangle,right of=questions,xshift=1.0cm] (yes) {Pois não?};
+       \node [thick,draw,rectangle,below of=yes] (thanks) {Obrigado!};
+       \draw [->] (init) -- (questions);
+       \draw [->] (questions) -- node[anchor=north] {S} (yes);
+       \draw [->] (questions) |- node[anchor=east] {N} (thanks);
+       \draw [->] (yes.north) |- ([xshift=-3cm,yshift=+1cm] yes.north);
+   \end{tikzpicture}
 \end{frame}

@@ -1,5 +1,5 @@
 % leitura do ecg
-signal = utils.interpret_ecg(e0103, 1);
+signal = utils.interpret_ecg(e103, 1);
 
 % preprocessamento
 tic
