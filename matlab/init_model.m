@@ -1,4 +1,5 @@
 %% ECG data
+e0103 = load('C:\physiobank\database\edb\e0103.mat');
 signal = utils.interpret_ecg(e0103, 1);
 data = int16(signal.data - signal.inival);
 simin = timeseries(data, signal.time);

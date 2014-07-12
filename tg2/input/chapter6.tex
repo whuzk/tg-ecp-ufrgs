@@ -88,9 +88,52 @@ Os sinais de ECG são os da base de dados ST-T da Sociedade Européia de Cardiol
 
 Uma estrutura em MATLAB contém as amostras do sinal e outras informações a respeito deste, como a frequência de amostragem, o valor de referência e a resolução do conversor A/D, anotações, entre outras. Esta estrutura serve como entrada para a etapa de pré-processamento. A etapa começa pela filtragem do sinal de ECG, descrita em detalhes a seguir.
 
-A filtragem para detecção de complexos QRS se dé pela função \texttt{qrs\_filter} (código \ref{lst:qrsfilter}). Esta função recebe como parâmetros as amplitudes do sinal de ECG e a frequência de amostragem, $f_s$. Ela retorna o sinal filtrado e o atraso total dos filtros, $d_{QRS}$. Os filtros deste procedimento são quatro: um passa-baixas de segunda ordem\footnote{\label{fnt:note1}esta ordem não diz respeito ao número de coeficientes do filtro, mas sim tem a ver com os coneitos apresentados no capítulo \ref{chap:chapter3}, no que tange à técnica de projeto de filtros FIR com coeficientes inteiros} com frequência de corte em aproximadamente 11 Hz; um passa-altas de primeira ordem\footnote{Ver nota de rodapé \ref{fnt:note1}}. com frequência de corte em aproximadamente 5 Hz; um diferenciador de 5 pontos; e um filtro de média-movel com largura aproximada de 150 ms.
+A filtragem para detecção de complexos QRS se dá pela função \texttt{qrs\_filter} (código \ref{lst:qrsfilter}). Esta função recebe como parâmetros as amplitudes do sinal de ECG e a frequência de amostragem, $f_s$. Ela retorna o sinal filtrado e o atraso total dos filtros, $d_{QRS}$. Os filtros deste procedimento são quatro: um passa-baixas de segunda ordem\footnote{\label{fnt:note1}esta ordem não diz respeito ao número de coeficientes do filtro, mas sim tem a ver com os coneitos apresentados no capítulo \ref{chap:chapter3}, no que tange à técnica de projeto de filtros FIR com coeficientes inteiros} com frequência de corte em aproximadamente 11 Hz; um passa-altas de primeira ordem\footnote{Ver nota de rodapé \ref{fnt:note1}}. com frequência de corte em aproximadamente 5 Hz; um diferenciador de 5 pontos; e um filtro de média-movel com largura aproximada de 150 ms. A figura \ref{fig:qrsfilter} mostra o diagrama de blocos da filtragem QRS, enquanto as figuras \ref{fig:qrssignals1} e \ref{fig:qrssignals2} ilustram os diversos sinais intermediários dessa filtragem.
 
-A filtragem para detecção de pontos de interesse se dé pela função \texttt{fp\_filter} (código \ref{lst:fpfilter}). Esta função recebe como parâmetros as amplitudes do sinal de ECG, a frequência de amostragem e o atraso $d_{QRS}$. Ela retorna dois sinais, um que corresponde à derivada de primeira ordem do sinal de entrada suavizado e outro que é a derivada morfológica \cite{Sun2002} do sinal suavizado. Os filtros deste procedimento são quatro: um passa-baixas de segunda ordem\footnote{Ver nota de rodapé \ref{fnt:note1}} com frequência de corte em aproximadamente 11 Hz; um filtro de média-movel com largura de aproximadamente 50 ms; um diferenciador de dois pontos; e um filtro de média-movel com largura aproximada 150 ms.
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=450pt]{figures/chap6-qrs-filter.pdf}
+    \caption[Diagrama de blocos do filtro QRS]{Diagrama de blocos do filtro para detecção de complexos QRS.}
+    \label{fig:qrsfilter}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \begin{subfigure}[b]{.3\textwidth}
+        \includegraphics[width=\textwidth]{figures/chap6-original.pdf}
+        \caption{Sinal de ECG}
+    \end{subfigure}
+    \begin{subfigure}[b]{.3\textwidth}
+        \includegraphics[width=\textwidth]{figures/chap6-lowpass.pdf}
+        \caption{Saída do passa-baixas}
+    \end{subfigure}
+    \begin{subfigure}[b]{.3\textwidth}
+        \includegraphics[width=\textwidth]{figures/chap6-highpass.pdf}
+        \caption{Saída do passa-altas}
+    \end{subfigure}
+    \caption[Sinais intermediários da filtragem QRS]{Sinais intermediários da filtragem QRS.}
+    \label{fig:qrssignals1}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \begin{subfigure}[b]{.3\textwidth}
+        \includegraphics[width=\textwidth]{figures/chap6-differentiator.pdf}
+        \caption{Saída do diferenciador}
+    \end{subfigure}
+    \begin{subfigure}[b]{.3\textwidth}
+        \includegraphics[width=\textwidth]{figures/chap6-squaring.pdf}
+        \caption{Saída do operador quadrado}
+    \end{subfigure}
+    \begin{subfigure}[b]{.3\textwidth}
+        \includegraphics[width=\textwidth]{figures/chap6-moving-average.pdf}
+        \caption{Saída do média-móvel}
+    \end{subfigure}
+    \caption[Sinais intermediários da filtragem QRS (continuação)]{Sinais intermediários da filtragem QRS (continuação).}
+    \label{fig:qrssignals2}
+\end{figure}
+
+A filtragem para detecção de pontos de interesse se dé pela função \texttt{fp\_filter} (código \ref{lst:fpfilter}). Esta função recebe como parâmetros as amplitudes do sinal de ECG, a frequência de amostragem e o atraso $d_{QRS}$. Ela retorna dois sinais, um que corresponde à derivada de primeira ordem do sinal de entrada suavizado e outro que é a derivada morfológica \cite{Sun2002} do sinal suavizado. Os filtros deste procedimento são quatro: um passa-baixas de segunda ordem\footnote{Ver nota de rodapé \ref{fnt:note1}} com frequência de corte em aproximadamente 11 Hz; um filtro de média-móvel com largura de aproximadamente 50 ms; um diferenciador de dois pontos; e um filtro de média-movel com largura aproximada 150 ms.
 
 A filtragem para remoção de ruído se dé pela função \texttt{noise\_filter} (código \ref{lst:noisefilter}). Esta função recebe como parâmetros as amplitudes do sinal de ECG, a frequência de amostragem, a frequência da rede elétrica, $f_m$, e novamente o atraso $d_{QRS}$. Ela retorna o sinal filtrado, isto é, sem ruído de alta frequência e sem interferência da rede elétrica. Há dois filtros neste procedimento: um passa-baixas de Butterworth de quarta ordem com frequência de corte em aproximadamente 40 Hz; e um rejeita-faixas de quarta ordem Chebyshev tipo I, com frequência central em $f_m$ e largura da banda de rejeição de aproximadamente 2 Hz.
 
@@ -98,12 +141,45 @@ Os atrasos das três filtragens seriam dados a grosso modo por: $d_{QRS} \approx
 
 O próximo passo é detectar os batimentos. A função que realiza tal procedimento é \texttt{detect\_qrs} (código \ref{lst:detectqrs}). Ela recebe como parâmetros as amplitudes do sinal filtrado pelos filtros QRS e a taxa de amostragem. Ela retorna a localização aproximada dos picos de onda R e uma estimativa média dos intervalos RR. Existem cinco componentes principais no laço deste algoritmo: detecção de picos, atualização de \emph{thresholds}, determinação de complexos QRS, atualização de medidas de intervalo RR e busca de QRS em retrospecto (\emph{searchback}). Para cada pico detectado, verifica-se se a amplitude é maior que um \emph{threshold}. Se for, então o pico é candidato a ser de um complexo QRS. Medidas de nível de ruído e de sinal são atualizadas de acordo com a decisão tomada para o pico. O \emph{threshold} é computado em função desses níveis. Caso nenhum complexo QRS seja detectado dentro de um determinado período, a busca em retrospecto é ativada para recuperar um possível complexo perdido. A localização do pico do complexo, que quase sempre corresponde ao pico de onda R, não é identificada exatamente pelo algoritmo. O importante é saber que há um complexo QRS nos instantes próximos ao pico detectado no sinal filtrado. A localização exata no ECG é obtida pela detecção de pontos fiduciais, descrita a seguir.
 
-A detecção de pontos fiduciais se dá pela função \texttt{detect\_fp} (código \ref{lst:detectfp}). Ela recebe como parâmetros os dois sinais filtrados pela filtragem FP e a lista R fornecida pelo detector QRS. Sua saída é uma lista com os pontos fiduciais correspondentes a cada item da lista R. A busca é dividida em três partes. Em primeiro lugar são detectados os pontos referentes à onda R ($R_{peak}$, $R_{onset}$ e $R_{offset}$). Em segundo lugar, tendo $R_{onset}$, detecta-se o pico e o início da onda P ($P_{peak}$ e $P_{onset}$). Lembre-se de que $P_{peak}$ não será necessário posteriormente, mas é imprescindível para a busca de $P_{onset}$. Por último, tendo $R_{offset}$, detecta-se o pico e o fim da onda T ($T_{peak}$ e $T_{offset}$). Novamente, $T_{peak}$ não será necessário para a etapa de extração, mas serve para encontrar $T_{offset}$. A busca é feita com ajuda de algumas rotinas especiais: \texttt{search\_peak\_abs}, \texttt{search\_first\_mark} e \texttt{search\_best\_mark}. Em particular, a busca dos picos ($R_{peak}$, $P_{peak}$ e $T_{peak}$) desconsidera a polaridade do sinal. Isto é, um pico negativo é identificado da mesma maneira que um pico positivo, utilizando a rotina \texttt{search\_peak\_abs}.
+A detecção de pontos fiduciais se dá pela função \texttt{detect\_fp} (código \ref{lst:detectfp}). Ela recebe como parâmetros os dois sinais filtrados pela filtragem FP e a lista R fornecida pelo detector QRS. Sua saída é uma lista com os pontos fiduciais correspondentes a cada item da lista R. A busca é dividida em três partes. Em primeiro lugar são detectados os pontos referentes à onda R ($R_{peak}$, $R_{onset}$ e $R_{offset}$). Em segundo lugar, tendo $R_{onset}$, detecta-se o pico e o início da onda P ($P_{peak}$ e $P_{onset}$). Lembre-se de que $P_{peak}$ não será necessário posteriormente, mas é imprescindível para a busca de $P_{onset}$. Por último, tendo $R_{offset}$, detecta-se o pico e o fim da onda T ($T_{peak}$ e $T_{offset}$). Novamente, $T_{peak}$ não será necessário para a etapa de extração, mas serve para encontrar $T_{offset}$. A busca é feita com ajuda de algumas rotinas especiais: \texttt{search\_peak\_abs}, \texttt{search\_first\_mark} e \texttt{search\_best\_mark}. Em particular, a busca dos picos ($R_{peak}$, $P_{peak}$ e $T_{peak}$) desconsidera a polaridade do sinal. Isto é, um pico negativo é identificado da mesma maneira que um pico positivo, utilizando a rotina \texttt{search\_peak\_abs}. As figuras \ref{fig:fpsignalN} e \ref{fig:fpsignalM} ilustram os sinais de ECG e o da derivada morfológica, com a localização dos pontos fiduciais.
 
-A segmentação dos batimentos pode agora ser realizada, pois tem-se as marcações $P_{onset}$ e $T_{offset}$. Também com base nestes pontos, pode-se encontrar um polinômio de primeiro grau que melhor se ajusta à reta que conecta ambos. Mais especificamente, toma-se uma média das amplitudes nos cinco pontos próximos a $P_{onset}$ e nos cinco pontos próximos a $T_{offset}$. Com as médias, calcula-se os parâmetros da reta que os liga. Em cada ponto do batimento, subtrai-se da amplitude original o valor da reta avaliado naquele ponto. Tem-se assim um batimento cuja linha de base é o próprio eixo horizontal de nível zero (ou isoelétrico). Após a remoção da linha de base, o batimento é enquadrado num \emph{frame}, da maneira como foi explicada no início desta seção. A função que realiza estes procedimentos é \texttt{extract\_beats} (código \ref{lst:extractbeats}), com suas rotinas auxiliares \texttt{polyfit\_baseline} e \texttt{frame\_beat}. Os parâmetros de entrada de \texttt{extract\_beats} são as amplitudes do sinal filtrado pelos filtros de ruído, a lista FP e a taxa de amostragem. Sua saída é composta pela lista de batimentos extraídos e uma nova lista FP cujos valores dizem respeito à localização dos pontos de interesse no \emph{frame} (e não mais no ECG).
+\begin{figure}[p]
+    \centering
+    \begin{subfigure}[b]{.6\textwidth}
+        \includegraphics[width=\textwidth]{figures/chap6-fiducial-points1.pdf}
+        \caption{Sinal de ECG}
+        \label{fig:fpsignalN}
+    \end{subfigure}
+    \vskip20pt
+    \begin{subfigure}[b]{.6\textwidth}
+        \includegraphics[width=\textwidth]{figures/chap6-fiducial-points3.pdf}
+        \caption{Sinal da derivada morfológica}
+        \label{fig:fpsignalM}
+    \end{subfigure}
+    \caption[Sinais da filtragem FP e respectivos pontos]{Sinais da filtragem FP e respectivos pontos.}
+\end{figure}
 
-Finalmente, toma lugar a construção de \emph{template} e a remoção de artefatos. Para tanto, é usada a função \texttt{build\_template} (código \ref{lst:buildtemplate}). Esta função recebe como parâmetro a lista de batimentos e uma constante que diz a taxa de adaptação do \emph{template}. Por exemplo, uma taxa de $R$ significa que as amplitudes do \emph{template} obedecem à regra $T_i[n] = T_{i-1}[n] + R^{-1}\left(B_i[n] - T_{i-1}[n]\right), 0 \leq n \leq N-1$, com $N$ igual ao tamanho do \emph{frame} dos batimentos. Esta é a equação de recorrência de um filtro de média-móvel exponencial com constante de decaimento igual a $1/R$. No entanto, o \emph{template} só é atualizado se a diferença, $E$, entre o \emph{template} e o batimento atual for menor que um \emph{threshold}, $C$. Este \emph{threshold} é calculado pela mesma relação recursiva: $C_i = C_{i-1} + R^{-1}\left(E_i - C_{i-1}\right)$. O erro $E_i$ é a medida de diferença na i-ésima iteração, dada pela distância Euclideana: $E_i = \|B_i - T_i\|$. Na verdade, dois valores de \emph{threshold} são mantidos, um que equivale a 3 vezes o valor do erro médio e o outro, a 4 vezes o mesmo valor. Assim, se o erro na iteração atual for menor que o primeiro \emph{threshold}, então o batimento é considerado muito bom e tanto o \emph{template} quanto o \emph{threshold} são atualizados. Senão, se o erro estiver acima do segundo \emph{threshold}, então o batimento é considerado como artefato e descartado. Se o erro cair no intervalo entre os dois \emph{thresholds}, o batimento é considerado bom e mantido sem que haja alteração de \emph{template} ou de \emph{threshold}.
+A segmentação dos batimentos pode agora ser realizada, pois tem-se as marcações $P_{onset}$ e $T_{offset}$. Também com base nestes pontos, pode-se encontrar um polinômio de primeiro grau que melhor se ajusta à reta que conecta ambos. Mais especificamente, toma-se uma média das amplitudes nos cinco pontos próximos a $P_{onset}$ e nos cinco pontos próximos a $T_{offset}$. Com as médias, calcula-se os parâmetros da reta que os liga. Em cada ponto do batimento, subtrai-se da amplitude original o valor da reta avaliado naquele ponto. Tem-se assim um batimento cuja linha de base é o próprio eixo horizontal de nível zero (ou isoelétrico). A figura \ref{fig:baseline} ilustra o procedimento de remoção (ou normalização) da linha de base.
 
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=400pt]{figures/chap6-baseline-removal.pdf}
+    \caption[Procedimento de remoção da linha de base]{Procedimento de remoção da linha de base.}
+    \label{fig:baseline}
+\end{figure}
+
+Após a remoção da linha de base, o batimento é enquadrado num \emph{frame}, da maneira como foi explicada no início desta seção. A função que realiza estes procedimentos é \texttt{extract\_beats} (código \ref{lst:extractbeats}), com suas rotinas auxiliares \texttt{polyfit\_baseline} e \texttt{frame\_beat}. Os parâmetros de entrada de \texttt{extract\_beats} são as amplitudes do sinal filtrado pelos filtros de ruído, a lista FP e a taxa de amostragem. Sua saída é composta pela lista de batimentos extraídos e uma nova lista FP cujos valores dizem respeito à localização dos pontos de interesse no \emph{frame} (e não mais no ECG).
+
+Finalmente, toma lugar a construção de \emph{template} e a remoção de artefatos. Para tanto, é usada a função \texttt{build\_template} (código \ref{lst:buildtemplate}). Esta função recebe como parâmetro a lista de batimentos e uma constante que diz a taxa de adaptação do \emph{template}. Por exemplo, uma taxa de $R$ significa que as amplitudes do \emph{template} obedecem à regra $T_i[n] = T_{i-1}[n] + R^{-1}\left(B_i[n] - T_{i-1}[n]\right), 0 \leq n \leq N-1$, com $N$ igual ao tamanho do \emph{frame} dos batimentos. Esta é a equação de recorrência de um filtro de média-móvel exponencial com constante de decaimento igual a $1/R$. No entanto, o \emph{template} só é atualizado se a diferença, $E$, entre o \emph{template} e o batimento atual for menor que um \emph{threshold}, $C$. Este \emph{threshold} é calculado pela mesma relação recursiva: $C_i = C_{i-1} + R^{-1}\left(E_i - C_{i-1}\right)$.
+
+O erro $E_i$ é a medida de diferença na i-ésima iteração, dada pela distância Euclideana: $E_i = \|B_i - T_i\|$. Na verdade, dois valores de \emph{threshold} são mantidos, um que equivale a 3 vezes o valor do erro médio e o outro, a 4 vezes o mesmo valor. Assim, se o erro na iteração atual for menor que o primeiro \emph{threshold}, então o batimento é considerado muito bom e tanto o \emph{template} quanto o \emph{threshold} são atualizados. Senão, se o erro estiver acima do segundo \emph{threshold}, então o batimento é considerado como artefato e descartado. Se o erro cair no intervalo entre os dois \emph{thresholds}, o batimento é considerado bom e mantido sem que haja alteração de \emph{template} ou de \emph{threshold}. A figura \ref{fig:artifact} ilustra a comparação feita para determinar se um batimento é um artefato ou não.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=400pt]{figures/chap6-artifact-removal.pdf}
+    \caption[Procedimento de remoção de artefatos]{Procedimento de remoção de artefatos.}
+    \label{fig:artifact}
+\end{figure}
 
 \section{Projeto da extração de características}
 
@@ -119,25 +195,74 @@ A extração de características do método de Rocha começa pela identificaçã
 
 Em seguida, o algoritmo de bordas é empregado para a busca do ponto isoelétrico e também para uma nova estimativa do ponto $J$. A função \texttt{edge\_detection} (código \ref{lst:edgedetection}), que recebe como parâmetros o sinal do batimento, pontos de início e fim, além de um \emph{threshold}, faz a busca do ponto desejado no intervalo, retornando este como saída. A busca do ponto $I$ se dá pela aplicação da função no intervalo à esquerda de $R_{peak}$, enquanto a busca de $J$ se dá no intervalo à direita de $R_{peak}$.
 
-Com estes pontos, obtêm-se uma medida do desvio de segmento ST, dado pela diferença entre as amplitudes do batimento nos pontos $J$ e aquela avaliada no ponto $I$. Essas duas medidas são as primeiras a compor o conjunto de características do método de Rocha et al.
+Com estes pontos, obtêm-se uma medida do desvio de segmento ST, dado pela diferença entre as amplitudes do batimento nos pontos $J$ e aquela avaliada no ponto $I$. Essas duas medidas são as primeiras a compor o conjunto de características do método de Rocha et al. A figura \ref{fig:rochastdev} ilustra o procedimento de obtenção do desvio ST.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=350pt]{figures/chap6-rocha-stdev.pdf}
+    \caption[Cálculo do desvio de segmento ST]{Cálculo do desvio de segmento ST no método de Rocha et al.}
+    \label{fig:rochastdev}
+\end{figure}
 
 O próximo passo é seccionar o batimento em dois segmentos: um contendo o complexo QRS e outro contendo a onda T. O primeiro segmento vai do ponto $I$ até o ponto $J$, enquanto o segundo vai deste até o ponto final do batimento ($T_{offset}$). Cada um destes segmentos é então reamostrado para um sinal de 64 amostras. A função do MATLAB para reamostragem é \texttt{resample}. Ela recebe como parâmetros o sinal que se deseja reamostrar, um fator de interpolação $p$ e um fator de dizimação $q$, retornando um sinal de largura $\lceil\frac{p}{q}\rceil$ vezes a largura original. Internamente, essa função faz o projeto de um filtro passa-baixas FIR, necessário ao algoritmo de reamostragem.
 
-Na implementação em C da reamostragem, foi usada a técnica de projeto de filtros por truncagem da resposta ideal, conforme vista no capítulo \ref{chap:chapter3}. O filtro projetado possui as seguintes especificações: largura da região de transição de 2 Hz, frequência de corte em $\frac{\pi}{\max\left(p,q\right)}$ radianos e uso da janela Hamming (que apresenta atenuação média de 41 dB na banda de rejeição). Note que o projeto é refeito a cada nova chamada de reamostragem, pois a especificação depende do tamanho do sinal original.
+Na implementação em C da reamostragem, foi usada a técnica de projeto de filtros por truncagem da resposta ideal, conforme vista no capítulo \ref{chap:chapter3}. O filtro projetado possui as seguintes especificações: largura da região de transição de 2 Hz, frequência de corte em $\frac{\pi}{\max\left(p,q\right)}$ radianos e uso da janela Hamming (que apresenta atenuação média de 41 dB na banda de rejeição). Note que o projeto é refeito a cada nova chamada de reamostragem, pois a especificação depende do tamanho do sinal original. A figura \ref{fig:rochaseg} mostra a delimitação dos segmentos no batimento.
 
-Os segmentos devidamente reamostrados servem como operando no produto matricial que fornece os coeficientes da expansão em funções de Hermite, sendo o outro operando a matriz discutida no capítulo \ref{chap:chapter5} para o método de Rocha et al. Há uma matriz para o primeiro segmento e outra para o segundo segmento, cada qual com seu fator de dilatação (5 e 8, para ser exato). Ambas possuem 6 linhas e 64 colunas, de modo que o produto com o vetor coluna contendo as 64 amostras do segmento correspondente resulta nos coeficientes desejados.
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=350pt]{figures/chap6-rocha-segments.pdf}
+    \caption[Particionamento do batimento em dois segmentos]{Particionamento do batimento em dois segmentos para o método de Rocha et al.}
+    \label{fig:rochaseg}
+\end{figure}
+
+Os segmentos devidamente reamostrados servem como operando no produto matricial que fornece os coeficientes da expansão em funções de Hermite, sendo o outro operando a matriz discutida no capítulo \ref{chap:chapter5} para o método de Rocha et al. Há uma matriz para o primeiro segmento e outra para o segundo segmento, cada qual com seu fator de dilatação (5 e 8, para ser exato). Ambas possuem 6 linhas e 64 colunas, de modo que o produto com o vetor coluna contendo as 64 amostras do segmento correspondente resulta nos coeficientes desejados. A figura \ref{fig:rochaherm} ilustra o procedimento de expansão em funções de Hermite e extração dos coeficientes.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=300pt]{figures/chap6-rocha-hermite.pdf}
+    \caption[Aproximação dos segmentos por funções de Hermite]{Aproximação dos segmentos por funções de Hermite para o método de Rocha et al.}
+    \label{fig:rochaherm}
+\end{figure}
 
 Portanto, ao final da extração do método de Rocha et al., obtêm-se um conjunto de 14 características, quais sejam: duas medidas de desvio de segmento ST; seis coeficientes da expansão de Hermite do primeiro segmento; e seis coeficientes da expansão do segundo segmento. A função responsável pelo garimpo de todos estes itens é \texttt{rocha\_features} (código \ref{lst:rochafeatures}), auxiliada pelas rotinas \texttt{pang\_jpoints}, \texttt{rocha\_ijpoints}, \texttt{rocha\_stdev}, \texttt{rocha\_segments} e \texttt{rocha\_hermite} (códigos \ref{lst:pangjpoints}, \ref{lst:rochaijpoints}, \ref{lst:rochastdev}, \ref{lst:rochasegments} e \ref{lst:rochahermite} respectivamente).
 
 \subsection*{Método de Mohebbi e Moghadam}
-A etapa de extraçao do método de Mohebbi e Moghadam começa com a localização do ponto $J$, pelo mesmo procedimento já mencionado, o da função \texttt{edge\_detection}. Depois, extrai-se o segmento ST, que inicia no ponto $J$ e se estende por 160 ms (ou 40 amostras, numa frequência de amostragem de 250 Hz). O segmento é reamostrado pra 20 amostras e sua diferença com o segmento ST do \emph{template} é obtida por uma simples operação de subtração.
+A etapa de extraçao do método de Mohebbi e Moghadam começa com a localização do ponto $J$, pelo mesmo procedimento já mencionado, o da função \texttt{edge\_detection}. Depois, extrai-se o segmento ST, que inicia no ponto $J$ e se estende por 160 ms (ou 40 amostras, numa frequência de amostragem de 250 Hz). O segmento é reamostrado pra 20 amostras e sua diferença com o segmento ST do \emph{template} é obtida por uma simples operação de subtração. A figura \ref{fig:mohebbistseg} ilustra como é feita a extração do segmento ST, enquanto a figura \ref{fig:mohebbistdiff} mostra como é feita a composição do vetor de características do método.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=350pt]{figures/chap6-mohebbi-stseg.pdf}
+    \caption[Obtenção do segmento ST a partir do ponto $J$]{Obtenção do segmento ST a partir do ponto $J$ no método de Mohebbi e Moghadam.}
+    \label{fig:mohebbistseg}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=350pt]{figures/chap6-mohebbi-stdiff.pdf}
+    \caption[Diferença entre o segmento ST de teste e o de referência]{Diferença entre o segmento ST de teste e o de referência, para composição das características do método de Mohebbi e Moghadam.}
+    \label{fig:mohebbistdiff}
+\end{figure}
 
 Note-se que o ponto $J$ e o segmento ST do \emph{template} são extraídos apenas uma vez, tão logo o \emph{template} se faça presente. A versao de \emph{template} utilizda é aquela computada após o 30\ordm batimento. A função que executa estes procedimentos é \texttt{mohebbi\_features} (código \ref{lst:mohebbifeatures}), suportada pelas rotinas auxiliares \texttt{mohebb\_ijpoints}, \texttt{mohebb\_isegments} e \texttt{mohebb\_istdiff} (códigos \ref{lst:mohebbijpoints}, \ref{lst:mohebbisegments} e \ref{lst:mohebbistdiff}, respectivamente).
 
 \subsection*{Método de Gopalakrishnan et al.}
-A extração do método de Gopalakrishnan et al. é bastante simples. Primeiro, um segmento é extraído contendo todo o batimento. Ele está centralizado no pico de onda R (ou o centro do \emph{frame}) e possui largura igual ao intervalo RR correspondente ao batimento em questão. Subsequentemente, a função de reamostragem é aplicada para produzir um sinal de tamanho fixo igual a 250 amostras. 
+A extração do método de Gopalakrishnan et al. é bastante simples. Primeiro, um segmento é extraído contendo todo o batimento. Ele está centralizado no pico de onda R (ou o centro do \emph{frame}) e possui largura igual ao intervalo RR correspondente ao batimento em questão. Subsequentemente, a função de reamostragem é aplicada para produzir um sinal de tamanho fixo igual a 250 amostras. A figura \ref{fig:gopalakseg} mostra como é feita a delimitação do batimento, enquanto a figura 
 
-Finalmente, ocorre o produto matricial entre a matriz de funções discretas de Hermite (ver capítulo \ref{chap:chapter3}), com 50 linhas e 250 colunas, e o vetor coluna com as 250 amostras do batimento. O resultado é um conjunto de 50 coeficientes, que compõem o conjunto de caracteristicas do método. A função que realiza estes procedimentos é \texttt{gopalak\_features} (código \ref{lst:gopalakfeatures}), juntamente com as rotinas auxiliares \texttt{gopalak\_segments} e \texttt{gopalak\_hermite} (códigos \ref{lst:gopalaksegments} e \ref{lst:gopalakhermite}, respectivamente).
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=300pt]{figures/chap6-gopalak-segment.pdf}
+    \caption[Delimitação do batimento e centralização no intervalo RR]{Delimitação do batimento e centralização no intervalo RR, para uso o método de Gopalakrishnan et al.}
+    \label{fig:gopalakseg}
+\end{figure}
+
+Finalmente, ocorre o produto matricial entre a matriz de funções discretas de Hermite (ver capítulo \ref{chap:chapter3}), com 50 linhas e 250 colunas, e o vetor coluna com as 250 amostras do batimento. O resultado é um conjunto de 50 coeficientes, que compõem o conjunto de caracteristicas do método. A função que realiza estes procedimentos é \texttt{gopalak\_features} (código \ref{lst:gopalakfeatures}), juntamente com as rotinas auxiliares \texttt{gopalak\_segments} e \texttt{gopalak\_hermite} (códigos \ref{lst:gopalaksegments} e \ref{lst:gopalakhermite}, respectivamente). A figura \ref{fig:gopalakherm} ilustra o procedimetno de aproximação do batimento em funções de Hermite discretas e extração dos respectivos coeficientes.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=400pt]{figures/chap6-gopalak-hermite.pdf}
+    \caption[Aproximação do batimento por funções discretas de Hermite]{Aproximação do batimento por funções discretas de Hermite e composição do vetor de características do método de Gopalakrishnan et al.}
+    \label{fig:gopalakherm}
+\end{figure}
 
 \section{Projeto da classificação}
 
@@ -192,7 +317,15 @@ A classe a que pertence um batimento é dada pela condição $y>0$, onde $y$ é 
 
 Outra questão importante é manter a proporção de ocorrência das características na população quando se faz uma seleção dos dados de treinamento das redes neurais. Este é o conceito de \textbf{estratificação}. Se existir muito mais batimentos com a característica observada do que realmente existe na população, a probabilidade de que a rede produza muitos falsos positivos é grande. Portanto, deve-se procurar manter a proporção original da população (que seria a base de ECGs).
 
-Alguns códigos da etapa de classificação em MATLAB são apresentados no apêndice \ref{app:matlabclass}. As rotinas principais de treinamento são \texttt{train\_network} e \texttt{train\_networks} (códigos \ref{lst:trainnetwork} e \ref{lst:trainnetworks}); as rotinas \texttt{generate\_datasets} e \texttt{generate\_lead\_dataset} (códigos \ref{lst:generatedatasets} e \ref{lst:generateleaddataset}) são relativas à seleção de dados para composição dos conjuntos de treinamento, a ser discutida na próxima seção.
+Alguns códigos da etapa de classificação em MATLAB são apresentados no apêndice \ref{app:matlabclass}. As rotinas principais de treinamento são \texttt{train\_network} e \texttt{train\_networks} (códigos \ref{lst:trainnetwork} e \ref{lst:trainnetworks}); as rotinas \texttt{generate\_datasets} e \texttt{generate\_lead\_dataset} (códigos \ref{lst:generatedatasets} e \ref{lst:generateleaddataset}) são relativas à seleção de dados para composição dos conjuntos de treinamento, a ser discutida na próxima seção. A figura \ref{fig:vectorsandnets} dá uma ideia geral de como fica etapa de classificação.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=350pt]{figures/chap6-vectors-and-networks.pdf}
+    \caption[Visualização da etapa de classificação dos métodos]{Visualização da etapa de classificação dos métodos.}
+    \label{fig:vectorsandnets}
+\end{figure}
+
 
 \section{Projeto dos testes}
 \label{sec:tests}

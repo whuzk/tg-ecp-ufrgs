@@ -32,7 +32,8 @@ public:
     PeakEvaluator(mwSize buflen, type factor);
     ~PeakEvaluator();
     void newx(const type *buffer, int peakIdx, type thresh,
-            bool normalpeak, bool searchback, bool training);
+            bool normalpeak, bool searchback, bool training,
+            bool reducelevels);
     type outputSignalLevel();
     type outputNoiseLevel();
     bool outputQrsDetected();
@@ -73,14 +74,18 @@ type PeakEvaluator<type>::estimate(type oldVal, type newVal)
  *=======================================================================*/
 template <class type>
 void PeakEvaluator<type>::newx(const type *buffer, int peakIdx,
-        type thresh, bool normalpeak, bool searchback, bool training)
+        type thresh, bool normalpeak, bool searchback, bool training,
+        bool reducelevels)
 {
     qrsDetected = false;
     
     if (IDXOK(peakIdx)) {
         type peakAmp = BUFVAL(peakIdx);
         
-        if (searchback) {
+        if (reducelevels) {
+            signalLevel = signalLevel / 2;
+            noiseLevel = noiseLevel / 2;
+        } if (searchback) {
             type save = estimFactor;
             estimFactor /= (type)2;
             if (peakAmp >= thresh / (type)2) {

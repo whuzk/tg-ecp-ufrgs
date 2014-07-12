@@ -12,7 +12,7 @@
 #include "simstruc.h"
 #include "peakevaluator.h"
 
-#define NUM_INPUTS  6
+#define NUM_INPUTS  7
 #define NUM_OUTPUTS 3
 #define NUM_PARAMS  2
 
@@ -25,6 +25,7 @@
 #define INPUT4  ((const bool *)ssGetInputPortSignal(S, 3))[0]
 #define INPUT5  ((const bool *)ssGetInputPortSignal(S, 4))[0]
 #define INPUT6  ((const bool *)ssGetInputPortSignal(S, 5))[0]
+#define INPUT7  ((const bool *)ssGetInputPortSignal(S, 6))[0]
 #define OUTPUT1 ((int_T *)ssGetOutputPortSignal(S, 0))[0]
 #define OUTPUT2 ((int_T *)ssGetOutputPortSignal(S, 1))[0]
 #define OUTPUT3 ((bool *)ssGetOutputPortSignal(S, 2))[0]
@@ -63,6 +64,7 @@ static void mdlInitializeSizes(SimStruct *S)
     ssSetInputPortDataType(S, 3, SS_BOOLEAN);
     ssSetInputPortDataType(S, 4, SS_BOOLEAN);
     ssSetInputPortDataType(S, 5, SS_BOOLEAN);
+    ssSetInputPortDataType(S, 6, SS_BOOLEAN);
     
     // output port properties
     for (i = 0; i < NUM_OUTPUTS; i++) {
@@ -109,7 +111,7 @@ static void mdlStart(SimStruct *S)
 static void mdlOutputs(SimStruct *S, int_T tid)
 {
     PeakEvaluator<int> *obj = OBJECT;
-    obj->newx(INPUT1, INPUT2, INPUT3, INPUT4, INPUT5, INPUT6);
+    obj->newx(INPUT1, INPUT2, INPUT3, INPUT4, INPUT5, INPUT6, INPUT7);
     OUTPUT1 = obj->outputSignalLevel();
     OUTPUT2 = obj->outputNoiseLevel();
     OUTPUT3 = obj->outputQrsDetected();
