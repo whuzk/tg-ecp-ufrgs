@@ -6,9 +6,11 @@
 \addcontentsline{toc}{chapter}{Resumo}
 \setlength{\parindent}{0.6cm}
 
-Esta monografia apresenta um estudo comparativo prático de três algoritmos de detecção de isquemia cardíaca em eletrocardiogramas. Todas as etapas de cada algoritmo -- pré-processamento, extração de características e classificação --, são implementadas em MATLAB e na linguagem C.
+Esta monografia apresenta um estudo comparativo prático de três algoritmos de detecção de isquemia cardíaca em eletrocardiogramas. Todas as etapas de cada algoritmo -- pré-processamento, extração de características e classificação --, são implementadas em MATLAB e nas linguagens C e C++.
 
-O trabalho se propõe a atingir dois objetivos: primeiramente corroborar ou refutar os valores de medidas de confiabilidade, como sensibilidade e valor preditivo positivo, obtidos pelos autores dos métodos em sua proposta original; e em segundo lugar determinar o melhor método para ser implantado num sistema de monitoramento cardíaco com suporte à tomada de decisão médica. Isto é, selecionar dentre os métodos aquele que for mais confiável.
+O trabalho se propõe a atingir os seguintes objetivos: primeiramente inspirar-se nos algoritmos originais para criar uma implementação própria; em segundo lugar, pensa-se em unificar a implementação de modo que apenas a parte de extração (aquela que realmente define cada método) seja diferente; em terceiro lugar, quer-se avaliar o desempenho de cada método através de métricas de confiabilidade, como a sensibilidade e a preditividade positiva; por fim, deseja-se eleger o método que se sobressai como o mais confiável em termos destas métricas.
+
+A razão de selecionar o método mais confiável é que, num momento futuro, poder-se-ia implementar o método de verdade num dispositivo do tipo \emph{smartphone} ou mesmo num sistema de monitoramento cardíaco com suporte à tomada de decisão médica.
 
 Este trabalho foi realizado em conjunto com o mestrado de Guilherme Lazarotto de Lima, Mestrando em Computação pela UFRGS.
 
