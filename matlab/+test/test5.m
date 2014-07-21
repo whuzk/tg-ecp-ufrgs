@@ -1,5 +1,6 @@
 % leitura do ecg
-signal = utils.interpret_ecg(e103, 1);
+record = load('C:\physiobank\database\edb\e0103.mat');
+signal = utils.interpret_ecg(record, 1);
 
 % preprocessamento
 tic
