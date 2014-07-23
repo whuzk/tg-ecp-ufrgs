@@ -44,7 +44,7 @@
 #define SEARCH_L1_SEC   0.10    // search limit for R-wave points
 #define SEARCH_L2_SEC   0.02    // search limit for Ronset and Roffset
 #define SEARCH_L3_SEC   0.15    // search limit for T- and P-wave points
-#define SEARCH_L4_SEC   0.08    // search limit for R onset and offset
+#define SEARCH_L4_SEC   0.12    // search limit for Ronset and Roffset
 #define NUM_BL_SAMPLES  5       // number of samples for baseline removal
 #define NUM_FDP_ROWS    7       // number of rows in the FDP matrix
 #define HALF_FRAME      0.6     // half the size of the beat frame
@@ -475,7 +475,8 @@ mwSize search_peak_abs(mwSize start, mwSize end, mwSize def)
 /*=========================================================================
  * Perform the detection of the first maximum peak on the MD signal
  *=======================================================================*/
-mwSize search_first_mark_max(mwSize start, mwSize end, mwSize def)
+mwSize search_first_mark_max(mwSize start, mwSize end, mwSize def,
+        int thresh)
 {
     mwSize i, imax;
     int y, ymax;
@@ -492,16 +493,10 @@ mwSize search_first_mark_max(mwSize start, mwSize end, mwSize def)
     i = start + inc;
     while (!found && i != end - inc) {
         y = mdb(i);
-        if (mdb(i - 1) < y && y >= mdb(i + 1)) {
+        if (mdb(i - 1) < y && y >= mdb(i + 1) && abs(y) < thresh) {
             found = true;
         }
-        else {
-            /*if (y > ymax) {
-                ymax = y;
-                imax = i;
-            }*/
-            i += inc;
-        }
+        else i += inc;
     }
     
     if (!found) {
@@ -513,7 +508,8 @@ mwSize search_first_mark_max(mwSize start, mwSize end, mwSize def)
 /*=========================================================================
  * Perform the detection of the first minimum peak on the MD signal
  *=======================================================================*/
-mwSize search_first_mark_min(mwSize start, mwSize end, mwSize def)
+mwSize search_first_mark_min(mwSize start, mwSize end, mwSize def,
+        int thresh)
 {
     mwSize i, imin;
     int y, ymin;
@@ -530,16 +526,10 @@ mwSize search_first_mark_min(mwSize start, mwSize end, mwSize def)
     i = start + inc;
     while (!found && i != end - inc) {
         y = mdb(i);
-        if (mdb(i - 1) > y && y <= mdb(i + 1)) {
+        if (mdb(i - 1) > y && y <= mdb(i + 1) && abs(y) < thresh) {
             found = true;
         }
-        else {
-            /*if (y < ymin) {
-                ymin = y;
-                imin = i;
-            }*/
-            i += inc;
-        }
+        else i += inc;
     }
     
     if (!found) {
@@ -664,43 +654,31 @@ mwSize search_best_mark_min(mwSize start, mwSize end, mwSize def)
 }
 
 /*=========================================================================
- * Special search
- *=======================================================================*/
-mwSize special_search(mwSize test, mwSize def)
-{
-    int y1 = mdb(test);
-    int y2 = mdb(def);
-    if (SIGN(y1) != SIGN(y2) && abs(y1) >= abs(y2 / 5)) {
-        return test;
-    }
-    else return def;
-}
-
-/*=========================================================================
  * Perform the detection of fiducial marks
  *=======================================================================*/
 void searchMarks(mwSize r, mwSize rr1, mwSize rr2)
 {
     mwSize len, temp1, temp2;
+    int thresh;
     
     // R-wave
     Rpeak = search_peak_abs(r - searchL1, r + searchL1, r);
     if (mdb(Rpeak) > 0) {
         // inverted
-        Ronset = search_first_mark_min(Rpeak - searchL2, Rpeak - searchL1, Rpeak);
-        Roffset = search_first_mark_min(Rpeak + searchL2, Rpeak + searchL1, Rpeak);
-        temp1 = search_first_mark_max(Ronset - 1, Ronset - searchL4, Ronset);
-        temp2 = search_first_mark_max(Roffset + 1, Roffset + searchL4, Roffset);
+        thresh = abs(mdb(Rpeak))/2;
+        Ronset = search_first_mark_min(Rpeak - searchL2, Rpeak - searchL1, Rpeak, INT_MAX);
+        Roffset = search_first_mark_min(Rpeak + searchL2, Rpeak + searchL4, Rpeak, INT_MAX);
+        Ronset = search_first_mark_max(Ronset - 1, Rpeak - searchL1, Ronset, thresh);
+        Roffset = search_first_mark_max(Roffset + 1, Rpeak + searchL4, Roffset, thresh);
     }
     else {
         // normal
-        Ronset = search_first_mark_max(Rpeak - searchL2, Rpeak - searchL1, Rpeak);
-        Roffset = search_first_mark_max(Rpeak + searchL2, Rpeak + searchL1, Rpeak);
-        temp1 = search_first_mark_min(Ronset - 1, Ronset - searchL4, Ronset);
-        temp2 = search_first_mark_min(Roffset + 1, Roffset + searchL4, Roffset);
+        thresh = abs(mdb(Rpeak))/2;
+        Ronset = search_first_mark_max(Rpeak - searchL2, Rpeak - searchL1, Rpeak, INT_MAX);
+        Roffset = search_first_mark_max(Rpeak + searchL2, Rpeak + searchL4, Rpeak, INT_MAX);
+        Ronset = search_first_mark_min(Ronset - 1, Rpeak - searchL1, Ronset, thresh);
+        Roffset = search_first_mark_min(Roffset + 1, Rpeak + searchL4, Roffset, thresh);
     }
-    Ronset = special_search(temp1, Ronset);
-    Roffset = special_search(temp2, Roffset);
     
     // P-wave
     len = (rr1 + (rr1 << 1)) >> 3;

@@ -21,9 +21,7 @@ RR2 = [RR; RR(end)];
 L1 = round(0.10*Fs);
 L2 = round(0.02*Fs);
 L3 = round(0.15*Fs);
-L4 = round(0.02*Fs);
-L5 = round(0.04*Fs);
-L6 = round(0.12*Fs);
+L4 = round(0.12*Fs);
 
 % outputs
 Result = zeros(7,M);
@@ -36,63 +34,46 @@ for i = 1:M
     Rpk = search_peak_abs(sigD,sigM,max(1,Rpk-L1),1,min(N,Rpk+L1),Rpk);
     if sigM(Rpk) > 0
         % inverted
+        thresh = abs(sigM(Rpk))/2;
         Ron = search_first_mark(-sigM,Rpk-L2,-1,max(1,Rpk-L1),Rpk);
-        Roff = search_first_mark(-sigM,Rpk+L2,1,min(N,Rpk+L6),Rpk);
-        Ron = search_first_mark(sigM,Ron-1,-1,max(1,Rpk-L1),Ron);
-        Roff = search_first_mark(sigM,Roff+1,1,min(N,Rpk+L6),Roff);
+        Roff = search_first_mark(-sigM,Rpk+L2,1,min(N,Rpk+L4),Rpk);
+        Ron = search_mark_below(sigM,Ron-1,-1,max(1,Rpk-L1),Ron,thresh);
+        Roff = search_mark_below(sigM,Roff+1,1,min(N,Rpk+L4),Roff,thresh);
     else
         % normal
+        thresh = abs(sigM(Rpk))/2;
         Ron = search_first_mark(sigM,Rpk-L2,-1,max(1,Rpk-L1),Rpk);
-        Roff = search_first_mark(sigM,Rpk+L2,1,min(N,Rpk+L6),Rpk);
-        Ron = search_first_mark(-sigM,Ron-1,-1,max(1,Rpk-L1),Ron);
-        Roff = search_first_mark(-sigM,Roff+1,1,min(N,Rpk+L6),Roff);
+        Roff = search_first_mark(sigM,Rpk+L2,1,min(N,Rpk+L4),Rpk);
+        Ron = search_mark_below(-sigM,Ron-1,-1,max(1,Rpk-L1),Ron,thresh);
+        Roff = search_mark_below(-sigM,Roff+1,1,min(N,Rpk+L4),Roff,thresh);
     end
     
     % P-wave
     len = floor(0.375*RR1(i));
-    Ppk = search_peak_abs(sigD,sigM,Ron-L4,-1,max(1,Ron-len),Ron);
+    Ppk = search_peak_abs(sigD,sigM,Ron-1,-1,max(1,Ron-len),Ron);
     if sigM(Ppk) > 0
         % inverted
         Pon = search_best_mark(-sigM,Ppk-1,-1,max(1,Ppk-L3),Ppk);
-        %Alt = search_best_mark(-sigM,Ppk+1,1,max(1,Ppk+L3),Ppk);
     else
         % normal
         Pon = search_best_mark(sigM,Ppk-1,-1,max(1,Ppk-L3),Ppk);
-        %Alt = search_best_mark(sigM,Ppk+1,1,max(1,Ppk+L3),Ppk);
     end
-    %if Alt < Ron && abs(sigM(Alt)) > abs(sigM(Pon))
-    %    Pon = Alt;
-    %end
     
     % T-wave
     len = floor(0.5*RR2(i));
-    Tpk = search_peak_abs(sigD,sigM,Roff+L5,1,min(N,Roff+len),Roff);
+    Tpk = search_peak_abs(sigD,sigM,Roff+1,1,min(N,Roff+len),Roff);
     if sigM(Tpk) > 0
         % inverted
         Toff = search_best_mark(-sigM,Tpk+1,1,min(N,Tpk+L3),Tpk);
-        %Alt = search_best_mark(-sigM,Tpk-1,-1,max(1,Tpk-L3),Tpk);
     else
         % normal
         Toff = search_best_mark(sigM,Tpk+1,1,min(N,Tpk+L3),Tpk);
-        %Alt = search_best_mark(sigM,Tpk-1,-1,max(1,Tpk-L3),Tpk);
     end
-    %if Alt > Roff && abs(sigM(Alt)) > abs(sigM(Toff))
-    %    Toff = Alt;
-    %end
     
     % save result
     Result(:,i) = [Pon Ppk Ron Rpk Roff Tpk Toff]';
 end
 
-
-function pos = special_search(dataM,test,def)
-y1 = dataM(test);
-y2 = dataM(def);
-if sign(y1) ~= sign(y2) && abs(y1) >= abs(y2/8)
-    pos = test;
-else
-    pos = def;
-end
 
 function pos = search_peak_abs(dataD,dataI,istart,inc,iend,default)
 idx = [default default];
@@ -144,6 +125,18 @@ if abs(iend - istart - inc) > 0
     pos = istart + inc*(x-1);
 else
     pos = default;
+end
+
+function pos = search_mark_below(data,istart,inc,iend,default,thresh)
+pos = default;
+if abs(iend - istart - inc) > 0
+    for i = istart+inc:inc:iend-inc
+        y = data(i);
+        if data(i-1) < y && y >= data(i+1) && abs(y) < thresh
+            pos = i;
+            break;
+        end
+    end
 end
 
 function pos = search_best_mark(data,istart,inc,iend,default)

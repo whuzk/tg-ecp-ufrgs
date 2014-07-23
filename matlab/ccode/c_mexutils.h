@@ -18,8 +18,10 @@
  *=======================================================================*/
 void mexPrintInt(int *vector, mwSize n)
 {
+    mwSize i;
+    
     if (n > 0) {
-        for (mwSize i = 0; i < n; i++) {
+        for (i = 0; i < n; i++) {
             mexPrintf("%d ", vector[i]);
         }
         mexPrintf("\n");
@@ -31,8 +33,10 @@ void mexPrintInt(int *vector, mwSize n)
  *=======================================================================*/
 void mexPrintDouble(double *vector, mwSize n)
 {
+    mwSize i;
+    
     if (n > 0) {
-        for (mwSize i = 0; i < n; i++) {
+        for (i = 0; i < n; i++) {
             mexPrintf("%.4f ", vector[i]);
         }
         mexPrintf("\n");
