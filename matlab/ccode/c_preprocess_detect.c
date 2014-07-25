@@ -658,7 +658,7 @@ mwSize search_best_mark_min(mwSize start, mwSize end, mwSize def)
  *=======================================================================*/
 void searchMarks(mwSize r, mwSize rr1, mwSize rr2)
 {
-    mwSize len, temp1, temp2;
+    mwSize len, alt;
     int thresh;
     
     // R-wave
@@ -681,27 +681,37 @@ void searchMarks(mwSize r, mwSize rr1, mwSize rr2)
     }
     
     // P-wave
-    len = (rr1 + (rr1 << 1)) >> 3;
-    Ppeak = search_peak_abs(Ronset - 1, Ronset - len, Ronset);
+    len = rr1 >> 1 - rr1 >> 3;
+    Ppeak = search_peak_abs(Ronset - 1, Rpeak - len, Ronset);
     if (mdb(Ppeak) > 0) {
         // inverted
         Ponset = search_best_mark_min(Ppeak - 1, Ppeak - searchL3, Ppeak);
+        alt = search_best_mark_min(Ppeak + 1, Ppeak + searchL3, Ppeak);
     }
     else {
         // normal
         Ponset = search_best_mark_max(Ppeak - 1, Ppeak - searchL3, Ppeak);
+        alt = search_best_mark_max(Ppeak + 1, Ppeak + searchL3, Ppeak);
+    }
+    if (Ponset < Rpeak - len) {
+        Ponset = alt;
     }
     
     // T-wave
-    len = rr2 >> 1;
-    Tpeak = search_peak_abs(Roffset + 1, Roffset + len, Roffset);
+    len = rr2 >> 1 + rr2 >> 3;
+    Tpeak = search_peak_abs(Roffset + 1, Rpeak + len, Roffset);
     if (mdb(Tpeak) > 0) {
         // inverted
         Toffset = search_best_mark_min(Tpeak + 1, Tpeak + searchL3, Tpeak);
+        alt = search_best_mark_min(Tpeak - 1, Tpeak - searchL3, Tpeak);
     }
     else {
         // normal
         Toffset = search_best_mark_max(Tpeak + 1, Tpeak + searchL3, Tpeak);
+        alt = search_best_mark_max(Tpeak - 1, Tpeak - searchL3, Tpeak);
+    }
+    if (Toffset > Rpeak + len) {
+        Toffset = alt;
     }
 }
 

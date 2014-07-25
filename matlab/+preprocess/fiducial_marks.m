@@ -50,24 +50,34 @@ for i = 1:M
     
     % P-wave
     len = floor(0.375*RR1(i));
-    Ppk = search_peak_abs(sigD,sigM,Ron-1,-1,max(1,Ron-len),Ron);
+    Ppk = search_peak_abs(sigD,sigM,Ron-1,-1,max(1,Rpk-len),Ron);
     if sigM(Ppk) > 0
         % inverted
         Pon = search_best_mark(-sigM,Ppk-1,-1,max(1,Ppk-L3),Ppk);
+        Alt = search_best_mark(-sigM,Ppk+1,1,min(N,Ppk+L3),Ppk);
     else
         % normal
         Pon = search_best_mark(sigM,Ppk-1,-1,max(1,Ppk-L3),Ppk);
+        Alt = search_best_mark(sigM,Ppk+1,1,min(N,Ppk+L3),Ppk);
+    end
+    if Pon < Rpk-len
+        Pon = Alt;
     end
     
     % T-wave
-    len = floor(0.5*RR2(i));
-    Tpk = search_peak_abs(sigD,sigM,Roff+1,1,min(N,Roff+len),Roff);
+    len = floor(0.625*RR2(i));
+    Tpk = search_peak_abs(sigD,sigM,Roff+1,1,min(N,Rpk+len),Roff);
     if sigM(Tpk) > 0
         % inverted
         Toff = search_best_mark(-sigM,Tpk+1,1,min(N,Tpk+L3),Tpk);
+        Alt = search_best_mark(-sigM,Tpk-1,-1,max(1,Tpk-L3),Tpk);
     else
         % normal
         Toff = search_best_mark(sigM,Tpk+1,1,min(N,Tpk+L3),Tpk);
+        Alt = search_best_mark(sigM,Tpk-1,-1,max(1,Tpk-L3),Tpk);
+    end
+    if Toff > Rpk+len
+        Toff = Alt;
     end
     
     % save result

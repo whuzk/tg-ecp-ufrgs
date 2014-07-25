@@ -45,7 +45,7 @@ t = 2*(dataset(:,end-1+feature)'~=0)-1;
 attempts = 0;
 minperf = Inf;
 while attempts < max_attempts
-    layers = randi([5 15],1);
+    layers = randi([5 15],1,2);
     [net,tr] = nnetwork.train_network(x, t, ...
         layers, 'trainlm', 'tansig', 'mapstd');
     if tr.best_perf < minperf
